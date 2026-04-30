@@ -348,15 +348,29 @@ def _make_cfg(tmp_path, registries):
             "skills": str(tmp_path / "skills"),
             "prompts": str(tmp_path / "prompts"),
         },
-        "runtime": {"default_provider": "anthropic", "timeout": 60, "cost_ledger": str(tmp_path / "cost.json")},
+        "runtime": {
+            "default_provider": "anthropic",
+            "timeout": 60,
+            "cost_ledger": str(tmp_path / "cost.json"),
+        },
         "large_agents": {"names": []},
     }
 
 
 def test_install_warns_on_duplicate_across_registries(tmp_path):
     """A warning is emitted to stderr when the same name exists in multiple registries."""
-    reg1 = {"name": "official", "url": "https://github.com/jomkz/uio-registry", "ref": "main", "enabled": True}
-    reg2 = {"name": "community", "url": "https://github.com/other/uio-reg", "ref": "main", "enabled": True}
+    reg1 = {
+        "name": "official",
+        "url": "https://github.com/jomkz/uio-registry",
+        "ref": "main",
+        "enabled": True,
+    }
+    reg2 = {
+        "name": "community",
+        "url": "https://github.com/other/uio-reg",
+        "ref": "main",
+        "enabled": True,
+    }
     cfg = _make_cfg(tmp_path, [reg1, reg2])
 
     manifest = yaml.safe_load(MANIFEST_WITH_SUMMARISE)
@@ -365,7 +379,10 @@ def test_install_warns_on_duplicate_across_registries(tmp_path):
         patch("uio.cli.registry.load_config", return_value=cfg),
         patch("uio.cli.registry.fetch_manifest", return_value=manifest),
         patch("uio.cli.registry.fetch_definition_content", return_value=DEFINITION_CONTENT),
-        patch("uio.cli.registry.parse_definition_file", return_value=({"name": "summarise", "type": "skill"}, "")),
+        patch(
+            "uio.cli.registry.parse_definition_file",
+            return_value=({"name": "summarise", "type": "skill"}, ""),
+        ),
         patch("uio.cli.registry.validate_definition", return_value=[]),
     ):
         result = CliRunner().invoke(registry_install_cmd, ["summarise"])
@@ -377,7 +394,12 @@ def test_install_warns_on_duplicate_across_registries(tmp_path):
 
 def test_install_no_warning_when_no_duplicate(tmp_path):
     """No warning is emitted when the definition exists in only one registry."""
-    reg1 = {"name": "official", "url": "https://github.com/jomkz/uio-registry", "ref": "main", "enabled": True}
+    reg1 = {
+        "name": "official",
+        "url": "https://github.com/jomkz/uio-registry",
+        "ref": "main",
+        "enabled": True,
+    }
     reg2_manifest = yaml.safe_load("version: 1\ndefinitions: []\n")
     cfg = _make_cfg(tmp_path, [reg1])
 
@@ -387,7 +409,10 @@ def test_install_no_warning_when_no_duplicate(tmp_path):
         patch("uio.cli.registry.load_config", return_value=cfg),
         patch("uio.cli.registry.fetch_manifest", return_value=manifest),
         patch("uio.cli.registry.fetch_definition_content", return_value=DEFINITION_CONTENT),
-        patch("uio.cli.registry.parse_definition_file", return_value=({"name": "summarise", "type": "skill"}, "")),
+        patch(
+            "uio.cli.registry.parse_definition_file",
+            return_value=({"name": "summarise", "type": "skill"}, ""),
+        ),
         patch("uio.cli.registry.validate_definition", return_value=[]),
     ):
         result = CliRunner().invoke(registry_install_cmd, ["summarise"])
