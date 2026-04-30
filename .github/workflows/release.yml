@@ -14,9 +14,24 @@ jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.pep }}
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: Derive package version from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME#v}"
+          PEP=$(echo "$RAW" | sed -E 's/-rc([0-9])/rc\1/g; s/-alpha([0-9])/a\1/g; s/-beta([0-9])/b\1/g')
+          echo "pep=$PEP" >> $GITHUB_OUTPUT
+          echo "Tag → PEP 440: $GITHUB_REF_NAME → $PEP"
+
+      - name: Patch pyproject.toml version
+        run: |
+          sed -i "s/^version = .*/version = \"${{ steps.ver.outputs.pep }}\"/" pyproject.toml
+          grep "^version" pyproject.toml
 
       - uses: actions/setup-python@v6
         with:
@@ -158,17 +173,11 @@ jobs:
 
   build-image:
     name: Build and push Docker image
-    needs: publish-pypi
+    needs: [publish-pypi, build]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Extract package version
-        id: pkg
-        run: |
-          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -201,6 +210,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: UIO_VERSION=${{ steps.pkg.outputs.version }}
+          build-args: UIO_VERSION=${{ needs.build.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

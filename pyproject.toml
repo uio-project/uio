@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uio-ai"
-version = "0.1.0rc2"
+version = "0.0.0.dev0"
 description = "Provider-agnostic AI agent/skill/prompt runner"
 readme = "README.md"
 requires-python = ">=3.11"
