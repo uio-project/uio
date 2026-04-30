@@ -120,7 +120,9 @@ Override when `npx` is not available or you want a pinned version:
 command = "bun x @github/github-mcp-server@1.2.0 stdio"
 ```
 
-This section only affects the MCP server launch command. The server still requires `GITHUB_PERSONAL_ACCESS_TOKEN` or `GITHUB_TOKEN` to be set.
+This section only affects the MCP server launch command. The server still requires
+`GITHUB_PERSONAL_ACCESS_TOKEN` or `GITHUB_TOKEN` to be set for agents that do **not**
+declare `github-identity`. See [GitHub authentication](#github-authentication) below.
 
 ---
 
@@ -152,6 +154,40 @@ enabled = true
 ```
 
 See [Registry](11-registry.md) for full registry documentation.
+
+---
+
+## GitHub authentication
+
+uio supports two authentication tracks for GitHub tools:
+
+### Personal Access Token (default)
+
+Set `GITHUB_PERSONAL_ACCESS_TOKEN` (or `GH_TOKEN`) in your environment. The `gh` CLI
+and the GitHub MCP server both pick this up automatically. This is the standard path
+for agents that do **not** declare `github-identity`.
+
+### GitHub App identity (identity agents)
+
+Agents that declare `github-identity: planner | coder | reviewer` in their frontmatter
+**must** authenticate via the corresponding GitHub App installation token. The uio
+runner exchanges App credentials for a short-lived token and sets `GH_TOKEN`
+automatically before the agent loop begins.
+
+This is not optional — if an agent declares `github-identity` but the App credentials
+are not present, the runner hard-fails with an actionable error. Falling back to
+`GITHUB_PERSONAL_ACCESS_TOKEN` is explicitly blocked for identity agents.
+
+Required environment variables per identity (store in `~/.config/uio/secrets`):
+
+| Identity | Variables |
+|---|---|
+| `planner` | `GITHUB_APP_PLANNER_ID`, `GITHUB_APP_PLANNER_INSTALLATION_ID`, `GITHUB_APP_PLANNER_PRIVATE_KEY` |
+| `coder` | `GITHUB_APP_CODER_ID`, `GITHUB_APP_CODER_INSTALLATION_ID`, `GITHUB_APP_CODER_PRIVATE_KEY` |
+| `reviewer` | `GITHUB_APP_REVIEWER_ID`, `GITHUB_APP_REVIEWER_INSTALLATION_ID`, `GITHUB_APP_REVIEWER_PRIVATE_KEY` |
+
+See [`docs/04-frontmatter.md`](04-frontmatter.md) for the `github-identity` field reference
+and [`docs/provisioning/`](provisioning/) for App setup guides.
 
 ---
 

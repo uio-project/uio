@@ -26,12 +26,11 @@ MAX_ITERATIONS = 10
 def _maybe_inject_github_identity(frontmatter: dict) -> None:
     """Set GH_TOKEN from a GitHub App installation token when github-identity is declared.
 
-    If ``github-identity`` is not set, or if the required env vars are absent (e.g.
-    during local development without App credentials), this is a no-op — the caller's
-    existing GITHUB_PERSONAL_ACCESS_TOKEN or GH_TOKEN is left untouched.
+    If ``github-identity`` is not set this is a no-op — the caller's existing
+    GITHUB_PERSONAL_ACCESS_TOKEN or GH_TOKEN is left untouched.
 
-    When the vars are present but the token exchange fails, a warning is printed and
-    the run continues without overriding GH_TOKEN (graceful degradation).
+    When ``github-identity`` IS set, App credentials are mandatory. Missing env vars or
+    a failed token exchange are hard errors — no fallback to PAT is permitted.
     """
     role = frontmatter.get("github-identity")
     if not role:
@@ -44,21 +43,24 @@ def _maybe_inject_github_identity(frontmatter: dict) -> None:
         )
 
     if not env_vars_present(role):
-        print(
-            f"  [github-identity] '{role}' env vars not set — "
-            "falling back to GITHUB_PERSONAL_ACCESS_TOKEN / GH_TOKEN",
-            file=sys.stderr,
+        role_upper = role.upper()
+        prefix = f"GITHUB_APP_{role_upper}_"
+        missing = ", ".join(f"{prefix}{s}" for s in ("ID", "INSTALLATION_ID", "PRIVATE_KEY"))
+        sys.exit(
+            f"Error: 'github-identity: {role}' requires App credentials but env vars are not set.\n"
+            f"  Missing: {missing}\n"
+            f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents.\n"
+            f"  See docs/provisioning/ for setup instructions."
         )
-        return
 
     try:
         token = get_token_for_identity(role)
         os.environ["GH_TOKEN"] = token
         print(f"  [github-identity] authenticated as '{role}' GitHub App identity")
     except GitHubAppError as exc:
-        print(
-            f"  [github-identity] Warning: could not obtain token for '{role}': {exc}",
-            file=sys.stderr,
+        sys.exit(
+            f"Error: could not obtain GitHub App token for identity '{role}': {exc}\n"
+            f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents."
         )
 
 
