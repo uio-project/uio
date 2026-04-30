@@ -14,7 +14,9 @@
 
 ## Documentation
 
-Full documentation lives in [`docs/`](docs/README.md) — covering installation, core concepts, a step-by-step quickstart, CLI reference, configuration, providers, MCP integration, the chat REPL, cost ledger, registry, writing definitions, and package internals.
+Full documentation lives in [`docs/`](docs/README.md) — covering installation, core concepts, a step-by-step quickstart, CLI reference, configuration, providers, MCP integration, the chat REPL, cost ledger, registry, writing definitions, package internals, and [GitHub App identity agents](docs/governance.md).
+
+See [Use Cases](docs/15-use-cases.md) for end-to-end worked examples.
 
 ## Quickstart
 
@@ -46,6 +48,33 @@ my-project/
 ```
 
 See [Writing Definitions](docs/12-writing-definitions.md) for the full file format and authoring guide.
+
+## GitHub App identities
+
+uio supports dedicated GitHub App identities for agents that act on GitHub — separate
+non-human service accounts for planning, coding, and reviewing work:
+
+| Identity | Agent | Operations |
+|---|---|---|
+| AI Planner | `github-planner` | Create issues · Comment on issues and PRs · Summarize milestones |
+| AI Coder | `github-coder` | Create branches · Commit code · Open pull requests |
+| AI Reviewer | `github-reviewer` | Read diffs · Post structured review comments |
+
+Declare the identity in your agent's frontmatter:
+
+```yaml
+---
+name: my-github-agent
+github-identity: coder   # planner | coder | reviewer
+tools: [terminal, github]
+---
+```
+
+uio obtains a short-lived GitHub App installation token before the agent loop starts and
+sets `GH_TOKEN` — both the `gh` CLI and GitHub MCP server pick it up automatically. All
+three agents are available in [uio-registry](https://github.com/jomkz/uio-registry).
+
+See [Governance](docs/governance.md) and [Provisioning guides](docs/provisioning/) for setup.
 
 ## Registry
 
