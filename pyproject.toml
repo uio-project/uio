@@ -23,6 +23,7 @@ uio = "uio.cli.main:main"
 dev = [
     "pytest>=9.0.3",
     "ruff",
+    "pyinstaller",
 ]
 
 [tool.setuptools.packages.find]
