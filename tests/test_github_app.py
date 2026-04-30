@@ -267,8 +267,8 @@ def test_no_identity_is_noop(monkeypatch):
     assert os.environ == original
 
 
-def test_missing_env_vars_falls_back(monkeypatch, capsys):
-    """When github-identity is valid but env vars are absent, fall back gracefully."""
+def test_missing_env_vars_exits(monkeypatch):
+    """When github-identity is set but env vars are absent, the runner must hard-fail."""
     from uio.core.runner import _maybe_inject_github_identity
 
     for var in (
@@ -277,6 +277,7 @@ def test_missing_env_vars_falls_back(monkeypatch, capsys):
         "GITHUB_APP_CODER_PRIVATE_KEY",
     ):
         monkeypatch.delenv(var, raising=False)
-    _maybe_inject_github_identity({"github-identity": "coder"})
-    captured = capsys.readouterr()
-    assert "falling back" in captured.err
+    with pytest.raises(SystemExit) as exc_info:
+        _maybe_inject_github_identity({"github-identity": "coder"})
+    assert exc_info.value.code != 0
+    assert "GITHUB_APP_CODER_" in str(exc_info.value.code)
