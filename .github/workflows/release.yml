@@ -57,10 +57,25 @@ jobs:
         include:
           - os: ubuntu-latest
             asset_name: uio-linux-x86_64
+            install_cmd: pip install pyinstaller .
+            build_cmd: pyinstaller --onefile --name uio-linux-x86_64 uio/cli/main.py
+          - os: ubuntu-24.04-arm
+            asset_name: uio-linux-arm64
+            install_cmd: pip install pyinstaller .
+            build_cmd: pyinstaller --onefile --name uio-linux-arm64 uio/cli/main.py
           - os: macos-latest
             asset_name: uio-macos-arm64
+            install_cmd: pip install pyinstaller .
+            build_cmd: pyinstaller --onefile --name uio-macos-arm64 uio/cli/main.py
+          - os: macos-latest
+            asset_name: uio-macos-x86_64
+            # Rosetta 2: install and build under x86_64 slice of the universal2 Python
+            install_cmd: arch -x86_64 pip install pyinstaller .
+            build_cmd: arch -x86_64 pyinstaller --onefile --name uio-macos-x86_64 uio/cli/main.py
           - os: windows-latest
             asset_name: uio-windows-x86_64.exe
+            install_cmd: pip install pyinstaller .
+            build_cmd: pyinstaller --onefile --name uio-windows-x86_64 uio/cli/main.py
 
     steps:
       - uses: actions/checkout@v6
@@ -71,38 +86,15 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install pyinstaller .
+        run: ${{ matrix.install_cmd }}
 
       - name: Build binary
-        run: pyinstaller --onefile --name ${{ matrix.asset_name }} uio/cli/main.py
+        run: ${{ matrix.build_cmd }}
 
       - uses: actions/upload-artifact@v7
         with:
-          name: binary-${{ matrix.os }}
+          name: binary-${{ matrix.asset_name }}
           path: dist/${{ matrix.asset_name }}*
-
-  build-binary-macos-x86:
-    name: Build binary (uio-macos-x86_64)
-    runs-on: macos-13
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install dependencies
-        run: pip install pyinstaller .
-
-      - name: Build binary
-        run: pyinstaller --onefile --name uio-macos-x86_64 uio/cli/main.py
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: binary-macos-13
-          path: dist/uio-macos-x86_64*
 
   publish-pypi:
     name: Publish to PyPI
@@ -146,32 +138,27 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: binary-ubuntu-latest
+          name: binary-uio-linux-x86_64
           path: binaries/
 
       - uses: actions/download-artifact@v8
         with:
-          name: binary-macos-latest
+          name: binary-uio-linux-arm64
           path: binaries/
 
       - uses: actions/download-artifact@v8
         with:
-          name: binary-windows-latest
+          name: binary-uio-macos-arm64
           path: binaries/
 
-      - uses: softprops/action-gh-release@v3
-        with:
-          files: binaries/*
-
-  upload-macos-x86:
-    name: Upload macOS x86_64 binary to release
-    needs: [github-release, build-binary-macos-x86]
-    runs-on: ubuntu-latest
-
-    steps:
       - uses: actions/download-artifact@v8
         with:
-          name: binary-macos-13
+          name: binary-uio-macos-x86_64
+          path: binaries/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: binary-uio-windows-x86_64.exe
           path: binaries/
 
       - uses: softprops/action-gh-release@v3
