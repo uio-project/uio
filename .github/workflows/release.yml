@@ -41,8 +41,10 @@ jobs:
         include:
           - os: ubuntu-latest
             asset_name: uio-linux-x86_64
+          - os: macos-13
+            asset_name: uio-macos-x86_64
           - os: macos-latest
-            asset_name: uio-macos-universal2
+            asset_name: uio-macos-arm64
           - os: windows-latest
             asset_name: uio-windows-x86_64.exe
 
@@ -57,12 +59,7 @@ jobs:
       - name: Install dependencies
         run: pip install pyinstaller .
 
-      - name: Build binary (macOS universal2)
-        if: runner.os == 'macOS'
-        run: pyinstaller --onefile --name ${{ matrix.asset_name }} --target-arch universal2 uio/cli/main.py
-
-      - name: Build binary (Linux / Windows)
-        if: runner.os != 'macOS'
+      - name: Build binary
         run: pyinstaller --onefile --name ${{ matrix.asset_name }} uio/cli/main.py
 
       - uses: actions/upload-artifact@v7
@@ -102,6 +99,11 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: binary-ubuntu-latest
+          path: binaries/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: binary-macos-13
           path: binaries/
 
       - uses: actions/download-artifact@v8
