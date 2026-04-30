@@ -1,6 +1,5 @@
 """Tests for tool execution: run_command, truncation, timeout, unknown tools."""
 
-
 from uio.core.tools import DEFAULT_TIMEOUT, MAX_OUTPUT_BYTES, ToolCall, execute_tool
 
 
