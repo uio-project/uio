@@ -19,7 +19,7 @@ Full documentation lives in [`docs/`](docs/README.md) — covering installation,
 ## Quickstart
 
 ```bash
-pip install uio
+pip install uio-ai
 
 # Scaffold .uio/ and install bundled examples
 uio init --examples

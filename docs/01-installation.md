@@ -12,14 +12,16 @@ You do not need Node.js to use uio's core features. Node.js is only needed if yo
 ## Install from PyPI
 
 ```bash
-pip install uio
+pip install uio-ai
 ```
+
+The PyPI package is named `uio-ai`; the installed CLI command is `uio`.
 
 Verify the installation:
 
 ```bash
 uio --version
-# uio, version 0.1.0
+# uio, version 0.1.0rc2
 ```
 
 ---
@@ -29,7 +31,7 @@ uio --version
 The `dev` extras add the test runner and linter used during development:
 
 ```bash
-pip install "uio[dev]"
+pip install "uio-ai[dev]"
 ```
 
 This installs `pytest` and `ruff`. You only need this if you are running the test suite or contributing to uio itself.
@@ -108,13 +110,13 @@ python --version
 ### Install uio
 
 ```powershell
-pip install uio
+pip install uio-ai
 ```
 
 If `pip` isn't on your PATH after install, use:
 
 ```powershell
-python -m pip install uio
+python -m pip install uio-ai
 ```
 
 ### Setting environment variables
