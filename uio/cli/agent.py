@@ -11,6 +11,7 @@ from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
 from uio.core.routing import infer_complexity
 from uio.core.runner import run_agent
+from uio.core.tools import SHELL_CHOICES
 from uio.schema.parser import parse_definition_file
 
 _AGENT_TEMPLATE = textwrap.dedent("""\
@@ -57,6 +58,12 @@ def agent_group() -> None:
     "--timeout", default=None, show_default=True, type=int, help="Per-command timeout in seconds."
 )
 @click.option("--no-mcp", is_flag=True, default=False, help="Disable all MCP servers.")
+@click.option(
+    "--shell",
+    type=click.Choice(SHELL_CHOICES),
+    default=None,
+    help="Shell for run_command (default: powershell on Windows, bash/sh on POSIX).",
+)
 def agent_run_cmd(
     agent_name: str,
     arg: str | None,
@@ -66,6 +73,7 @@ def agent_run_cmd(
     base_url: str | None,
     timeout: int | None,
     no_mcp: bool,
+    shell: str | None,
 ) -> None:
     """Run a named AI agent.
 
@@ -78,6 +86,7 @@ def agent_run_cmd(
       uio agent run my-agent
       uio agent run my-agent --provider openai
       uio agent run my-agent --complexity large
+      uio agent run my-agent --shell pwsh
     """
     cfg = load_config()
     agents_dir = cfg["dirs"]["agents"]
@@ -95,6 +104,7 @@ def agent_run_cmd(
         definition_path=definition_path,
         ledger_path=cfg["runtime"]["cost_ledger"],
         large_agent_names=cfg["large_agents"]["names"],
+        shell_override=shell,
     )
 
 

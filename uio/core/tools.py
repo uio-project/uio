@@ -12,13 +12,29 @@ if TYPE_CHECKING:
 MAX_OUTPUT_BYTES = 32768
 DEFAULT_TIMEOUT = 300
 
+# Maps --shell choice names to [executable, flag] prefixes for subprocess.run.
+_SHELL_MAP: dict[str, list[str]] = {
+    "bash": ["bash", "-c"],
+    "sh": ["sh", "-c"],
+    "zsh": ["zsh", "-c"],
+    "powershell": ["powershell.exe", "-Command"],
+    "pwsh": ["pwsh", "-Command"],
+}
 
-def _shell_args(command: str) -> tuple:
+SHELL_CHOICES: list[str] = list(_SHELL_MAP)
+
+
+def _shell_args(command: str, shell_override: str | None = None) -> tuple:
     """Return (args, shell) for subprocess.run.
 
     On Windows, shell=True routes to cmd.exe which doesn't understand bash idioms.
     Route to powershell.exe instead so LLM-generated commands work correctly.
+    Explicit shell_override (from --shell) always takes precedence.
     """
+    if shell_override:
+        prefix = _SHELL_MAP.get(shell_override)
+        if prefix:
+            return prefix + [command], False
     if sys.platform == "win32":
         return ["powershell.exe", "-Command", command], False
     return command, True
@@ -48,12 +64,13 @@ def execute_tool(
     *,
     mcp_clients: "dict[str, MCPClient] | None" = None,
     timeout: int = DEFAULT_TIMEOUT,
+    shell_override: str | None = None,
 ) -> str:
     if tc.name == "run_command":
         command = tc.args.get("command", "")
         print(f"  [tool] $ {command}")
         try:
-            args, use_shell = _shell_args(command)
+            args, use_shell = _shell_args(command, shell_override)
             result = subprocess.run(
                 args, shell=use_shell, capture_output=True, text=True, timeout=timeout
             )

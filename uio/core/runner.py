@@ -14,9 +14,30 @@ from uio.schema.parser import parse_definition_file
 
 MAX_ITERATIONS = 10
 
-_SHELL_NAME = "PowerShell" if sys.platform == "win32" else "bash/sh"
 
-_PREAMBLE_SHELL_ONLY = f"""\
+def _build_preamble(has_mcp: bool, shell_override: str | None = None) -> str:
+    """Build the runtime preamble injected before the agent system prompt.
+
+    shell_override (from --shell) takes precedence over platform auto-detection so
+    the LLM is told the correct shell syntax regardless of the host OS.
+    """
+    shell_name = shell_override or ("PowerShell" if sys.platform == "win32" else "bash/sh")
+    if has_mcp:
+        return f"""\
+## ℹ️ Runtime — Tools Available
+
+You are running inside uio. Two tool families are available:
+
+**`run_command`** — execute any shell command (gh CLI, kubectl, s3cmd, etc.)
+Shell: {shell_name} — emit {shell_name}-style commands only.
+
+**`mcp__<server>__*`** — native MCP tools (typed JSON, full API coverage).
+Active servers and their tool prefixes are listed in the tool schema.
+Prefer MCP tools over `run_command` equivalents when a matching server is available.
+
+---
+"""
+    return f"""\
 ## ⚠️ Runtime — MCP Tools Unavailable
 
 You are running inside uio. The ONLY tool available is `run_command`.
@@ -25,22 +46,7 @@ MCP tools (mcp__github__*, etc.) do NOT exist in this runtime.
 Calling them will return "Unknown tool" and waste an iteration — do not attempt them.
 
 For ALL GitHub operations, use `run_command` with the `gh` CLI.
-Shell: {_SHELL_NAME} — emit {_SHELL_NAME}-style commands only.
-
----
-"""
-
-_PREAMBLE_WITH_MCP = f"""\
-## ℹ️ Runtime — Tools Available
-
-You are running inside uio. Two tool families are available:
-
-**`run_command`** — execute any shell command (gh CLI, kubectl, s3cmd, etc.)
-Shell: {_SHELL_NAME} — emit {_SHELL_NAME}-style commands only.
-
-**`mcp__<server>__*`** — native MCP tools (typed JSON, full API coverage).
-Active servers and their tool prefixes are listed in the tool schema.
-Prefer MCP tools over `run_command` equivalents when a matching server is available.
+Shell: {shell_name} — emit {shell_name}-style commands only.
 
 ---
 """
@@ -59,6 +65,7 @@ def run_agent(
     definition_path: str | None = None,
     ledger_path: str = DEFAULT_LEDGER_PATH,
     large_agent_names: list[str] | None = None,
+    shell_override: str | None = None,
 ) -> None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -87,7 +94,7 @@ def run_agent(
     for name in failed:
         del mcp_clients[name]
 
-    preamble = _PREAMBLE_WITH_MCP if mcp_clients else _PREAMBLE_SHELL_ONLY
+    preamble = _build_preamble(bool(mcp_clients), shell_override)
     system_prompt = f"{preamble}# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
 
     user_message = "Begin your workflow now."
@@ -148,7 +155,15 @@ def run_agent(
                         return
 
                     tool_results = [
-                        (tc, execute_tool(tc, mcp_clients=mcp_clients, timeout=timeout))
+                        (
+                            tc,
+                            execute_tool(
+                                tc,
+                                mcp_clients=mcp_clients,
+                                timeout=timeout,
+                                shell_override=shell_override,
+                            ),
+                        )
                         for tc in response.tool_calls
                     ]
                     client.append_turn(history, response, tool_results)

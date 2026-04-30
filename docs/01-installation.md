@@ -59,7 +59,7 @@ pytest
 
 ## Shell completion
 
-uio can generate completion scripts for bash, zsh, and fish. Add the appropriate line to your shell's startup file.
+uio can generate completion scripts for bash, zsh, fish, and PowerShell. Add the appropriate line to your shell's startup file.
 
 **bash** — add to `~/.bashrc`:
 ```bash
@@ -76,7 +76,86 @@ eval "$(uio completion zsh)"
 uio completion fish | source
 ```
 
-Restart your shell or `source` the file to activate completion. You can then press Tab to complete `uio` subcommands, agent names, and flags.
+**PowerShell (pwsh)** — add to your `$PROFILE`:
+```powershell
+uio completion pwsh | Out-String | Invoke-Expression
+```
+
+To find your profile path: `echo $PROFILE`. Create it if it doesn't exist: `New-Item -Path $PROFILE -Force`.
+
+Restart your shell or source the file to activate completion. You can then press Tab to complete `uio` subcommands, agent names, and flags.
+
+---
+
+## Windows (PowerShell)
+
+uio works natively on Windows via PowerShell. On Windows, `run_command` is automatically routed to `powershell.exe` instead of `cmd.exe`, and the LLM is told to emit PowerShell-style commands. No extra configuration is required.
+
+### Install Python
+
+Download Python 3.11+ from [python.org](https://www.python.org/downloads/) or install via winget:
+
+```powershell
+winget install Python.Python.3.11
+```
+
+Check your version:
+
+```powershell
+python --version
+```
+
+### Install uio
+
+```powershell
+pip install uio
+```
+
+If `pip` isn't on your PATH after install, use:
+
+```powershell
+python -m pip install uio
+```
+
+### Setting environment variables
+
+Use PowerShell syntax for API keys. Temporary (session only):
+
+```powershell
+$env:GEMINI_API_KEY = "your-key-here"
+$env:GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_..."
+```
+
+To persist across sessions, set them permanently via the System Properties GUI, or:
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key-here", "User")
+```
+
+### PATH issues
+
+If `uio` isn't found after install, the Scripts directory is not on your PATH. Add it:
+
+```powershell
+# Find where pip installed the scripts
+python -m site --user-site
+# Typically: C:\Users\<you>\AppData\Roaming\Python\Python311\Scripts
+
+# Add to your PowerShell profile so it persists
+Add-Content $PROFILE "`n`$env:PATH = `"C:\Users\<you>\AppData\Roaming\Python\Python311\Scripts;`$env:PATH`""
+```
+
+Or simply call uio via Python directly: `python -m uio`.
+
+### Forcing a specific shell
+
+If you need to run bash-style commands (e.g. in WSL or Git Bash), use `--shell`:
+
+```powershell
+uio agent run my-agent --shell bash    # bash in WSL/Git Bash
+uio agent run my-agent --shell pwsh    # PowerShell Core (default on Windows)
+uio agent run my-agent --shell powershell  # Windows PowerShell 5.x
+```
 
 ---
 
@@ -104,7 +183,11 @@ A `✗` next to a provider means its API key is not set — that provider is ski
 Set at least one API key before running agents:
 
 ```bash
+# bash/zsh
 export GEMINI_API_KEY=your-key-here
+
+# PowerShell
+$env:GEMINI_API_KEY = "your-key-here"
 ```
 
 See [Providers](07-providers.md) for detailed setup instructions for each provider.
@@ -131,12 +214,24 @@ pip install openai
 
 The Ollama process must be running. Start it with `ollama serve`. The default endpoint is `http://localhost:11434/v1`. If your Ollama instance runs elsewhere, set `OLLAMA_BASE_URL`.
 
-**`uio: command not found`**
+**`uio: command not found` (Linux/macOS)**
 
 The `uio` script is installed into your Python environment's `bin/` directory. If that directory is not on your `PATH`, either:
 - Activate a virtual environment: `source .venv/bin/activate`
 - Or add the directory to PATH: `export PATH="$HOME/.local/bin:$PATH"` (for user-level installs)
 
+**`uio` not recognised after install (Windows)**
+
+The Scripts directory is not on PATH. See the [Windows](#windows-powershell) section above for instructions.
+
+**Execution policy error on Windows**
+
+PowerShell may block the completion script. Relax the policy for the current user:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
 **Python version is 3.10 or older**
 
-uio requires Python 3.11+. Install a newer version via your OS package manager, `pyenv`, or `deadsnakes` PPA (Ubuntu).
+uio requires Python 3.11+. Install a newer version via your OS package manager, `pyenv`, or `deadsnakes` PPA (Ubuntu). On Windows: `winget install Python.Python.3.11`.
