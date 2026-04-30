@@ -122,17 +122,27 @@ jobs:
 
   github-release:
     name: Create GitHub Release
-    needs: [build, build-binaries]
+    needs: [build, publish-pypi]
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
-
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
 
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          generate_release_notes: true
+
+  upload-binaries:
+    name: Upload fast binaries to release
+    needs: [github-release, build-binaries]
+    runs-on: ubuntu-latest
+
+    steps:
       - uses: actions/download-artifact@v8
         with:
           name: binary-ubuntu-latest
@@ -148,13 +158,9 @@ jobs:
           name: binary-windows-latest
           path: binaries/
 
-      - name: Create release
-        uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@v3
         with:
-          files: |
-            dist/*
-            binaries/*
-          generate_release_notes: true
+          files: binaries/*
 
   upload-macos-x86:
     name: Upload macOS x86_64 binary to release
