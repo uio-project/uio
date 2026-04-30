@@ -240,3 +240,43 @@ def test_parse_iso8601_invalid_returns_fallback() -> None:
     before = time.time()
     ts = _parse_iso8601("not-a-date")
     assert ts >= before
+
+
+# ---------------------------------------------------------------------------
+# _maybe_inject_github_identity — runner integration
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_role_exits(tmp_path, monkeypatch):
+    """An unsupported github-identity value must produce a hard error at startup."""
+    import pytest
+    from uio.core.runner import _maybe_inject_github_identity
+
+    with pytest.raises(SystemExit) as exc_info:
+        _maybe_inject_github_identity({"github-identity": "supervillain"})
+    assert exc_info.value.code != 0
+    assert "supervillain" in str(exc_info.value.code)
+
+
+def test_no_identity_is_noop(monkeypatch):
+    """When github-identity is absent the function is a no-op."""
+    from uio.core.runner import _maybe_inject_github_identity
+
+    original = dict(os.environ)
+    _maybe_inject_github_identity({})
+    assert os.environ == original
+
+
+def test_missing_env_vars_falls_back(monkeypatch, capsys):
+    """When github-identity is valid but env vars are absent, fall back gracefully."""
+    from uio.core.runner import _maybe_inject_github_identity
+
+    for var in (
+        "GITHUB_APP_CODER_ID",
+        "GITHUB_APP_CODER_INSTALLATION_ID",
+        "GITHUB_APP_CODER_PRIVATE_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    _maybe_inject_github_identity({"github-identity": "coder"})
+    captured = capsys.readouterr()
+    assert "falling back" in captured.err

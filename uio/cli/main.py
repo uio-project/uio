@@ -18,7 +18,7 @@ from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
 from uio.config import load_config
 from uio.examples import EXAMPLES
-from uio.schema.parser import parse_definition_file, validate_definition
+from uio.schema.parser import check_identity_env, parse_definition_file, validate_definition
 
 _EXAMPLE_AGENT = """\
 ---
@@ -164,6 +164,7 @@ def validate_cmd() -> None:
     ]
 
     errors: list[str] = []
+    warnings: list[str] = []
     total = 0
 
     for directory, pattern in patterns:
@@ -175,10 +176,14 @@ def validate_cmd() -> None:
                 errors.append(f"{path}: could not parse: {e}")
                 continue
             errors.extend(validate_definition(path, fm))
+            warnings.extend(check_identity_env(path, fm))
 
     if total == 0:
         click.echo("  No definition files found.")
         return
+
+    for warn in warnings:
+        click.echo(f"  WARNING: {warn}", err=True)
 
     if errors:
         for err in errors:
@@ -186,7 +191,10 @@ def validate_cmd() -> None:
         click.echo(f"\n{len(errors)} error(s) in {total} file(s).", err=True)
         sys.exit(1)
 
-    click.echo(f"  OK — {total} definition file(s) valid.")
+    if warnings:
+        click.echo(f"  OK — {total} definition file(s) valid ({len(warnings)} warning(s)).")
+    else:
+        click.echo(f"  OK — {total} definition file(s) valid.")
 
 
 @main.command("completion")

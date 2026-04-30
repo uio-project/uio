@@ -6,7 +6,12 @@ import os
 import sys
 
 from uio.core.clients import make_client
-from uio.core.github_app import GitHubAppError, env_vars_present, get_token_for_identity
+from uio.core.github_app import (
+    KNOWN_ROLES,
+    GitHubAppError,
+    env_vars_present,
+    get_token_for_identity,
+)
 from uio.core.ledger import DEFAULT_LEDGER_PATH, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
@@ -29,6 +34,12 @@ def _maybe_inject_github_identity(frontmatter: dict) -> None:
     role = frontmatter.get("github-identity")
     if not role:
         return
+
+    if role not in KNOWN_ROLES:
+        sys.exit(
+            f"Error: unsupported 'github-identity' value '{role}'"
+            f" — must be one of {sorted(KNOWN_ROLES)}"
+        )
 
     if not env_vars_present(role):
         print(
