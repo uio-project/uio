@@ -23,6 +23,7 @@
 | [11 — Registry](11-registry.md) | Remote registry discovery — configure, search, install, pin, and host a registry |
 | [12 — Writing definitions](12-writing-definitions.md) | How to write effective agents, skills, and prompts; tool-use patterns; common failure modes |
 | [13 — Internals](13-internals.md) | Package architecture, every module's role, how to add a provider or tool, and contributing |
+| [14 — Container image](14-container.md) | Dockerfile, bundled MCP servers, Ollama sidecar, CI/CD usage, and building from source |
 
 ---
 

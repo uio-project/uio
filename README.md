@@ -77,6 +77,20 @@ Auto-routes across available providers in order: **Gemini → OpenAI → Ollama*
 | `openai` | `gpt-4o` | `gpt-4o-mini` |
 | `ollama` | `qwen2.5-coder:32b` | `qwen2.5-coder:7b` |
 
+## Container image
+
+```bash
+docker run --rm \
+  -e GEMINI_API_KEY=your-key \
+  -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... \
+  -v $(pwd):/workspace \
+  ghcr.io/jomkz/uio agent run repo-health
+```
+
+The image includes Node.js and pre-warmed MCP servers (`@github/github-mcp-server`,
+`server-filesystem`, `server-fetch`, `server-memory`). A `docker-compose.yml` for local Ollama
+use is included in the repo. See [Container image](docs/14-container.md) for full details.
+
 ## License
 
 [GNU Affero General Public License v3.0](LICENSE)

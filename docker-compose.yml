@@ -1,0 +1,38 @@
+# Ollama sidecar: run uio with a local model — no cloud API keys required.
+#
+# Usage:
+#   docker compose run --rm uio agent run repo-health
+#   docker compose run --rm uio skill run summarise "Your text here"
+#
+# On first run, pull a model:
+#   docker compose run --rm ollama ollama pull qwen2.5-coder:7b
+
+services:
+  uio:
+    build: .
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN:-}
+    volumes:
+      - .:/workspace
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  ollama_data:
