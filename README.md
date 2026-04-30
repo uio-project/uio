@@ -12,6 +12,10 @@
 | **Skill** | A reusable module invoked by agents to perform a focused, composable task |
 | **Prompt** | A single-shot LLM instruction for one well-defined workflow |
 
+## Documentation
+
+Full documentation lives in [`docs/`](docs/README.md) — covering installation, core concepts, a step-by-step quickstart, CLI reference, configuration, providers, MCP integration, the chat REPL, cost ledger, registry, writing definitions, and package internals.
+
 ## Quickstart
 
 ```bash
@@ -41,33 +45,7 @@ my-project/
     └── prompts/  my-prompt.prompt.md
 ```
 
-A minimal agent definition:
-
-```markdown
----
-name: My Agent
-description: Does something useful.
-complexity: small
----
-
-# Agent Persona: My Agent
-
-Your task is to …
-```
-
-## Bundled examples
-
-`uio init --examples` installs these ready-to-run definitions:
-
-| Name | Type | What it does |
-|---|---|---|
-| `shell-helper` | agent | Suggest a shell command for a task and optionally run it |
-| `repo-health` | agent | Run tests, lint, TODO count, stale branches, open PRs |
-| `summarise` | skill | Summarise text or a file |
-| `explain-code` | skill | Explain a source file in plain English |
-| `changelog-entry` | skill | Turn a `git diff` into a conventional-commit changelog entry |
-| `debug-traceback` | skill | Explain a Python traceback and suggest a fix |
-| `ask-docs` | prompt | Ask a focused question about a codebase |
+See [Writing Definitions](docs/12-writing-definitions.md) for the full file format and authoring guide.
 
 ## Registry
 
