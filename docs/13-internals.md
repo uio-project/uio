@@ -248,6 +248,29 @@ Test modules:
 
 ---
 
+## Release process
+
+The git tag is the single source of truth for the published version. `pyproject.toml` holds the placeholder `0.0.0.dev0` — it is never manually bumped.
+
+When a `v*` tag is pushed, the `build` job in `release.yml`:
+
+1. Strips the leading `v` and normalises to PEP 440 — `v0.1.0-rc3` → `0.1.0rc3`
+2. Patches `pyproject.toml` in-place before building (CI only; the change is never committed)
+3. Emits the normalised version as a job output consumed by `build-image`
+
+**To cut a release:** push a tag — nothing else.
+
+```bash
+git tag v1.2.3          # stable release
+git tag v1.2.3-rc1      # release candidate  →  1.2.3rc1 on PyPI
+git tag v1.2.3-beta2    # beta               →  1.2.3b2 on PyPI
+git push origin <tag>
+```
+
+Supported pre-release suffixes: `-rcN`, `-betaN`, `-alphaN`.
+
+---
+
 ## Contributing
 
 1. Fork the repository and create a feature branch.
