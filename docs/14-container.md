@@ -106,6 +106,28 @@ docker run --rm \
   ghcr.io/jomkz/uio agent run my-agent
 ```
 
+### GitHub authentication in containers
+
+**Standard agents** (no `github-identity`): pass `GITHUB_PERSONAL_ACCESS_TOKEN` as above.
+
+**Identity agents** (`github-identity: planner | coder | reviewer`): pass the three App
+credential variables instead. The private key must be mounted into the container — never
+embed the key as an env var value:
+
+```bash
+docker run --rm \
+  -e GITHUB_APP_CODER_ID=$GITHUB_APP_CODER_ID \
+  -e GITHUB_APP_CODER_INSTALLATION_ID=$GITHUB_APP_CODER_INSTALLATION_ID \
+  -e GITHUB_APP_CODER_PRIVATE_KEY=/run/secrets/uio-ai-coder.pem \
+  -v ~/.config/uio/uio-ai-coder.private-key.pem:/run/secrets/uio-ai-coder.pem:ro \
+  -v $(pwd):/workspace \
+  ghcr.io/jomkz/uio agent run github-coder "..."
+```
+
+Identity agents will **not** fall back to `GITHUB_PERSONAL_ACCESS_TOKEN` — if the App
+credentials are absent the runner exits with an actionable error. See
+[`docs/06-configuration.md`](06-configuration.md#github-authentication) for details.
+
 ## Ollama sidecar (no cloud API keys)
 
 The bundled `docker-compose.yml` runs `uio` alongside a local Ollama instance. No cloud API
@@ -239,7 +261,7 @@ reliably fail to format tool calls correctly.
 Run `uio` as a step in any container-native pipeline:
 
 ```yaml
-# GitHub Actions example
+# GitHub Actions example — standard agent (no github-identity)
 - name: Run repo health check
   run: |
     docker run --rm \
@@ -248,6 +270,11 @@ Run `uio` as a step in any container-native pipeline:
       -v ${{ github.workspace }}:/workspace \
       ghcr.io/jomkz/uio agent run repo-health
 ```
+
+For identity agents in CI, store the App credentials as repository secrets and pass them
+via `-e GITHUB_APP_<ROLE>_ID`, `-e GITHUB_APP_<ROLE>_INSTALLATION_ID`, and
+`-e GITHUB_APP_<ROLE>_PRIVATE_KEY` (pointing to a mounted secret file). Do not pass
+`GITHUB_PERSONAL_ACCESS_TOKEN` — identity agents do not use it.
 
 ## Building from source
 
