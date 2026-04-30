@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Completed M6a controlled end-to-end pilot with the github-planner, github-coder, and github-reviewer GitHub App identities.
+
 ### Added
 
 - CI workflow: pytest across Python 3.11–3.13, ruff lint/format checks
