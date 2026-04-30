@@ -83,6 +83,7 @@ jobs:
 
   build-binary-macos-x86:
     name: Build binary (uio-macos-x86_64)
+    if: false # disabled — macos-13 runner unavailable; see #46
     runs-on: macos-13
 
     steps:
@@ -165,6 +166,7 @@ jobs:
 
   upload-macos-x86:
     name: Upload macOS x86_64 binary to release
+    if: false # disabled — depends on build-binary-macos-x86; see #46
     needs: [github-release, build-binary-macos-x86]
     runs-on: ubuntu-latest
 
