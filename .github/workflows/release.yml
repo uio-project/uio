@@ -96,6 +96,28 @@ jobs:
           name: binary-${{ matrix.asset_name }}
           path: dist/${{ matrix.asset_name }}*
 
+  build-binary-linux-musl:
+    name: Build binary (uio-linux-x86_64-musl)
+    runs-on: ubuntu-latest
+    container: python:3.12-alpine
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: apk add --no-cache gcc musl-dev binutils
+
+      - name: Install dependencies
+        run: pip install pyinstaller .
+
+      - name: Build binary
+        run: pyinstaller --onefile --name uio-linux-x86_64-musl uio/cli/main.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binary-uio-linux-x86_64-musl
+          path: dist/uio-linux-x86_64-musl
+
   publish-pypi:
     name: Publish to PyPI
     needs: build
@@ -132,7 +154,7 @@ jobs:
 
   upload-binaries:
     name: Upload fast binaries to release
-    needs: [github-release, build-binaries]
+    needs: [github-release, build-binaries, build-binary-linux-musl]
     runs-on: ubuntu-latest
 
     steps:
@@ -159,6 +181,11 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: binary-uio-windows-x86_64.exe
+          path: binaries/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: binary-uio-linux-x86_64-musl
           path: binaries/
 
       - uses: softprops/action-gh-release@v3
