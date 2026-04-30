@@ -21,7 +21,7 @@ uio = "uio.cli.main:main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
+    "pytest>=9.0.3",
     "ruff",
 ]
 
