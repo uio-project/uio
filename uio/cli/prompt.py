@@ -10,6 +10,7 @@ import click
 from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
 from uio.core.runner import run_agent
+from uio.core.tools import SHELL_CHOICES
 
 _PROMPT_TEMPLATE = textwrap.dedent("""\
     ---
@@ -42,7 +43,13 @@ def prompt_group() -> None:
 @click.option("--model", default=None, help="Model name override.")
 @click.option("--base-url", default=None, help="Base URL for an OpenAI-compatible endpoint.")
 @click.option("--timeout", default=None, type=int, help="Per-command timeout in seconds.")
-@click.option("--no-mcp", is_flag=True, default=False, help="Disable the GitHub MCP server.")
+@click.option("--no-mcp", is_flag=True, default=False, help="Disable all MCP servers.")
+@click.option(
+    "--shell",
+    type=click.Choice(SHELL_CHOICES),
+    default=None,
+    help="Shell for run_command (default: powershell on Windows, bash/sh on POSIX).",
+)
 def prompt_run_cmd(
     prompt_name: str,
     arg: str | None,
@@ -51,6 +58,7 @@ def prompt_run_cmd(
     base_url: str | None,
     timeout: int | None,
     no_mcp: bool,
+    shell: str | None,
 ) -> None:
     """Run a named prompt.
 
@@ -68,9 +76,11 @@ def prompt_run_cmd(
         base_url=base_url,
         timeout=timeout or cfg["runtime"]["timeout"],
         no_mcp=no_mcp,
+        mcp_cfg=cfg["mcp"],
         definition_path=definition_path,
         ledger_path=cfg["runtime"]["cost_ledger"],
         large_agent_names=cfg["large_agents"]["names"],
+        shell_override=shell,
     )
 
 

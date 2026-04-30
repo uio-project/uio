@@ -1,0 +1,92 @@
+# Ollama sidecar: run uio with a local model — no cloud API keys required.
+#
+# Quick start (CPU):
+#   docker compose run --rm ollama ollama pull qwen2.5-coder:7b   # first run only
+#   docker compose run --rm uio agent run repo-health
+#   docker compose run --rm uio skill run summarise "Your text here"
+#
+# Use the large model tier (32b):
+#   docker compose run --rm ollama ollama pull qwen2.5-coder:32b  # first run only
+#   docker compose run --rm uio agent run repo-health --complexity large
+#
+# Override the model entirely:
+#   LLM_MODEL=llama3.2 docker compose run --rm uio agent run repo-health
+#
+# GPU (NVIDIA) — requires nvidia-container-toolkit on the host:
+#   docker compose --profile gpu run --rm ollama-gpu ollama pull qwen2.5-coder:7b
+#   docker compose --profile gpu run --rm uio-gpu agent run repo-health
+
+services:
+  # ── CPU variant (default) ─────────────────────────────────────────────────
+
+  uio:
+    build: .
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      # Cloud keys are optional — if absent, uio auto-routes to Ollama only.
+      # If present, uio prefers Gemini → OpenAI → Ollama in that order.
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN:-}
+      # Pin a specific model, bypassing tier selection (optional):
+      - LLM_MODEL=${LLM_MODEL:-}
+    volumes:
+      - .:/workspace
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── GPU variant (profile: gpu) ────────────────────────────────────────────
+  # Requires nvidia-container-toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+
+  uio-gpu:
+    build: .
+    profiles: [gpu]
+    environment:
+      - OLLAMA_BASE_URL=http://ollama-gpu:11434/v1
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+    volumes:
+      - .:/workspace
+    depends_on:
+      ollama-gpu:
+        condition: service_healthy
+
+  ollama-gpu:
+    image: ollama/ollama:latest
+    profiles: [gpu]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  ollama_data:

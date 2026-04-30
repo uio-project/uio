@@ -7,14 +7,37 @@ import sys
 
 from uio.core.clients import make_client
 from uio.core.ledger import DEFAULT_LEDGER_PATH, write_cost_ledger
-from uio.core.mcp import make_mcp_client
+from uio.core.mcp import make_mcp_clients
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.schema.parser import parse_definition_file
 
 MAX_ITERATIONS = 10
 
-_PREAMBLE_SHELL_ONLY = """\
+
+def _build_preamble(has_mcp: bool, shell_override: str | None = None) -> str:
+    """Build the runtime preamble injected before the agent system prompt.
+
+    shell_override (from --shell) takes precedence over platform auto-detection so
+    the LLM is told the correct shell syntax regardless of the host OS.
+    """
+    shell_name = shell_override or ("PowerShell" if sys.platform == "win32" else "bash/sh")
+    if has_mcp:
+        return f"""\
+## ℹ️ Runtime — Tools Available
+
+You are running inside uio. Two tool families are available:
+
+**`run_command`** — execute any shell command (gh CLI, kubectl, s3cmd, etc.)
+Shell: {shell_name} — emit {shell_name}-style commands only.
+
+**`mcp__<server>__*`** — native MCP tools (typed JSON, full API coverage).
+Active servers and their tool prefixes are listed in the tool schema.
+Prefer MCP tools over `run_command` equivalents when a matching server is available.
+
+---
+"""
+    return f"""\
 ## ⚠️ Runtime — MCP Tools Unavailable
 
 You are running inside uio. The ONLY tool available is `run_command`.
@@ -23,19 +46,7 @@ MCP tools (mcp__github__*, etc.) do NOT exist in this runtime.
 Calling them will return "Unknown tool" and waste an iteration — do not attempt them.
 
 For ALL GitHub operations, use `run_command` with the `gh` CLI.
-
----
-"""
-
-_PREAMBLE_WITH_MCP = """\
-## ℹ️ Runtime — Tools Available
-
-You are running inside uio. Two tool families are available:
-
-**`run_command`** — execute any shell command (gh CLI, kubectl, s3cmd, etc.)
-
-**`mcp__github__*`** — native GitHub MCP tools (typed JSON, paginated, full API coverage).
-Prefer these over `gh` CLI equivalents for GitHub operations.
+Shell: {shell_name} — emit {shell_name}-style commands only.
 
 ---
 """
@@ -50,9 +61,11 @@ def run_agent(
     base_url: str | None = None,
     timeout: int = DEFAULT_TIMEOUT,
     no_mcp: bool = False,
+    mcp_cfg: dict | None = None,
     definition_path: str | None = None,
     ledger_path: str = DEFAULT_LEDGER_PATH,
     large_agent_names: list[str] | None = None,
+    shell_override: str | None = None,
 ) -> None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -61,22 +74,27 @@ def run_agent(
 
     frontmatter, body = parse_definition_file(definition_path)
 
-    mcp = None
+    mcp_clients: dict = {}
     if not no_mcp:
-        mcp = make_mcp_client()
+        mcp_clients = make_mcp_clients(mcp_cfg or {})
 
     all_tools = [TOOL_SCHEMA]
-    if mcp is not None:
+    failed: list[str] = []
+    for server_name, client in list(mcp_clients.items()):
         try:
-            mcp_tools = mcp.list_tools()
+            mcp_tools = client.list_tools()
             all_tools.extend(mcp_tools)
-            print(f"  [mcp] GitHub MCP server ready — {len(mcp_tools)} tools registered")
+            print(f"  [mcp] '{server_name}' ready — {len(mcp_tools)} tools registered")
         except Exception as e:
-            print(f"  [mcp] Warning: could not list MCP tools: {e}", file=sys.stderr)
-            mcp.close()
-            mcp = None
+            print(
+                f"  [mcp] Warning: could not list tools for '{server_name}': {e}", file=sys.stderr
+            )
+            client.close()
+            failed.append(server_name)
+    for name in failed:
+        del mcp_clients[name]
 
-    preamble = _PREAMBLE_WITH_MCP if mcp is not None else _PREAMBLE_SHELL_ONLY
+    preamble = _build_preamble(bool(mcp_clients), shell_override)
     system_prompt = f"{preamble}# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
 
     user_message = "Begin your workflow now."
@@ -137,7 +155,15 @@ def run_agent(
                         return
 
                     tool_results = [
-                        (tc, execute_tool(tc, mcp=mcp, timeout=timeout))
+                        (
+                            tc,
+                            execute_tool(
+                                tc,
+                                mcp_clients=mcp_clients,
+                                timeout=timeout,
+                                shell_override=shell_override,
+                            ),
+                        )
                         for tc in response.tool_calls
                     ]
                     client.append_turn(history, response, tool_results)
@@ -163,5 +189,5 @@ def run_agent(
 
         sys.exit(f"Error: all providers exhausted. Last error: {last_error}")
     finally:
-        if mcp is not None:
-            mcp.close()
+        for client in mcp_clients.values():
+            client.close()

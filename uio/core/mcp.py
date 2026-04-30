@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 
@@ -103,9 +104,42 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
     command_env = os.environ.copy()
     command_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = token
     raw = os.environ.get("MCP_GITHUB_COMMAND")
-    command = raw.split() if raw else ["npx", "-y", "@github/github-mcp-server", "stdio"]
+    command = shlex.split(raw) if raw else ["npx", "-y", "@github/github-mcp-server", "stdio"]
     try:
         return MCPClient(command, server_name=server_name, env=command_env)
     except Exception as e:
         print(f"  [mcp] Warning: could not start GitHub MCP server: {e}", file=sys.stderr)
         return None
+
+
+def make_mcp_clients(mcp_cfg: dict) -> "dict[str, MCPClient]":
+    """Start all MCP servers from config and return a name→client mapping.
+
+    Backwards-compat: if GITHUB_PERSONAL_ACCESS_TOKEN is present and 'github'
+    is not in mcp_cfg, the GitHub server is auto-started exactly as before.
+
+    TOML already forbids duplicate keys, but if the same name appears twice in
+    a programmatically-constructed dict, the first entry wins (subsequent ones
+    are silently skipped so the already-running process is not leaked).
+    """
+    clients: dict[str, MCPClient] = {}
+
+    # Backwards compat: auto-start GitHub when token is set and not in config
+    if "github" not in mcp_cfg:
+        github_client = make_mcp_client()
+        if github_client:
+            clients["github"] = github_client
+
+    for name, server_cfg in mcp_cfg.items():
+        if name in clients:
+            # Already running (github auto-start) or duplicate key — skip.
+            continue
+        raw_cmd = server_cfg.get("command", "")
+        if not raw_cmd:
+            continue
+        try:
+            clients[name] = MCPClient(shlex.split(raw_cmd), server_name=name)
+        except Exception as e:
+            print(f"  [mcp] Warning: could not start '{name}' MCP server: {e}", file=sys.stderr)
+
+    return clients

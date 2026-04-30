@@ -135,7 +135,9 @@ Startup sequence:
 
 `_rpc(method, params)` is the blocking RPC primitive — it writes the request, then reads lines from stdout until it finds one with the matching `id`.
 
-`make_mcp_client(server_name)` tries to start the GitHub MCP server. Returns `None` on any failure (missing token, missing npx, process crash) and prints a warning to stderr. The run continues without MCP.
+`make_mcp_client(server_name)` tries to start the GitHub MCP server via backwards-compat auto-start. Returns `None` on any failure (missing token, missing npx, process crash) and prints a warning to stderr.
+
+`make_mcp_clients(mcp_cfg)` is the multi-server factory. It accepts the `[mcp]` section of the config (a `dict[str, dict]`) and returns a `dict[str, MCPClient]` keyed by server name. If `github` is absent from `mcp_cfg`, it calls `make_mcp_client()` for backwards compat. Servers that fail to start are warned and skipped; the rest proceed normally.
 
 ---
 
@@ -148,7 +150,7 @@ Execution flow:
 1. Read and parse the definition file (`parse_definition_file`)
 2. Build the provider chain (`select_provider_chain`)
 3. Infer complexity and select model (`infer_complexity`, `select_model`)
-4. Optionally start MCP client (`make_mcp_client`)
+4. Start MCP clients (`make_mcp_clients(mcp_cfg)`) — returns a `dict[str, MCPClient]`; empty when `--no-mcp` is passed
 5. Build tool schema list (TOOL_SCHEMA + MCP tools, or empty list for prompts)
 6. Inject the runtime preamble (`_PREAMBLE_SHELL_ONLY` or `_PREAMBLE_WITH_MCP`)
 7. Build initial history with the user message (definition name + optional arg)
