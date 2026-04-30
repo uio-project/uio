@@ -191,9 +191,11 @@ def registry_install_cmd(name: str, registry: str | None, pin: bool, force: bool
         if not registries:
             raise click.ClickException(f"Registry '{registry}' not found in uio.toml.")
 
-    # Find the definition entry and its registry
+    # Find the definition entry and its registry (first match wins).
+    # Continue scanning remaining registries to detect duplicates and warn.
     found_reg: dict | None = None
     found_defn: dict | None = None
+    duplicate_reg_names: list[str] = []
     for reg in registries:
         if not reg.get("enabled", True):
             continue
@@ -203,16 +205,24 @@ def registry_install_cmd(name: str, registry: str | None, pin: bool, force: bool
             continue
         for defn in manifest.get("definitions", []):
             if defn.get("name") == name:
-                found_reg = reg
-                found_defn = defn
+                if found_reg is None:
+                    found_reg = reg
+                    found_defn = defn
+                else:
+                    duplicate_reg_names.append(reg["name"])
                 break
-        if found_reg:
-            break
 
     if found_reg is None or found_defn is None:
         raise click.ClickException(
             f"Definition '{name}' not found in any enabled registry. "
             "Run 'uio registry search <query>' to discover available definitions."
+        )
+
+    if duplicate_reg_names:
+        others = ", ".join(f"'{n}'" for n in duplicate_reg_names)
+        click.echo(
+            f"  Warning: '{name}' also found in {others} — use --registry to be explicit.",
+            err=True,
         )
 
     defn_type = found_defn.get("type", "")
