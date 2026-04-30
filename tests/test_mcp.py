@@ -34,9 +34,13 @@ class TestMakeMcpClients:
     def test_explicit_github_in_config_skips_auto_start(self, monkeypatch):
         monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "tok")
         mock_client = _make_mock_client("github")
-        with patch("uio.core.mcp.MCPClient", return_value=mock_client) as MockCls, \
-             patch("uio.core.mcp.make_mcp_client") as auto_start:
-            result = make_mcp_clients({"github": {"command": "npx -y @github/github-mcp-server stdio"}})
+        with (
+            patch("uio.core.mcp.MCPClient", return_value=mock_client) as MockCls,
+            patch("uio.core.mcp.make_mcp_client") as auto_start,
+        ):
+            result = make_mcp_clients(
+                {"github": {"command": "npx -y @github/github-mcp-server stdio"}}
+            )
         auto_start.assert_not_called()
         MockCls.assert_called_once()
         assert "github" in result
@@ -98,8 +102,10 @@ class TestMakeMcpClients:
         auto_client = _make_mock_client("github")
         cfg_client = _make_mock_client("github")
 
-        with patch("uio.core.mcp.make_mcp_client", return_value=auto_client), \
-             patch("uio.core.mcp.MCPClient", return_value=cfg_client):
+        with (
+            patch("uio.core.mcp.make_mcp_client", return_value=auto_client),
+            patch("uio.core.mcp.MCPClient", return_value=cfg_client),
+        ):
             # github is NOT in cfg, so auto-start runs first; cfg loop has no "github" entry
             result = make_mcp_clients({})
 

@@ -75,7 +75,9 @@ def run_agent(
             all_tools.extend(mcp_tools)
             print(f"  [mcp] '{server_name}' ready — {len(mcp_tools)} tools registered")
         except Exception as e:
-            print(f"  [mcp] Warning: could not list tools for '{server_name}': {e}", file=sys.stderr)
+            print(
+                f"  [mcp] Warning: could not list tools for '{server_name}': {e}", file=sys.stderr
+            )
             client.close()
             failed.append(server_name)
     for name in failed:
