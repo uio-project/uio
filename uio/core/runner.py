@@ -6,6 +6,7 @@ import os
 import sys
 
 from uio.core.clients import make_client
+from uio.core.github_app import GitHubAppError, env_vars_present, get_token_for_identity
 from uio.core.ledger import DEFAULT_LEDGER_PATH, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
@@ -13,6 +14,39 @@ from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.schema.parser import parse_definition_file
 
 MAX_ITERATIONS = 10
+
+
+def _maybe_inject_github_identity(frontmatter: dict) -> None:
+    """Set GH_TOKEN from a GitHub App installation token when github-identity is declared.
+
+    If ``github-identity`` is not set, or if the required env vars are absent (e.g.
+    during local development without App credentials), this is a no-op — the caller's
+    existing GITHUB_PERSONAL_ACCESS_TOKEN or GH_TOKEN is left untouched.
+
+    When the vars are present but the token exchange fails, a warning is printed and
+    the run continues without overriding GH_TOKEN (graceful degradation).
+    """
+    role = frontmatter.get("github-identity")
+    if not role:
+        return
+
+    if not env_vars_present(role):
+        print(
+            f"  [github-identity] '{role}' env vars not set — "
+            "falling back to GITHUB_PERSONAL_ACCESS_TOKEN / GH_TOKEN",
+            file=sys.stderr,
+        )
+        return
+
+    try:
+        token = get_token_for_identity(role)
+        os.environ["GH_TOKEN"] = token
+        print(f"  [github-identity] authenticated as '{role}' GitHub App identity")
+    except GitHubAppError as exc:
+        print(
+            f"  [github-identity] Warning: could not obtain token for '{role}': {exc}",
+            file=sys.stderr,
+        )
 
 
 def _build_preamble(has_mcp: bool, shell_override: str | None = None) -> str:
@@ -73,6 +107,8 @@ def run_agent(
         sys.exit(f"Error: definition not found at {definition_path}")
 
     frontmatter, body = parse_definition_file(definition_path)
+
+    _maybe_inject_github_identity(frontmatter)
 
     mcp_clients: dict = {}
     if not no_mcp:

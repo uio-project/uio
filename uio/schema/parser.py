@@ -27,8 +27,28 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     for field in REQUIRED_FIELDS:
         if not frontmatter.get(field):
             errors.append(f"{path}: missing required field '{field}'")
-    known = {"name", "description", "complexity", "tools", "timeout", "argument-hint", "invokable"}
+    known = {
+        "name",
+        "description",
+        "complexity",
+        "tools",
+        "timeout",
+        "argument-hint",
+        "invokable",
+        "github-identity",
+    }
     for key in frontmatter:
         if key not in known:
             errors.append(f"{path}: unrecognised frontmatter key '{key}'")
+
+    identity = frontmatter.get("github-identity")
+    if identity is not None:
+        from uio.core.github_app import KNOWN_ROLES
+
+        if identity not in KNOWN_ROLES:
+            errors.append(
+                f"{path}: invalid 'github-identity' value '{identity}'"
+                f" — must be one of {sorted(KNOWN_ROLES)}"
+            )
+
     return errors
