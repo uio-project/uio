@@ -3,7 +3,7 @@ requires = ["setuptools>=82.0.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "uio"
+name = "uio-ai"
 version = "0.1.0"
 description = "Provider-agnostic AI agent/skill/prompt runner"
 readme = "README.md"
