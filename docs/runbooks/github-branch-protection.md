@@ -14,7 +14,7 @@ Reproduce it with the command in §Reconfiguration below.
 | Control | Setting |
 |---|---|
 | Require pull request | **Yes** — no direct push to `main` |
-| Required approving reviews | **1** — at least one human approval |
+| Required approving reviews | **0** — PR required but no external approval (sole maintainer; human IS the reviewer for AI Coder PRs) |
 | Dismiss stale reviews | **Yes** — new commits invalidate prior approvals |
 | Require code owner review | No (no CODEOWNERS file) |
 | Require status checks | **Yes** — all four CI jobs must pass |
@@ -54,9 +54,9 @@ Additionally confirm in the GitHub UI:
 ## CODEOWNERS assessment
 
 `jomkz/uio` does not currently have a `CODEOWNERS` file. The current protection
-(1 human approver required) is sufficient for the M6 pilot. Consider adding
-`CODEOWNERS` if the project gains additional maintainers and path-specific ownership
-becomes necessary.
+(PR required, CI must pass) is sufficient for the M6 pilot as a sole-maintainer
+project. Consider adding `CODEOWNERS` if the project gains additional maintainers and
+path-specific ownership becomes necessary.
 
 To add CODEOWNERS later:
 1. Create `.github/CODEOWNERS` with ownership rules.
@@ -87,7 +87,7 @@ gh api repos/jomkz/uio/branches/main/protection \
   "required_pull_request_reviews": {
     "dismiss_stale_reviews": true,
     "require_code_owner_reviews": false,
-    "required_approving_review_count": 1
+    "required_approving_review_count": 0
   },
   "restrictions": null,
   "allow_force_pushes": false,
@@ -111,10 +111,13 @@ baseline to that repository's default branch before enabling the agent.
 Minimum required controls for any new pilot repo:
 
 - Require PR before merge (no direct push)
-- Require at least 1 human approving review
 - Dismiss stale reviews on new commits
 - Require passing CI status checks (adapt check names to that repo's workflow)
 - Block force push and branch deletion
+
+For multi-maintainer repositories, set `required_approving_review_count: 1` to enforce
+human review on AI Coder PRs via branch protection rather than trusting agent constraints
+alone.
 
 ---
 
