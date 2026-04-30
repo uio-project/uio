@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "AGPL-3.0-only"}
 dependencies = [
-    "click>=8.1",
+    "click>=8.3.3",
     "google-genai>=1.0",
     "pyyaml>=6.0.3",
     "openai>=1.0",
