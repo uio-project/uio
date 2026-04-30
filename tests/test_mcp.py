@@ -1,0 +1,106 @@
+"""Tests for MCP multi-server client factory."""
+
+from __future__ import annotations
+
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from uio.core.mcp import make_mcp_clients
+
+
+def _make_mock_client(server_name: str) -> MagicMock:
+    client = MagicMock()
+    client.server_name = server_name
+    return client
+
+
+class TestMakeMcpClients:
+    def test_empty_config_no_token_returns_empty(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        result = make_mcp_clients({})
+        assert result == {}
+
+    def test_empty_config_with_token_auto_starts_github(self, monkeypatch):
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "tok")
+        mock_client = _make_mock_client("github")
+        with patch("uio.core.mcp.make_mcp_client", return_value=mock_client):
+            result = make_mcp_clients({})
+        assert "github" in result
+        assert result["github"] is mock_client
+
+    def test_explicit_github_in_config_skips_auto_start(self, monkeypatch):
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "tok")
+        mock_client = _make_mock_client("github")
+        with patch("uio.core.mcp.MCPClient", return_value=mock_client) as MockCls, \
+             patch("uio.core.mcp.make_mcp_client") as auto_start:
+            result = make_mcp_clients({"github": {"command": "npx -y @github/github-mcp-server stdio"}})
+        auto_start.assert_not_called()
+        MockCls.assert_called_once()
+        assert "github" in result
+
+    def test_multiple_servers_all_started(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        mcp_cfg = {
+            "filesystem": {"command": "npx -y @modelcontextprotocol/server-filesystem /workspace"},
+            "fetch": {"command": "npx -y @modelcontextprotocol/server-fetch"},
+        }
+        fs_client = _make_mock_client("filesystem")
+        fetch_client = _make_mock_client("fetch")
+        clients_by_name = {"filesystem": fs_client, "fetch": fetch_client}
+
+        def fake_mcp_client(command, server_name, **kwargs):
+            return clients_by_name[server_name]
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_client):
+            result = make_mcp_clients(mcp_cfg)
+
+        assert set(result.keys()) == {"filesystem", "fetch"}
+
+    def test_server_with_missing_command_skipped(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        mcp_cfg = {"broken": {"command": ""}}
+        with patch("uio.core.mcp.MCPClient") as MockCls:
+            result = make_mcp_clients(mcp_cfg)
+        MockCls.assert_not_called()
+        assert result == {}
+
+    def test_failing_server_warns_and_continues(self, monkeypatch, capsys):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        good_client = _make_mock_client("fetch")
+
+        def fake_mcp_client(command, server_name, **kwargs):
+            if server_name == "broken":
+                raise RuntimeError("process refused")
+            return good_client
+
+        mcp_cfg = {
+            "broken": {"command": "bad-server"},
+            "fetch": {"command": "npx -y @modelcontextprotocol/server-fetch"},
+        }
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_client):
+            result = make_mcp_clients(mcp_cfg)
+
+        assert "broken" not in result
+        assert "fetch" in result
+        captured = capsys.readouterr()
+        assert "Warning" in captured.err
+        assert "broken" in captured.err
+
+    def test_duplicate_server_name_first_wins(self, monkeypatch):
+        """Programmatically constructed dicts with duplicate names: first entry wins."""
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "tok")
+        auto_client = _make_mock_client("github")
+        cfg_client = _make_mock_client("github")
+
+        with patch("uio.core.mcp.make_mcp_client", return_value=auto_client), \
+             patch("uio.core.mcp.MCPClient", return_value=cfg_client):
+            # github is NOT in cfg, so auto-start runs first; cfg loop has no "github" entry
+            result = make_mcp_clients({})
+
+        assert result["github"] is auto_client

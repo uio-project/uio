@@ -7,7 +7,7 @@ import sys
 
 from uio.core.clients import make_client
 from uio.core.ledger import DEFAULT_LEDGER_PATH, write_cost_ledger
-from uio.core.mcp import make_mcp_client
+from uio.core.mcp import make_mcp_clients
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.schema.parser import parse_definition_file
@@ -34,8 +34,9 @@ You are running inside uio. Two tool families are available:
 
 **`run_command`** — execute any shell command (gh CLI, kubectl, s3cmd, etc.)
 
-**`mcp__github__*`** — native GitHub MCP tools (typed JSON, paginated, full API coverage).
-Prefer these over `gh` CLI equivalents for GitHub operations.
+**`mcp__<server>__*`** — native MCP tools (typed JSON, full API coverage).
+Active servers and their tool prefixes are listed in the tool schema.
+Prefer MCP tools over `run_command` equivalents when a matching server is available.
 
 ---
 """
@@ -50,6 +51,7 @@ def run_agent(
     base_url: str | None = None,
     timeout: int = DEFAULT_TIMEOUT,
     no_mcp: bool = False,
+    mcp_cfg: dict | None = None,
     definition_path: str | None = None,
     ledger_path: str = DEFAULT_LEDGER_PATH,
     large_agent_names: list[str] | None = None,
@@ -61,22 +63,25 @@ def run_agent(
 
     frontmatter, body = parse_definition_file(definition_path)
 
-    mcp = None
+    mcp_clients: dict = {}
     if not no_mcp:
-        mcp = make_mcp_client()
+        mcp_clients = make_mcp_clients(mcp_cfg or {})
 
     all_tools = [TOOL_SCHEMA]
-    if mcp is not None:
+    failed: list[str] = []
+    for server_name, client in list(mcp_clients.items()):
         try:
-            mcp_tools = mcp.list_tools()
+            mcp_tools = client.list_tools()
             all_tools.extend(mcp_tools)
-            print(f"  [mcp] GitHub MCP server ready — {len(mcp_tools)} tools registered")
+            print(f"  [mcp] '{server_name}' ready — {len(mcp_tools)} tools registered")
         except Exception as e:
-            print(f"  [mcp] Warning: could not list MCP tools: {e}", file=sys.stderr)
-            mcp.close()
-            mcp = None
+            print(f"  [mcp] Warning: could not list tools for '{server_name}': {e}", file=sys.stderr)
+            client.close()
+            failed.append(server_name)
+    for name in failed:
+        del mcp_clients[name]
 
-    preamble = _PREAMBLE_WITH_MCP if mcp is not None else _PREAMBLE_SHELL_ONLY
+    preamble = _PREAMBLE_WITH_MCP if mcp_clients else _PREAMBLE_SHELL_ONLY
     system_prompt = f"{preamble}# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
 
     user_message = "Begin your workflow now."
@@ -137,7 +142,7 @@ def run_agent(
                         return
 
                     tool_results = [
-                        (tc, execute_tool(tc, mcp=mcp, timeout=timeout))
+                        (tc, execute_tool(tc, mcp_clients=mcp_clients, timeout=timeout))
                         for tc in response.tool_calls
                     ]
                     client.append_turn(history, response, tool_results)
@@ -163,5 +168,5 @@ def run_agent(
 
         sys.exit(f"Error: all providers exhausted. Last error: {last_error}")
     finally:
-        if mcp is not None:
-            mcp.close()
+        for client in mcp_clients.values():
+            client.close()

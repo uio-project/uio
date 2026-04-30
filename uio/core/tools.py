@@ -33,7 +33,7 @@ class ToolCall(NamedTuple):
 def execute_tool(
     tc: ToolCall,
     *,
-    mcp: "MCPClient | None" = None,
+    mcp_clients: "dict[str, MCPClient] | None" = None,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     if tc.name == "run_command":
@@ -51,7 +51,9 @@ def execute_tool(
         except subprocess.TimeoutExpired:
             return f"[command timed out after {timeout}s]"
 
-    if mcp is not None and tc.name.startswith(f"mcp__{mcp.server_name}__"):
-        return mcp.call_tool(tc.name, tc.args)
+    if mcp_clients:
+        for server_name, client in mcp_clients.items():
+            if tc.name.startswith(f"mcp__{server_name}__"):
+                return client.call_tool(tc.name, tc.args)
 
     return f"Unknown tool: {tc.name}"

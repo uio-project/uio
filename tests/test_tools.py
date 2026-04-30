@@ -62,3 +62,56 @@ def test_timeout_message_includes_seconds():
 
 def test_default_timeout_constant():
     assert DEFAULT_TIMEOUT == 300
+
+
+# ── Multi-server MCP dispatch ─────────────────────────────────────────────────
+
+class _FakeMCPClient:
+    def __init__(self, server_name: str) -> None:
+        self.server_name = server_name
+        self.calls: list[tuple[str, dict]] = []
+
+    def call_tool(self, name: str, args: dict) -> str:
+        self.calls.append((name, args))
+        return f"result from {self.server_name}"
+
+    def close(self) -> None:
+        pass
+
+
+def mcp_tc(name: str) -> ToolCall:
+    return ToolCall(name=name, args={}, call_id=name)
+
+
+def test_mcp_dispatch_routes_to_correct_server():
+    gh = _FakeMCPClient("github")
+    fs = _FakeMCPClient("filesystem")
+    clients = {"github": gh, "filesystem": fs}
+    result = execute_tool(mcp_tc("mcp__filesystem__read_file"), mcp_clients=clients)
+    assert result == "result from filesystem"
+    assert fs.calls == [("mcp__filesystem__read_file", {})]
+    assert gh.calls == []
+
+
+def test_mcp_dispatch_github_server():
+    gh = _FakeMCPClient("github")
+    clients = {"github": gh}
+    result = execute_tool(mcp_tc("mcp__github__list_issues"), mcp_clients=clients)
+    assert result == "result from github"
+    assert gh.calls == [("mcp__github__list_issues", {})]
+
+
+def test_mcp_unknown_tool_with_clients_present():
+    clients = {"github": _FakeMCPClient("github")}
+    result = execute_tool(mcp_tc("mcp__fetch__get"), mcp_clients=clients)
+    assert "Unknown tool" in result
+
+
+def test_mcp_unknown_tool_no_clients():
+    result = execute_tool(mcp_tc("mcp__github__search"), mcp_clients=None)
+    assert "Unknown tool" in result
+
+
+def test_mcp_empty_clients_dict():
+    result = execute_tool(mcp_tc("mcp__github__search"), mcp_clients={})
+    assert "Unknown tool" in result
