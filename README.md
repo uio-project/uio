@@ -12,15 +12,19 @@
 | **Skill** | A reusable module invoked by agents to perform a focused, composable task |
 | **Prompt** | A single-shot LLM instruction for one well-defined workflow |
 
-## At a glance
+## Quickstart
 
 ```bash
 pip install uio
 
-# Run an agent
-uio agent run my-agent
+# Scaffold .uio/ and install bundled examples
+uio init --examples
 
-# Interactive chat REPL
+# Run one of the bundled examples
+uio skill run summarise "Your text here"
+uio agent run repo-health
+
+# Interactive streaming chat
 uio chat
 
 # View token spend
@@ -51,6 +55,40 @@ complexity: small
 Your task is to …
 ```
 
+## Bundled examples
+
+`uio init --examples` installs these ready-to-run definitions:
+
+| Name | Type | What it does |
+|---|---|---|
+| `shell-helper` | agent | Suggest a shell command for a task and optionally run it |
+| `repo-health` | agent | Run tests, lint, TODO count, stale branches, open PRs |
+| `summarise` | skill | Summarise text or a file |
+| `explain-code` | skill | Explain a source file in plain English |
+| `changelog-entry` | skill | Turn a `git diff` into a conventional-commit changelog entry |
+| `debug-traceback` | skill | Explain a Python traceback and suggest a fix |
+| `ask-docs` | prompt | Ask a focused question about a codebase |
+
+## Registry
+
+Discover and install community definitions from remote registries — Git repos with a `registry.yaml` manifest. No central server required.
+
+```bash
+# Add a registry to uio.toml:
+# [[registries]]
+# name = "official"
+# url  = "https://github.com/jomkz/uio-registry"
+# ref  = "main"
+
+uio registry list                   # show configured registries
+uio registry search summarise       # search by name, description, or tag
+uio registry install summarise      # copy definition into .uio/
+uio registry install repo-health --pin  # install and print a pinnable SHA
+uio registry update                 # refresh cached manifests
+```
+
+Installed definitions are plain local files — no live runtime dependency on the registry.
+
 ## Providers
 
 Auto-routes across available providers in order: **Gemini → OpenAI → Ollama**. Override with `--provider` or `uio.toml`.
@@ -60,8 +98,6 @@ Auto-routes across available providers in order: **Gemini → OpenAI → Ollama*
 | `gemini` | `gemini-2.5-flash` | `gemini-2.0-flash-lite` |
 | `openai` | `gpt-4o` | `gpt-4o-mini` |
 | `ollama` | `qwen2.5-coder:32b` | `qwen2.5-coder:7b` |
-
-> **Implementation in progress.** See [issue #1](https://github.com/jomkz/uio/issues/1) for the full implementation plan.
 
 ## License
 

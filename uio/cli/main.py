@@ -13,8 +13,10 @@ from uio.cli.chat import chat_cmd
 from uio.cli.config import config_group
 from uio.cli.cost import cost_cmd
 from uio.cli.prompt import prompt_group
+from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
 from uio.config import get_starter_toml, load_config
+from uio.examples import EXAMPLES
 from uio.schema.parser import parse_definition_file, validate_definition
 
 _EXAMPLE_AGENT = """\
@@ -66,18 +68,26 @@ main.add_command(prompt_group, "prompt")
 main.add_command(chat_cmd, "chat")
 main.add_command(cost_cmd, "cost")
 main.add_command(config_group, "config")
+main.add_command(registry_group, "registry")
 
 
 @main.command("init")
-def init_cmd() -> None:
-    """Scaffold .uio/ with example agent, skill, and prompt.
+@click.option(
+    "--examples", is_flag=True, default=False,
+    help="Also install bundled example agents, skills, and prompts.",
+)
+def init_cmd(examples: bool) -> None:
+    """Scaffold .uio/ with an example agent, skill, and prompt.
+
+    Pass --examples to also install the bundled real-world examples
+    (summarise, explain-code, shell-helper, etc.).
 
     Also adds uio_cost.jsonl to .gitignore if one exists.
 
-    Example:
-
     \b
+    Examples:
       uio init
+      uio init --examples
     """
     cfg = load_config()
     agents_dir = Path(cfg["dirs"]["agents"])
@@ -102,6 +112,22 @@ def init_cmd() -> None:
     if not prompt_file.exists():
         prompt_file.write_text(_EXAMPLE_PROMPT)
         click.echo(f"  Created: {prompt_file}")
+
+    if examples:
+        dir_map = {
+            "agents": agents_dir,
+            "skills": skills_dir,
+            "prompts": prompts_dir,
+        }
+        for kind, entries in EXAMPLES.items():
+            dest_dir = dir_map[kind]
+            for filename, content in entries:
+                dest = dest_dir / filename
+                if not dest.exists():
+                    dest.write_text(content)
+                    click.echo(f"  Created: {dest}")
+                else:
+                    click.echo(f"  Skipped (exists): {dest}")
 
     # Add cost ledger to .gitignore if one exists
     ledger = cfg["runtime"]["cost_ledger"]
