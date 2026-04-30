@@ -90,7 +90,7 @@ GITHUB_APP_PLANNER_PRIVATE_KEY      — PEM key (literal or path to .pem file)
 
 Replace `PLANNER` with `CODER` or `REVIEWER` for the other identities.
 
-If the env vars are absent at run time, uio emits a warning and falls back to `GITHUB_PERSONAL_ACCESS_TOKEN` / `GH_TOKEN`. An invalid identity value (anything other than `planner`, `coder`, `reviewer`) causes a hard error at startup.
+If the env vars are absent at run time, uio exits with an error listing the missing variables — falling back to `GITHUB_PERSONAL_ACCESS_TOKEN` / `GH_TOKEN` is not permitted for identity agents. An invalid identity value (anything other than `planner`, `coder`, `reviewer`) also causes a hard error at startup.
 
 `uio validate` warns (non-fatally) when `github-identity` is declared but the corresponding env vars are not set, so you can catch configuration drift in CI.
 
