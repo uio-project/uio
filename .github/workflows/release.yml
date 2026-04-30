@@ -33,6 +33,43 @@ jobs:
           name: dist
           path: dist/
 
+  build-binaries:
+    name: Build binary (${{ matrix.asset_name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: uio-linux-x86_64
+          - os: macos-latest
+            asset_name: uio-macos-universal2
+          - os: windows-latest
+            asset_name: uio-windows-x86_64.exe
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install pyinstaller .
+
+      - name: Build binary (macOS universal2)
+        if: runner.os == 'macOS'
+        run: pyinstaller --onefile --name ${{ matrix.asset_name }} --target-arch universal2 uio/cli/main.py
+
+      - name: Build binary (Linux / Windows)
+        if: runner.os != 'macOS'
+        run: pyinstaller --onefile --name ${{ matrix.asset_name }} uio/cli/main.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binary-${{ matrix.os }}
+          path: dist/${{ matrix.asset_name }}*
+
   publish-pypi:
     name: Publish to PyPI
     needs: build
@@ -49,7 +86,7 @@ jobs:
 
   github-release:
     name: Create GitHub Release
-    needs: build
+    needs: [build, build-binaries]
     runs-on: ubuntu-latest
 
     steps:
@@ -60,8 +97,25 @@ jobs:
           name: dist
           path: dist/
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: binary-ubuntu-latest
+          path: binaries/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: binary-macos-latest
+          path: binaries/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: binary-windows-latest
+          path: binaries/
+
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/*
+          files: |
+            dist/*
+            binaries/*
           generate_release_notes: true
