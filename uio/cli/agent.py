@@ -56,7 +56,7 @@ def agent_group() -> None:
 @click.option(
     "--timeout", default=None, show_default=True, type=int, help="Per-command timeout in seconds."
 )
-@click.option("--no-mcp", is_flag=True, default=False, help="Disable the GitHub MCP server.")
+@click.option("--no-mcp", is_flag=True, default=False, help="Disable all MCP servers.")
 def agent_run_cmd(
     agent_name: str,
     arg: str | None,
@@ -91,6 +91,7 @@ def agent_run_cmd(
         base_url=base_url,
         timeout=timeout or cfg["runtime"]["timeout"],
         no_mcp=no_mcp,
+        mcp_cfg=cfg["mcp"],
         definition_path=definition_path,
         ledger_path=cfg["runtime"]["cost_ledger"],
         large_agent_names=cfg["large_agents"]["names"],

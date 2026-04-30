@@ -87,7 +87,7 @@ Agents do not need to know about the naming convention — the model sees the fu
 
 ## Disabling MCP
 
-To run without the GitHub MCP server even when the token is set:
+To run without any MCP servers:
 
 ```bash
 uio agent run my-agent --no-mcp
@@ -96,8 +96,8 @@ uio agent run my-agent --no-mcp
 Use this when:
 - The environment does not have Node.js or npx
 - You want to test the agent's shell-only behaviour
-- Network isolation requirements prevent spawning the server
-- The agent does not need GitHub operations
+- Network isolation requirements prevent spawning the servers
+- The agent does not need any MCP tools
 
 ---
 
@@ -109,20 +109,18 @@ By default, the server is launched as:
 npx -y @github/github-mcp-server stdio
 ```
 
-Override with the `MCP_GITHUB_COMMAND` environment variable:
-
-```bash
-export MCP_GITHUB_COMMAND="bun x @github/github-mcp-server stdio"
-```
-
-Or in `uio.toml`:
+Override via `uio.toml` (preferred):
 
 ```toml
 [mcp.github]
 command = "bun x @github/github-mcp-server@1.2.0 stdio"
 ```
 
-The `uio.toml` setting takes effect if `MCP_GITHUB_COMMAND` is not set in the environment.
+Or via the `MCP_GITHUB_COMMAND` environment variable (applies only to the backwards-compat auto-start path, i.e. when `[mcp.github]` is absent from `uio.toml`):
+
+```bash
+export MCP_GITHUB_COMMAND="bun x @github/github-mcp-server stdio"
+```
 
 ---
 
@@ -140,9 +138,31 @@ Communication uses newline-delimited JSON. Each request includes an incrementing
 
 ---
 
-## Custom MCP servers
+## Additional MCP servers
 
-The `MCPClient` class in `uio/core/mcp.py` is not GitHub-specific — it speaks the MCP protocol and can work with any compliant server. To integrate a different server, modify `make_mcp_client()` in `mcp.py` to accept a server name and command, or extend the runner to accept multiple MCP clients. This is planned for a future release; the current architecture supports one MCP server per run.
+`uio` supports multiple MCP servers running simultaneously. Configure each one as a `[mcp.<name>]` section in `uio.toml`:
+
+```toml
+[mcp.github]
+command = "npx -y @github/github-mcp-server stdio"
+
+[mcp.filesystem]
+command = "npx -y @modelcontextprotocol/server-filesystem /workspace"
+
+[mcp.fetch]
+command = "npx -y @modelcontextprotocol/server-fetch"
+
+[mcp.memory]
+command = "npx -y @modelcontextprotocol/server-memory"
+```
+
+The `[mcp.<name>]` key becomes the `server_name` prefix. Tools are exposed to the LLM as `mcp__filesystem__read_file`, `mcp__fetch__fetch`, etc.
+
+If a server fails to start, uio prints a warning and continues without it — the remaining servers and `run_command` remain available.
+
+**Backwards compatibility:** If no `[mcp.github]` section is present in `uio.toml`, uio auto-starts the GitHub server whenever `GITHUB_PERSONAL_ACCESS_TOKEN` is set. Existing setups that rely on the token-based auto-start require no config changes.
+
+**Duplicate server names** are not possible via `uio.toml` (TOML forbids duplicate keys). If `make_mcp_clients` is called programmatically with a dict that happens to have collisions, the first entry wins and subsequent ones are silently skipped.
 
 ---
 
