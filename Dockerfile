@@ -20,9 +20,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 
 WORKDIR /workspace
 
-# Install uio from source
-COPY . /build
-RUN pip install --no-cache-dir /build && rm -rf /build
+# Install uio from PyPI — version is injected at build time from pyproject.toml
+ARG UIO_VERSION
+RUN pip install --no-cache-dir "uio-ai==${UIO_VERSION}"
 
 # Pre-warm the npx cache for bundled MCP servers so the first agent run is fast
 RUN for pkg in \
