@@ -12,7 +12,7 @@ uio itself does not implement any MCP tools — it delegates entirely to the ser
 
 ## GitHub MCP server
 
-The most common use case is the official GitHub MCP server (`@github/github-mcp-server`), which exposes ~30 GitHub API operations as typed tools: create/list issues, read file contents, list pull requests, manage branches, and more.
+The most common use case is the official GitHub MCP server ([github/github-mcp-server](https://github.com/github/github-mcp-server)), which exposes ~30 GitHub API operations as typed tools: create/list issues, read file contents, list pull requests, manage branches, and more.
 
 Using the GitHub MCP server instead of `gh` CLI shell commands gives the agent:
 - Typed, structured JSON responses (no shell output parsing)
@@ -23,10 +23,33 @@ When MCP tools are available, uio injects a preamble into the system prompt advi
 
 ---
 
+## Installing the GitHub MCP server
+
+uio probes for the best available command in this order:
+
+| Priority | Method | Install | Notes |
+|---|---|---|---|
+| **1** | **gh extension** (recommended) | `gh extension install github/gh-mcp` | Uses `gh`'s ambient auth; no extra token needed |
+| **2** | Standalone binary | Download from [GitHub Releases](https://github.com/github/github-mcp-server/releases) | Place `github-mcp-server` on `$PATH` |
+| **3** | Community npm | `npx @modelcontextprotocol/server-github` | Requires `GITHUB_PERSONAL_ACCESS_TOKEN`; widely available |
+
+**Recommended setup (one-time):**
+
+```bash
+# Install the gh extension
+gh extension install github/gh-mcp
+
+# Verify it starts and lists tools
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | gh mcp server | head -c 500
+```
+
+---
+
 ## Prerequisites
 
-- **Node.js** (any recent LTS version) and **npx**. The MCP server is launched as `npx -y @github/github-mcp-server stdio`.
-- A GitHub personal access token with the scopes your agent needs.
+- **`gh` CLI** (recommended) — install from <https://cli.github.com>. Run `gh auth login` once.
+- *Or* **Node.js + npx** (any recent LTS) if using the community npm fallback.
+- A GitHub token with the scopes your agent needs (handled automatically when using `gh`).
 
 ---
 
@@ -103,23 +126,19 @@ Use this when:
 
 ## Overriding the launch command
 
-By default, the server is launched as:
-
-```
-npx -y @github/github-mcp-server stdio
-```
-
-Override via `uio.toml` (preferred):
+By default, uio probes for the best available command (see the priority table above). You can override this in `uio.toml` (preferred):
 
 ```toml
 [mcp.github]
-command = "bun x @github/github-mcp-server@1.2.0 stdio"
+command = "gh mcp server"   # gh extension (recommended)
+# command = "github-mcp-server stdio"  # standalone binary
+# command = "npx -y @modelcontextprotocol/server-github"  # community npm
 ```
 
 Or via the `MCP_GITHUB_COMMAND` environment variable (applies only to the backwards-compat auto-start path, i.e. when `[mcp.github]` is absent from `uio.toml`):
 
 ```bash
-export MCP_GITHUB_COMMAND="bun x @github/github-mcp-server stdio"
+export MCP_GITHUB_COMMAND="gh mcp server"
 ```
 
 ---
@@ -144,7 +163,7 @@ Communication uses newline-delimited JSON. Each request includes an incrementing
 
 ```toml
 [mcp.github]
-command = "npx -y @github/github-mcp-server stdio"
+command = "gh mcp server"
 
 [mcp.filesystem]
 command = "npx -y @modelcontextprotocol/server-filesystem /workspace"
@@ -172,9 +191,10 @@ If a server fails to start, uio prints a warning and continues without it — th
 
 This warning is printed to stderr when the server fails to start. The run continues without MCP tools. Common causes:
 
-- `npx` not found — install Node.js
+- `gh` extension not installed — run `gh extension install github/gh-mcp`
+- `gh` not authenticated — run `gh auth login`
+- `npx` not found (community npm fallback) — install Node.js
 - Token is invalid or expired — regenerate it at GitHub
-- Node.js version is too old — upgrade to LTS (18+)
 
 **The agent keeps using `gh` CLI even though MCP is enabled**
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -96,6 +97,22 @@ class MCPClient:
             pass
 
 
+def _default_github_mcp_command() -> list[str]:
+    """Return the best available command to start the GitHub MCP server.
+
+    Probe order:
+    1. gh extension (gh extension install github/gh-mcp) — official, zero extra binary
+    2. Standalone binary downloaded from GitHub Releases
+    3. Community npm package (@modelcontextprotocol/server-github) — PAT-only but widely available
+    """
+    if shutil.which("gh"):
+        return ["gh", "mcp", "server"]
+    binary = shutil.which("github-mcp-server")
+    if binary:
+        return [binary, "stdio"]
+    return ["npx", "-y", "@modelcontextprotocol/server-github"]
+
+
 def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
     """Try to start the GitHub MCP server; return None if env token is missing."""
     token = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN") or os.environ.get("GITHUB_TOKEN")
@@ -104,11 +121,15 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
     command_env = os.environ.copy()
     command_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = token
     raw = os.environ.get("MCP_GITHUB_COMMAND")
-    command = shlex.split(raw) if raw else ["npx", "-y", "@github/github-mcp-server", "stdio"]
+    command = shlex.split(raw) if raw else _default_github_mcp_command()
     try:
         return MCPClient(command, server_name=server_name, env=command_env)
     except Exception as e:
-        print(f"  [mcp] Warning: could not start GitHub MCP server: {e}", file=sys.stderr)
+        print(
+            f"  [mcp] Warning: could not start GitHub MCP server: {e}\n"
+            f"  Hint: run 'gh extension install github/gh-mcp' or set MCP_GITHUB_COMMAND.",
+            file=sys.stderr,
+        )
         return None
 
 
