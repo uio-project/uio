@@ -55,6 +55,7 @@ The following flags apply to `agent run`, `skill run`, and `prompt run`:
 | `--base-url` | URL | env/config | OpenAI-compatible base URL (LiteLLM, Azure, local proxy) |
 | `--timeout` | integer | 300 | Per-command shell timeout in seconds |
 | `--no-mcp` | flag | off | Disable GitHub MCP server even when token is set |
+| `--shell` | `bash\|sh\|zsh\|powershell\|pwsh` | auto | Shell for `run_command`; auto-detects platform (PowerShell on Windows, bash/sh on POSIX) |
 
 ---
 
@@ -72,6 +73,7 @@ uio agent run my-agent
 uio agent run my-agent "focus on the auth module"
 uio agent run my-agent --provider openai --complexity large
 uio agent run my-agent --no-mcp
+uio agent run my-agent --shell pwsh    # force PowerShell on any platform
 ```
 
 Exit code: 0 on success, 1 if the definition file is not found or validation fails.
@@ -312,9 +314,16 @@ uio registry install repo-health --force
 Prints a shell completion script.
 
 ```bash
-eval "$(uio completion bash)"    # bash
-eval "$(uio completion zsh)"     # zsh
-uio completion fish | source     # fish
+eval "$(uio completion bash)"                        # bash
+eval "$(uio completion zsh)"                         # zsh
+uio completion fish | source                         # fish
+uio completion pwsh | Out-String | Invoke-Expression # PowerShell
+```
+
+To persist PowerShell completion, add the line to your `$PROFILE`:
+
+```powershell
+Add-Content $PROFILE "`nuio completion pwsh | Out-String | Invoke-Expression"
 ```
 
 ---
@@ -332,6 +341,15 @@ uio completion fish | source     # fish
 | `MCP_GITHUB_COMMAND` | Override MCP server launch command | `[mcp.github].command` in uio.toml |
 | `LLM_PROVIDER` | Default provider | `--provider` flag, `uio.toml` `default_provider` |
 | `LLM_MODEL` | Default model | `--model` flag |
+
+**Setting variables on Windows (PowerShell):**
+
+```powershell
+$env:GEMINI_API_KEY = "your-key"
+$env:GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_..."
+```
+
+To persist across sessions: `[System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key", "User")`
 
 ---
 

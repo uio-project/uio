@@ -1,6 +1,13 @@
 """Tests for tool execution: run_command, truncation, timeout, unknown tools."""
 
-from uio.core.tools import DEFAULT_TIMEOUT, MAX_OUTPUT_BYTES, ToolCall, execute_tool
+from uio.core.tools import (
+    DEFAULT_TIMEOUT,
+    MAX_OUTPUT_BYTES,
+    SHELL_CHOICES,
+    ToolCall,
+    _shell_args,
+    execute_tool,
+)
 
 
 def call(command: str) -> ToolCall:
@@ -62,6 +69,62 @@ def test_timeout_message_includes_seconds():
 
 def test_default_timeout_constant():
     assert DEFAULT_TIMEOUT == 300
+
+
+# ── Shell dispatch ────────────────────────────────────────────────────────────
+
+
+def test_shell_choices_exports_expected_names():
+    assert set(SHELL_CHOICES) == {"bash", "sh", "zsh", "powershell", "pwsh"}
+
+
+def test_shell_args_bash_override():
+    args, shell = _shell_args("echo hi", "bash")
+    assert args == ["bash", "-c", "echo hi"]
+    assert shell is False
+
+
+def test_shell_args_sh_override():
+    args, shell = _shell_args("echo hi", "sh")
+    assert args == ["sh", "-c", "echo hi"]
+    assert shell is False
+
+
+def test_shell_args_zsh_override():
+    args, shell = _shell_args("echo hi", "zsh")
+    assert args == ["zsh", "-c", "echo hi"]
+    assert shell is False
+
+
+def test_shell_args_powershell_override():
+    args, shell = _shell_args("echo hi", "powershell")
+    assert args == ["powershell.exe", "-Command", "echo hi"]
+    assert shell is False
+
+
+def test_shell_args_pwsh_override():
+    args, shell = _shell_args("echo hi", "pwsh")
+    assert args == ["pwsh", "-Command", "echo hi"]
+    assert shell is False
+
+
+def test_shell_args_no_override_posix():
+    import sys
+
+    if sys.platform != "win32":
+        args, shell = _shell_args("echo hi")
+        assert args == "echo hi"
+        assert shell is True
+
+
+def test_execute_tool_with_bash_override():
+    output = execute_tool(call("echo hello"), shell_override="bash")
+    assert "hello" in output
+
+
+def test_execute_tool_with_sh_override():
+    output = execute_tool(call("echo world"), shell_override="sh")
+    assert "world" in output
 
 
 # ── Multi-server MCP dispatch ─────────────────────────────────────────────────

@@ -190,7 +190,7 @@ def validate_cmd() -> None:
 
 
 @main.command("completion")
-@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]), default="bash")
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish", "pwsh"]), default="bash")
 def completion_cmd(shell: str) -> None:
     """Print a shell completion script.
 
@@ -199,12 +199,24 @@ def completion_cmd(shell: str) -> None:
       bash:  eval "$(uio completion bash)"
       zsh:   eval "$(uio completion zsh)"
       fish:  uio completion fish | source
+      pwsh:  uio completion pwsh | Out-String | Invoke-Expression
     """
     try:
         from click.shell_completion import BashComplete, FishComplete, ZshComplete
 
-        cls = {"bash": BashComplete, "zsh": ZshComplete, "fish": FishComplete}[shell]
-        sc = cls(main, {}, "uio", "_UIO_COMPLETE")
+        if shell == "pwsh":
+            try:
+                from click.shell_completion import PowerShellComplete
+
+                sc = PowerShellComplete(main, {}, "uio", "_UIO_COMPLETE")
+            except ImportError:
+                raise click.ClickException(
+                    "PowerShell completion requires Click 8.0+. "
+                    "Upgrade with: pip install --upgrade click"
+                )
+        else:
+            cls = {"bash": BashComplete, "zsh": ZshComplete, "fish": FishComplete}[shell]
+            sc = cls(main, {}, "uio", "_UIO_COMPLETE")
         click.echo(sc.source())
     except (ImportError, AttributeError) as e:
         raise click.ClickException(f"Shell completion unavailable: {e}")

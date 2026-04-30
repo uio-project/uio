@@ -41,6 +41,22 @@ docker run --rm -it \
   ghcr.io/jomkz/uio chat
 ```
 
+### Windows users
+
+The examples above use `$(pwd)` (bash/zsh syntax) for the volume mount. In PowerShell use
+`${PWD}` instead:
+
+```powershell
+docker run --rm `
+  -e GEMINI_API_KEY=your-key `
+  -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... `
+  -v ${PWD}:/workspace `
+  ghcr.io/jomkz/uio agent run repo-health
+```
+
+If you use `docker compose`, the `.:/workspace` volume path in `docker-compose.yml` is
+resolved by Compose and works on all platforms without any change.
+
 ## Configuration
 
 `uio.toml` must be present in `/workspace` (the container's working directory). Mount your project

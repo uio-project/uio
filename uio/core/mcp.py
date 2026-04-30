@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 
@@ -103,7 +104,7 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
     command_env = os.environ.copy()
     command_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = token
     raw = os.environ.get("MCP_GITHUB_COMMAND")
-    command = raw.split() if raw else ["npx", "-y", "@github/github-mcp-server", "stdio"]
+    command = shlex.split(raw) if raw else ["npx", "-y", "@github/github-mcp-server", "stdio"]
     try:
         return MCPClient(command, server_name=server_name, env=command_env)
     except Exception as e:
@@ -137,7 +138,7 @@ def make_mcp_clients(mcp_cfg: dict) -> "dict[str, MCPClient]":
         if not raw_cmd:
             continue
         try:
-            clients[name] = MCPClient(raw_cmd.split(), server_name=name)
+            clients[name] = MCPClient(shlex.split(raw_cmd), server_name=name)
         except Exception as e:
             print(f"  [mcp] Warning: could not start '{name}' MCP server: {e}", file=sys.stderr)
 
