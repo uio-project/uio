@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import sys
 
+from uio import __version__
+from uio.core.attribution import build_attribution_instructions
 from uio.core.clients import make_client
 from uio.core.github_app import (
     KNOWN_ROLES,
@@ -142,7 +144,17 @@ def run_agent(
         del mcp_clients[name]
 
     preamble = _build_preamble(bool(mcp_clients), shell_override)
-    system_prompt = f"{preamble}# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
+
+    role = frontmatter.get("github-identity")
+    attribution_block = (
+        build_attribution_instructions(role, frontmatter.get("name", agent_name), __version__)
+        if role in KNOWN_ROLES
+        else ""
+    )
+
+    system_prompt = (
+        f"{preamble}{attribution_block}# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
+    )
 
     user_message = "Begin your workflow now."
     if arg:
