@@ -83,6 +83,8 @@ jobs:
           path: dist/
 
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
 
   github-release:
     name: Create GitHub Release
