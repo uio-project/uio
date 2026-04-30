@@ -251,11 +251,15 @@ Run `uio` as a step in any container-native pipeline:
 
 ## Building from source
 
+The official Dockerfile installs `uio-ai` from PyPI, so a published version is required via the `UIO_VERSION` build argument:
+
 ```bash
-docker build -t uio .
+docker build --build-arg UIO_VERSION=0.1.0rc2 -t uio .
 
 docker run --rm \
   -e GEMINI_API_KEY=your-key \
   -v $(pwd):/workspace \
   uio skill run summarise "Hello from a local build"
 ```
+
+Replace `0.1.0rc2` with the version you want to pin. For local development against unreleased code, install directly with `pip install -e .` and run `uio` from your virtual environment instead of using the container.
