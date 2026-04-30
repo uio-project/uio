@@ -92,20 +92,131 @@ docker run --rm \
 
 ## Ollama sidecar (no cloud API keys)
 
-Use the bundled `docker-compose.yml` to run `uio` with a local Ollama model — no cloud API keys
-required.
+The bundled `docker-compose.yml` runs `uio` alongside a local Ollama instance. No cloud API
+keys are required — the entire stack runs with no egress, making it suitable for air-gapped
+environments and regulated on-premises deployments.
 
-```bash
-# Pull a model on first run
-docker compose run --rm ollama ollama pull qwen2.5-coder:7b
+### How provider routing works with the sidecar
 
-# Run an agent against the local model
-docker compose run --rm uio agent run repo-health
+`uio` tries providers in order: **Gemini → OpenAI → Ollama**. A provider is included only if
+its API key is present in the environment. Ollama has no key requirement and is always the
+final fallback.
+
+The compose file wires `OLLAMA_BASE_URL=http://ollama:11434/v1` so the uio container reaches
+the Ollama sidecar over the compose network. With no cloud keys set:
+
+```
+ROUTING_CHAIN: [ollama]  ← only Ollama is available, selected immediately
 ```
 
-The compose file wires `OLLAMA_BASE_URL=http://ollama:11434/v1` so `uio` auto-routes to the
-local Ollama instance. Cloud keys (`GEMINI_API_KEY`, etc.) are passed through from your host
-environment if set, but are not required.
+With cloud keys set (passed through from the host), cloud providers take priority:
+
+```
+ROUTING_CHAIN: [gemini, openai, ollama]  ← Gemini tried first; Ollama is the fallback
+```
+
+### First-time setup
+
+```bash
+# Pull the small model (≈4 GB, good for most agents)
+docker compose run --rm ollama ollama pull qwen2.5-coder:7b
+
+# Verify — run a skill
+docker compose run --rm uio skill run summarise "Hello from Ollama"
+```
+
+The `ollama` service persists downloaded models in a named volume (`ollama_data`) so you only
+pull once. The uio service waits for the Ollama healthcheck to pass before starting, so there
+is no need to manually sequence the startup.
+
+### Model tiers
+
+`uio` selects between a small and a large model based on the agent's complexity setting. With
+Ollama, the defaults are:
+
+| Tier | Model | VRAM (approx.) | Use when |
+|---|---|---|---|
+| `small` (default) | `qwen2.5-coder:7b` | ~5 GB | Most agents and skills |
+| `large` | `qwen2.5-coder:32b` | ~20 GB | Complex multi-step agents, `complexity: large` frontmatter |
+
+Pull both if you want to use the large tier:
+
+```bash
+docker compose run --rm ollama ollama pull qwen2.5-coder:7b
+docker compose run --rm ollama ollama pull qwen2.5-coder:32b
+```
+
+Force the large tier for a single run:
+
+```bash
+docker compose run --rm uio agent run repo-health --complexity large
+```
+
+Or set it permanently in the agent's frontmatter:
+
+```yaml
+---
+name: my-agent
+complexity: large
+---
+```
+
+### Pinning a model
+
+To bypass tier selection entirely and use any Ollama model (including ones not in the default
+table), set `LLM_MODEL` before running:
+
+```bash
+# Use llama3.2 instead of qwen2.5-coder:7b
+docker compose run --rm ollama ollama pull llama3.2
+LLM_MODEL=llama3.2 docker compose run --rm uio skill run summarise "Hello"
+```
+
+`LLM_MODEL` is passed through from the host by the compose file. It overrides tier selection
+for all providers — see [Providers](07-providers.md#model-override) for the full resolution
+order.
+
+### GPU acceleration (NVIDIA)
+
+The compose file ships a `gpu` profile that replaces the CPU Ollama container with one that
+has access to all NVIDIA GPUs on the host.
+
+**Prerequisite:** install [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) on the host.
+
+```bash
+# Pull into the GPU container's volume (shared with the CPU container)
+docker compose --profile gpu run --rm ollama-gpu ollama pull qwen2.5-coder:32b
+
+# Run with GPU acceleration
+docker compose --profile gpu run --rm uio-gpu agent run repo-health --complexity large
+```
+
+The GPU variant is worthwhile for the 32b model; the 7b model runs acceptably on CPU.
+
+### Air-gapped deployment
+
+With no cloud keys in the environment and the Ollama volume pre-populated, the entire stack
+runs without any internet access:
+
+1. On a machine with internet: pull models and export the volume.
+2. On the air-gapped host: import the volume and run `docker compose up`.
+
+No requests leave the host — Ollama serves models locally, and MCP servers that make network
+calls (e.g. `@github/github-mcp-server`) are only started if a GitHub token is present.
+
+### Recommended models
+
+| Model | Pull command | Notes |
+|---|---|---|
+| `qwen2.5-coder:7b` | `ollama pull qwen2.5-coder:7b` | Default small tier — best general-purpose agentic model at this size |
+| `qwen2.5-coder:32b` | `ollama pull qwen2.5-coder:32b` | Default large tier — stronger reasoning, requires more VRAM |
+| `llama3.2` | `ollama pull llama3.2` | Fast, low VRAM, good for simple skills |
+| `mistral` | `ollama pull mistral` | Good instruction following, widely tested |
+| `deepseek-r1:7b` | `ollama pull deepseek-r1:7b` | Strong reasoning; slow output |
+
+For agents that use many tool calls, models with good instruction following (Qwen, Mistral)
+outperform raw-benchmark leaders. Avoid very small models (≤3b) for agentic use — they
+reliably fail to format tool calls correctly.
 
 ## CI/CD usage
 
