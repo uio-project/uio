@@ -1,4 +1,5 @@
 """Shared CLI helpers: definition listing and table printing."""
+
 from __future__ import annotations
 
 from glob import glob
@@ -26,10 +27,7 @@ def print_definition_table(rows: list[list[str]], headers: list[str]) -> None:
     if not rows:
         click.echo("  (none found)")
         return
-    widths = [
-        max(len(h), max(len(r[i]) for r in rows))
-        for i, h in enumerate(headers)
-    ]
+    widths = [max(len(h), max(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
     click.echo("  ".join(h.ljust(w) for h, w in zip(headers, widths)))
     click.echo("  ".join("-" * w for w in widths))
     for row in rows:

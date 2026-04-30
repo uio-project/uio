@@ -1,4 +1,5 @@
 """Bundled example definitions written to .uio/ via 'uio init --examples'."""
+
 from __future__ import annotations
 
 # Each entry: (filename, content).  Keys match uio.toml [dirs] keys.

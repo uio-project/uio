@@ -1,4 +1,5 @@
 """LLM client abstractions: GeminiClient, OpenAIClient, OllamaClient."""
+
 from __future__ import annotations
 
 import json
@@ -121,13 +122,15 @@ class GeminiClient(LLMClient):
             model_parts.append({"function_call": {"name": tc.name, "args": tc.args}})
         history.append({"role": "model", "parts": model_parts})
         if tool_results:
-            history.append({
-                "role": "user",
-                "parts": [
-                    {"function_response": {"name": tc.name, "response": {"output": out}}}
-                    for tc, out in tool_results
-                ],
-            })
+            history.append(
+                {
+                    "role": "user",
+                    "parts": [
+                        {"function_response": {"name": tc.name, "response": {"output": out}}}
+                        for tc, out in tool_results
+                    ],
+                }
+            )
 
 
 class OpenAIClient(LLMClient):
@@ -164,11 +167,13 @@ class OpenAIClient(LLMClient):
         calls: list[ToolCall] = []
         if msg.tool_calls:
             for tc in msg.tool_calls:
-                calls.append(ToolCall(
-                    name=tc.function.name,
-                    args=json.loads(tc.function.arguments),
-                    call_id=tc.id,
-                ))
+                calls.append(
+                    ToolCall(
+                        name=tc.function.name,
+                        args=json.loads(tc.function.arguments),
+                        call_id=tc.id,
+                    )
+                )
         usage: TokenUsage | None = None
         if resp.usage:
             usage = TokenUsage(
@@ -183,18 +188,21 @@ class OpenAIClient(LLMClient):
         response: LLMResponse,
         tool_results: list[tuple[ToolCall, str]],
     ) -> None:
-        history.append({
-            "role": "assistant",
-            "content": response.text,
-            "tool_calls": [
-                {
-                    "id": tc.call_id,
-                    "type": "function",
-                    "function": {"name": tc.name, "arguments": json.dumps(tc.args)},
-                }
-                for tc in response.tool_calls
-            ] or None,
-        })
+        history.append(
+            {
+                "role": "assistant",
+                "content": response.text,
+                "tool_calls": [
+                    {
+                        "id": tc.call_id,
+                        "type": "function",
+                        "function": {"name": tc.name, "arguments": json.dumps(tc.args)},
+                    }
+                    for tc in response.tool_calls
+                ]
+                or None,
+            }
+        )
         for tc, out in tool_results:
             history.append({"role": "tool", "tool_call_id": tc.call_id, "content": out})
 

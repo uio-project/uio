@@ -1,4 +1,5 @@
 """uio agent subcommands: run, list, inspect, new."""
+
 from __future__ import annotations
 
 import textwrap
@@ -10,7 +11,6 @@ from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
 from uio.core.routing import infer_complexity
 from uio.core.runner import run_agent
-from uio.core.tools import DEFAULT_TIMEOUT
 from uio.schema.parser import parse_definition_file
 
 _AGENT_TEMPLATE = textwrap.dedent("""\
@@ -40,17 +40,23 @@ def agent_group() -> None:
 @agent_group.command("run")
 @click.argument("agent_name", metavar="AGENT")
 @click.argument("arg", required=False)
-@click.option("--provider", default=None,
-              help="LLM provider: gemini, openai, or ollama (default: auto-routes).")
+@click.option(
+    "--provider",
+    default=None,
+    help="LLM provider: gemini, openai, or ollama (default: auto-routes).",
+)
 @click.option("--model", default=None, help="Model name override.")
-@click.option("--complexity", type=click.Choice(["large", "small"]), default=None,
-              help="Task complexity tier (default: inferred from frontmatter or uio.toml).")
-@click.option("--base-url", default=None,
-              help="Base URL for an OpenAI-compatible endpoint.")
-@click.option("--timeout", default=None, show_default=True, type=int,
-              help="Per-command timeout in seconds.")
-@click.option("--no-mcp", is_flag=True, default=False,
-              help="Disable the GitHub MCP server.")
+@click.option(
+    "--complexity",
+    type=click.Choice(["large", "small"]),
+    default=None,
+    help="Task complexity tier (default: inferred from frontmatter or uio.toml).",
+)
+@click.option("--base-url", default=None, help="Base URL for an OpenAI-compatible endpoint.")
+@click.option(
+    "--timeout", default=None, show_default=True, type=int, help="Per-command timeout in seconds."
+)
+@click.option("--no-mcp", is_flag=True, default=False, help="Disable the GitHub MCP server.")
 def agent_run_cmd(
     agent_name: str,
     arg: str | None,
@@ -122,7 +128,9 @@ def agent_inspect_cmd(agent_name: str) -> None:
     fm, body = parse_definition_file(path)
     click.echo(f"  Name:        {fm.get('name', agent_name)}")
     click.echo(f"  Description: {fm.get('description', '—')}")
-    click.echo(f"  Complexity:  {infer_complexity(agent_name, fm, None, load_config()['large_agents']['names'])}")
+    click.echo(
+        f"  Complexity:  {infer_complexity(agent_name, fm, None, load_config()['large_agents']['names'])}"
+    )
     if fm.get("tools"):
         click.echo(f"  Tools:       {', '.join(fm['tools'])}")
     click.echo()

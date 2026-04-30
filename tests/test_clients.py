@@ -3,9 +3,9 @@
 Instances are created via __new__ to skip __init__ (which requires API keys).
 Only append_turn and build_history are under test — pure message formatting.
 """
+
 import json
 
-import pytest
 
 from uio.core.clients import GeminiClient, LLMResponse, OpenAIClient
 from uio.core.tools import ToolCall
@@ -16,6 +16,7 @@ def tc(cmd: str = "echo hi", call_id: str = "tc-1") -> ToolCall:
 
 
 # ── GeminiClient ──────────────────────────────────────────────────────────────
+
 
 def gemini() -> GeminiClient:
     return GeminiClient.__new__(GeminiClient)
@@ -45,7 +46,9 @@ def test_gemini_tool_result_appended_as_user_turn():
     assert len(history) == 3
     model_turn = history[1]
     assert model_turn["role"] == "model"
-    assert {"function_call": {"name": "run_command", "args": {"command": "echo hi"}}} in model_turn["parts"]
+    assert {"function_call": {"name": "run_command", "args": {"command": "echo hi"}}} in model_turn[
+        "parts"
+    ]
 
     tool_turn = history[2]
     assert tool_turn["role"] == "user"
@@ -79,6 +82,7 @@ def test_gemini_text_and_tool_call_both_in_model_parts():
 
 
 # ── OpenAIClient ──────────────────────────────────────────────────────────────
+
 
 def openai_client() -> OpenAIClient:
     return OpenAIClient.__new__(OpenAIClient)

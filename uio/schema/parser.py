@@ -1,4 +1,5 @@
 """YAML frontmatter parser for .agent.md, .skill.md, and .prompt.md files."""
+
 from __future__ import annotations
 
 import re

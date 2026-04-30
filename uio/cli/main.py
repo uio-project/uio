@@ -1,4 +1,5 @@
 """Root CLI group and top-level commands: init, validate, completion."""
+
 from __future__ import annotations
 
 import sys
@@ -15,7 +16,7 @@ from uio.cli.cost import cost_cmd
 from uio.cli.prompt import prompt_group
 from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
-from uio.config import get_starter_toml, load_config
+from uio.config import load_config
 from uio.examples import EXAMPLES
 from uio.schema.parser import parse_definition_file, validate_definition
 
@@ -73,7 +74,9 @@ main.add_command(registry_group, "registry")
 
 @main.command("init")
 @click.option(
-    "--examples", is_flag=True, default=False,
+    "--examples",
+    is_flag=True,
+    default=False,
     help="Also install bundled example agents, skills, and prompts.",
 )
 def init_cmd(examples: bool) -> None:

@@ -1,4 +1,5 @@
 """uio skill subcommands: run, list, inspect, new."""
+
 from __future__ import annotations
 
 import textwrap
@@ -9,7 +10,6 @@ import click
 from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
 from uio.core.runner import run_agent
-from uio.core.tools import DEFAULT_TIMEOUT
 from uio.schema.parser import parse_definition_file
 
 _SKILL_TEMPLATE = textwrap.dedent("""\
@@ -35,17 +35,21 @@ def skill_group() -> None:
 @skill_group.command("run")
 @click.argument("skill_name", metavar="SKILL")
 @click.argument("arg", required=False)
-@click.option("--provider", default=None,
-              help="LLM provider: gemini, openai, or ollama (default: auto-routes).")
+@click.option(
+    "--provider",
+    default=None,
+    help="LLM provider: gemini, openai, or ollama (default: auto-routes).",
+)
 @click.option("--model", default=None, help="Model name override.")
-@click.option("--complexity", type=click.Choice(["large", "small"]), default=None,
-              help="Task complexity tier.")
-@click.option("--base-url", default=None,
-              help="Base URL for an OpenAI-compatible endpoint.")
-@click.option("--timeout", default=None, type=int,
-              help="Per-command timeout in seconds.")
-@click.option("--no-mcp", is_flag=True, default=False,
-              help="Disable the GitHub MCP server.")
+@click.option(
+    "--complexity",
+    type=click.Choice(["large", "small"]),
+    default=None,
+    help="Task complexity tier.",
+)
+@click.option("--base-url", default=None, help="Base URL for an OpenAI-compatible endpoint.")
+@click.option("--timeout", default=None, type=int, help="Per-command timeout in seconds.")
+@click.option("--no-mcp", is_flag=True, default=False, help="Disable the GitHub MCP server.")
 def skill_run_cmd(
     skill_name: str,
     arg: str | None,

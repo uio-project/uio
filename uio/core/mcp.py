@@ -1,4 +1,5 @@
 """MCP stdio client (JSON-RPC 2.0)."""
+
 from __future__ import annotations
 
 import json
@@ -53,11 +54,14 @@ class MCPClient:
         self._proc.stdin.flush()
 
     def _initialize(self) -> None:
-        self._rpc("initialize", {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "uio", "version": "0.1.0"},
-        })
+        self._rpc(
+            "initialize",
+            {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "uio", "version": "0.1.0"},
+            },
+        )
         self._notify("initialized", {})
 
     def list_tools(self) -> list[dict]:
@@ -65,23 +69,21 @@ class MCPClient:
         result = self._rpc("tools/list", {})
         tools = []
         for t in result.get("tools", []):
-            tools.append({
-                "name": f"mcp__{self.server_name}__{t['name']}",
-                "description": t.get("description", ""),
-                "parameters": t.get("inputSchema", {"type": "object", "properties": {}}),
-            })
+            tools.append(
+                {
+                    "name": f"mcp__{self.server_name}__{t['name']}",
+                    "description": t.get("description", ""),
+                    "parameters": t.get("inputSchema", {"type": "object", "properties": {}}),
+                }
+            )
         return tools
 
     def call_tool(self, name: str, args: dict) -> str:
         """Call a tool by prefixed name and return text output."""
         prefix = f"mcp__{self.server_name}__"
-        actual = name[len(prefix):] if name.startswith(prefix) else name
+        actual = name[len(prefix) :] if name.startswith(prefix) else name
         result = self._rpc("tools/call", {"name": actual, "arguments": args})
-        parts = [
-            item["text"]
-            for item in result.get("content", [])
-            if item.get("type") == "text"
-        ]
+        parts = [item["text"] for item in result.get("content", []) if item.get("type") == "text"]
         return "\n".join(parts) or "(no output)"
 
     def close(self) -> None:

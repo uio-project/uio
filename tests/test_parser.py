@@ -1,7 +1,7 @@
 """Tests for the YAML frontmatter parser."""
+
 import textwrap
 
-import pytest
 
 from uio.schema.parser import parse_definition_file, validate_definition
 

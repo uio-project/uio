@@ -13,6 +13,7 @@ A registry is a Git repo with a registry.yaml manifest at its root:
 Configured via [[registries]] in uio.toml.  Manifests are cached locally
 under ~/.cache/uio/registries/<name>.yaml with a configurable TTL.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,6 +30,7 @@ DEFAULT_TTL_HOURS = 24
 
 
 # ── URL helpers ───────────────────────────────────────────────────────────────
+
 
 def _raw_url(repo_url: str, ref: str, path: str) -> str:
     """Convert a hosting URL to a raw-content URL for the given ref and path."""
@@ -55,6 +57,7 @@ def _fetch_url(url: str, timeout: int = 10) -> str:
 
 # ── Cache helpers ─────────────────────────────────────────────────────────────
 
+
 def _cache_path(name: str, cache_dir: Path) -> Path:
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir / f"{name}.yaml"
@@ -68,6 +71,7 @@ def _is_fresh(path: Path, ttl_hours: int) -> bool:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def fetch_manifest(
     registry: dict[str, Any],
@@ -191,7 +195,5 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
             if not defn.get(field):
                 errors.append(f"{prefix}: missing required field '{field}'")
         if defn.get("type") and defn["type"] not in valid_types:
-            errors.append(
-                f"{prefix}: type '{defn['type']}' must be one of {sorted(valid_types)}"
-            )
+            errors.append(f"{prefix}: type '{defn['type']}' must be one of {sorted(valid_types)}")
     return errors

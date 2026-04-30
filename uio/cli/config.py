@@ -1,4 +1,5 @@
 """uio config subcommands: show, init."""
+
 from __future__ import annotations
 
 import os

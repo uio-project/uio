@@ -1,4 +1,5 @@
 """Main tool-use loop for agents, skills, and prompts."""
+
 from __future__ import annotations
 
 import os
@@ -82,9 +83,7 @@ def run_agent(
     if arg:
         user_message = f"Begin your workflow now. Argument: {arg}"
 
-    resolved_complexity = infer_complexity(
-        agent_name, frontmatter, complexity, large_agent_names
-    )
+    resolved_complexity = infer_complexity(agent_name, frontmatter, complexity, large_agent_names)
     provider_chain = select_provider_chain(provider)
 
     try:
