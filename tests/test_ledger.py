@@ -1,8 +1,8 @@
 """Tests for cost ledger: estimation and file append."""
+
 import json
 from pathlib import Path
 
-import pytest
 
 from uio.core.ledger import estimate_cost_usd, write_cost_ledger
 

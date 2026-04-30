@@ -1,5 +1,5 @@
 """Tests for tool execution: run_command, truncation, timeout, unknown tools."""
-import pytest
+
 
 from uio.core.tools import DEFAULT_TIMEOUT, MAX_OUTPUT_BYTES, ToolCall, execute_tool
 
@@ -32,11 +32,7 @@ def test_output_truncated_at_limit():
 def test_tail_biased_truncation_preserves_end():
     sentinel = "SENTINEL_END"
     big = MAX_OUTPUT_BYTES + 1000
-    output = execute_tool(call(
-        f"python3 -c \""
-        f"print('a' * {big}); print('{sentinel}')"
-        f"\""
-    ))
+    output = execute_tool(call(f"python3 -c \"print('a' * {big}); print('{sentinel}')\""))
     assert "[output truncated]" in output
     assert sentinel in output
 

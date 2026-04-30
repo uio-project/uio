@@ -1,4 +1,5 @@
 """uio chat — interactive streaming multi-turn REPL."""
+
 from __future__ import annotations
 
 import fnmatch
@@ -10,7 +11,7 @@ from uio.config import load_config
 from uio.core.clients import GeminiClient, LLMClient, LLMResponse, OpenAIClient, TokenUsage
 from uio.core.ledger import estimate_cost_usd, write_cost_ledger
 from uio.core.routing import select_model, select_provider_chain
-from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, ToolCall, execute_tool
+from uio.core.tools import TOOL_SCHEMA, ToolCall, execute_tool
 from uio.core.clients import make_client
 
 _DEFAULT_SYSTEM = """\
@@ -21,11 +22,11 @@ and assist with any development task. Be concise and direct.
 _MAX_TOOL_ITERS = 10
 
 _SLASH_CMDS = {
-    "/exit":  "Exit the session",
-    "/quit":  "Exit the session",
+    "/exit": "Exit the session",
+    "/quit": "Exit the session",
     "/clear": "Clear conversation history",
-    "/cost":  "Show token spend for this session",
-    "/help":  "Show this help",
+    "/cost": "Show token spend for this session",
+    "/help": "Show this help",
 }
 
 
@@ -226,7 +227,9 @@ def _inner_tool_loop(
     return response, extra_prompt, extra_completion
 
 
-def _show_session_cost(provider: str, model: str, prompt_tokens: int, completion_tokens: int) -> None:
+def _show_session_cost(
+    provider: str, model: str, prompt_tokens: int, completion_tokens: int
+) -> None:
     total = prompt_tokens + completion_tokens
     cost = estimate_cost_usd(provider, model, prompt_tokens, completion_tokens)
     click.echo(
@@ -236,21 +239,45 @@ def _show_session_cost(provider: str, model: str, prompt_tokens: int, completion
 
 
 @click.command("chat")
-@click.option("--provider", default=None,
-              help="LLM provider: gemini, openai, or ollama (default: auto-routes).")
+@click.option(
+    "--provider",
+    default=None,
+    help="LLM provider: gemini, openai, or ollama (default: auto-routes).",
+)
 @click.option("--model", default=None, help="Model name override.")
-@click.option("--base-url", default=None,
-              help="Base URL for an OpenAI-compatible endpoint.")
-@click.option("--system", "system_file", default=None,
-              help="Path to a file whose contents become the system prompt.")
-@click.option("--tools", is_flag=True, default=False,
-              help="Expose the run_command tool so the LLM can execute shell commands.")
-@click.option("--auto-approve", is_flag=True, default=False,
-              help="Skip per-command approval prompts (implies --tools).")
-@click.option("--allow", "allow_globs", multiple=True, metavar="GLOB",
-              help="Shell-glob pattern for auto-approved commands (repeatable).")
-@click.option("--deny", "deny_globs", multiple=True, metavar="GLOB",
-              help="Shell-glob pattern for always-rejected commands (repeatable).")
+@click.option("--base-url", default=None, help="Base URL for an OpenAI-compatible endpoint.")
+@click.option(
+    "--system",
+    "system_file",
+    default=None,
+    help="Path to a file whose contents become the system prompt.",
+)
+@click.option(
+    "--tools",
+    is_flag=True,
+    default=False,
+    help="Expose the run_command tool so the LLM can execute shell commands.",
+)
+@click.option(
+    "--auto-approve",
+    is_flag=True,
+    default=False,
+    help="Skip per-command approval prompts (implies --tools).",
+)
+@click.option(
+    "--allow",
+    "allow_globs",
+    multiple=True,
+    metavar="GLOB",
+    help="Shell-glob pattern for auto-approved commands (repeatable).",
+)
+@click.option(
+    "--deny",
+    "deny_globs",
+    multiple=True,
+    metavar="GLOB",
+    help="Shell-glob pattern for always-rejected commands (repeatable).",
+)
 def chat_cmd(
     provider: str | None,
     model: str | None,
@@ -285,9 +312,7 @@ def chat_cmd(
             raise SystemExit(1)
 
     tool_schemas = [TOOL_SCHEMA] if tools else []
-    provider_chain = select_provider_chain(
-        provider or cfg["runtime"].get("default_provider")
-    )
+    provider_chain = select_provider_chain(provider or cfg["runtime"].get("default_provider"))
     chosen_provider: str | None = None
     resolved_model: str | None = None
     client: LLMClient | None = None
@@ -369,7 +394,10 @@ def chat_cmd(
 
         if tools and response.tool_calls:
             response, ep, ec = _inner_tool_loop(
-                client, history, system, response,
+                client,
+                history,
+                system,
+                response,
                 auto_approve=auto_approve,
                 allow_globs=allow_globs,
                 deny_globs=deny_globs,
@@ -388,6 +416,10 @@ def chat_cmd(
     if total_prompt + total_completion > 0:
         _show_session_cost(chosen_provider, resolved_model, total_prompt, total_completion)
         write_cost_ledger(
-            "chat", chosen_provider, resolved_model, total_prompt, total_completion,
+            "chat",
+            chosen_provider,
+            resolved_model,
+            total_prompt,
+            total_completion,
             cfg["runtime"]["cost_ledger"],
         )

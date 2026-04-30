@@ -1,7 +1,6 @@
 """Tests for routing: complexity inference, model selection, provider chain, cost."""
-import os
 
-import pytest
+
 
 from uio.core.clients import (
     LLMResponse,
@@ -21,6 +20,7 @@ from uio.core.tools import ToolCall
 
 
 # ── infer_complexity ───────────────────────────────────────────────────────────
+
 
 def test_complexity_cli_override_wins():
     assert infer_complexity("my-agent", {"complexity": "small"}, "large") == "large"
@@ -59,10 +59,14 @@ def test_complexity_empty_large_names_list():
 
 
 def test_complexity_frontmatter_beats_large_names():
-    assert infer_complexity("my-agent", {"complexity": "small"}, None, large_names=["my-agent"]) == "small"
+    assert (
+        infer_complexity("my-agent", {"complexity": "small"}, None, large_names=["my-agent"])
+        == "small"
+    )
 
 
 # ── select_model ───────────────────────────────────────────────────────────────
+
 
 def test_select_model_explicit_override():
     assert select_model("gemini", "large", "my-custom-model") == "my-custom-model"
@@ -103,6 +107,7 @@ def test_select_model_explicit_override_beats_env(monkeypatch):
 
 
 # ── select_provider_chain ──────────────────────────────────────────────────────
+
 
 def test_provider_chain_explicit_override(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
@@ -153,6 +158,7 @@ def test_provider_chain_respects_routing_order(monkeypatch):
 
 # ── estimate_cost_usd ──────────────────────────────────────────────────────────
 
+
 def test_cost_estimate_gemini_flash():
     cost = estimate_cost_usd("gemini", "gemini-2.5-flash", 1_000_000, 1_000_000)
     assert abs(cost - 0.75) < 1e-9
@@ -179,6 +185,7 @@ def test_cost_estimate_unknown_model_falls_back_to_provider():
 
 # ── TokenUsage / LLMResponse ───────────────────────────────────────────────────
 
+
 def test_llm_response_usage_defaults_to_none():
     r = LLMResponse(text="hi", tool_calls=[])
     assert r.usage is None
@@ -192,6 +199,7 @@ def test_llm_response_usage_field():
 
 
 # ── OllamaClient ──────────────────────────────────────────────────────────────
+
 
 def ollama_client() -> OllamaClient:
     return OllamaClient.__new__(OllamaClient)
@@ -209,7 +217,7 @@ def test_ollama_inherits_openai_append_turn_text_only():
 
 
 def test_ollama_inherits_openai_append_turn_tool_result():
-    import json
+
     client = ollama_client()
     history = [{"role": "user", "content": "begin"}]
     call = tc(call_id="tc-1")

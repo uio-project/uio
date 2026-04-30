@@ -1,4 +1,5 @@
 """uio cost — summarise token spend from the cost ledger."""
+
 from __future__ import annotations
 
 import datetime
@@ -8,7 +9,6 @@ from pathlib import Path
 import click
 
 from uio.config import load_config
-from uio.core.ledger import DEFAULT_LEDGER_PATH
 
 
 def _load_ledger(ledger_path: str, since: str | None, tail: int | None) -> list[dict]:
@@ -31,9 +31,7 @@ def _load_ledger(ledger_path: str, since: str | None, tail: int | None) -> list[
             if cutoff.tzinfo is None:
                 cutoff = cutoff.replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            raise click.BadParameter(
-                f"not a valid ISO 8601 date: {since!r}", param_hint="--since"
-            )
+            raise click.BadParameter(f"not a valid ISO 8601 date: {since!r}", param_hint="--since")
         filtered = []
         for e in entries:
             try:
@@ -67,10 +65,7 @@ def _print_cost_table(entries: list[dict]) -> None:
         for e in entries
     ]
     headers = ["TIMESTAMP", "AGENT", "PROVIDER", "MODEL", "TOKENS", "COST"]
-    widths = [
-        max(len(h), max(len(r[i]) for r in rows))
-        for i, h in enumerate(headers)
-    ]
+    widths = [max(len(h), max(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
     click.echo("  ".join(h.ljust(w) for h, w in zip(headers, widths)))
     click.echo("  ".join("-" * w for w in widths))
     for row in rows:
@@ -82,14 +77,23 @@ def _print_cost_table(entries: list[dict]) -> None:
 
 
 @click.command("cost")
-@click.option("--tail", default=None, type=int, metavar="N",
-              help="Show only the last N entries.")
-@click.option("--since", default=None, metavar="DATE",
-              help="Show entries on or after DATE (ISO 8601).")
-@click.option("--json", "as_json", is_flag=True, default=False,
-              help="Emit raw JSON lines instead of a formatted table.")
-@click.option("--ledger", default=None, metavar="PATH",
-              help="Path to the cost ledger file (default: from uio.toml or uio_cost.jsonl).")
+@click.option("--tail", default=None, type=int, metavar="N", help="Show only the last N entries.")
+@click.option(
+    "--since", default=None, metavar="DATE", help="Show entries on or after DATE (ISO 8601)."
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit raw JSON lines instead of a formatted table.",
+)
+@click.option(
+    "--ledger",
+    default=None,
+    metavar="PATH",
+    help="Path to the cost ledger file (default: from uio.toml or uio_cost.jsonl).",
+)
 def cost_cmd(
     tail: int | None,
     since: str | None,

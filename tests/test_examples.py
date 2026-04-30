@@ -1,9 +1,9 @@
 """Tests for bundled example definitions in uio.examples."""
+
 import pytest
 
 from uio.examples import EXAMPLES
 from uio.schema.parser import parse_definition_file, validate_definition
-import io
 import re
 import yaml
 
@@ -19,6 +19,7 @@ def _parse_embedded(content: str) -> tuple[dict, str]:
 
 
 # ── Structure ─────────────────────────────────────────────────────────────────
+
 
 def test_examples_has_agents_key():
     assert "agents" in EXAMPLES
@@ -39,6 +40,7 @@ def test_examples_nonempty():
 
 # ── Filename conventions ──────────────────────────────────────────────────────
 
+
 def test_agent_filenames_end_with_agent_md():
     for filename, _ in EXAMPLES["agents"]:
         assert filename.endswith(".agent.md"), f"Bad agent filename: {filename}"
@@ -55,6 +57,7 @@ def test_prompt_filenames_end_with_prompt_md():
 
 
 # ── Frontmatter parsing ───────────────────────────────────────────────────────
+
 
 def _all_examples():
     for kind, entries in EXAMPLES.items():
@@ -88,6 +91,7 @@ def test_example_has_nonempty_body(filename, content):
 
 # ── Validate via schema.parser ────────────────────────────────────────────────
 
+
 @pytest.mark.parametrize("filename,content", list(_all_examples()))
 def test_example_passes_validation(filename, content, tmp_path):
     """Write each example to a temp file and validate through the real parser."""
@@ -100,6 +104,7 @@ def test_example_passes_validation(filename, content, tmp_path):
 
 # ── Agent-specific ────────────────────────────────────────────────────────────
 
+
 def test_agent_complexity_is_valid():
     valid = {"large", "small"}
     for filename, content in EXAMPLES["agents"]:
@@ -111,6 +116,7 @@ def test_agent_complexity_is_valid():
 
 # ── Prompt-specific ───────────────────────────────────────────────────────────
 
+
 def test_prompts_are_invokable():
     for filename, content in EXAMPLES["prompts"]:
         fm, _ = _parse_embedded(content)
@@ -118,6 +124,7 @@ def test_prompts_are_invokable():
 
 
 # ── No duplicate filenames ────────────────────────────────────────────────────
+
 
 def test_no_duplicate_filenames():
     seen: set[str] = set()

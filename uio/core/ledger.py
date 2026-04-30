@@ -1,4 +1,5 @@
 """Cost estimation and JSONL append-only ledger."""
+
 from __future__ import annotations
 
 import datetime

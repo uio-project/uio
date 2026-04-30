@@ -1,9 +1,8 @@
 """Tests for uio.registry.manifest — fetch, cache, search, install, validate."""
+
 from __future__ import annotations
 
 import time
-from io import BytesIO
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -67,6 +66,7 @@ def _mock_urlopen(content: str):
 
 # ── _raw_url ──────────────────────────────────────────────────────────────────
 
+
 def test_raw_url_github():
     url = _raw_url("https://github.com/jomkz/uio-registry", "main", "registry.yaml")
     assert url == "https://raw.githubusercontent.com/jomkz/uio-registry/main/registry.yaml"
@@ -95,6 +95,7 @@ def test_raw_url_sha_ref():
 
 # ── fetch_manifest ────────────────────────────────────────────────────────────
 
+
 def test_fetch_manifest_parses_yaml(tmp_path):
     with patch("urllib.request.urlopen", return_value=_mock_urlopen(MANIFEST_YAML)):
         manifest = fetch_manifest(REG, force=True, cache_dir=tmp_path)
@@ -121,6 +122,7 @@ def test_fetch_manifest_refreshes_stale_cache(tmp_path):
     # Make the file appear old
     old_mtime = time.time() - 48 * 3600
     import os
+
     os.utime(cache, (old_mtime, old_mtime))
 
     reg_ttl = {**REG, "cache_ttl_hours": 24}
@@ -133,6 +135,7 @@ def test_fetch_manifest_falls_back_to_stale_on_error(tmp_path):
     (tmp_path / "official.yaml").write_text(MANIFEST_YAML)
     old_mtime = time.time() - 48 * 3600
     import os
+
     os.utime(tmp_path / "official.yaml", (old_mtime, old_mtime))
 
     reg_ttl = {**REG, "cache_ttl_hours": 24}
@@ -149,13 +152,16 @@ def test_fetch_manifest_raises_when_no_cache_and_network_fails(tmp_path):
 
 def test_fetch_manifest_force_ignores_fresh_cache(tmp_path):
     (tmp_path / "official.yaml").write_text(MANIFEST_YAML)
-    updated = MANIFEST_YAML + "  - name: extra\n    type: skill\n    path: x.md\n    description: x\n"
+    updated = (
+        MANIFEST_YAML + "  - name: extra\n    type: skill\n    path: x.md\n    description: x\n"
+    )
     with patch("urllib.request.urlopen", return_value=_mock_urlopen(updated)):
         manifest = fetch_manifest(REG, force=True, cache_dir=tmp_path)
     assert len(manifest["definitions"]) == 4
 
 
 # ── search_definitions ────────────────────────────────────────────────────────
+
 
 def test_search_by_name(tmp_path):
     with patch("urllib.request.urlopen", return_value=_mock_urlopen(MANIFEST_YAML)):
@@ -220,23 +226,33 @@ def test_search_is_case_insensitive(tmp_path):
 
 # ── fetch_definition_content ──────────────────────────────────────────────────
 
+
 def test_fetch_definition_content_returns_text():
-    defn = {"name": "summarise", "type": "skill", "path": "skills/summarise.skill.md",
-            "description": "x"}
+    defn = {
+        "name": "summarise",
+        "type": "skill",
+        "path": "skills/summarise.skill.md",
+        "description": "x",
+    }
     with patch("urllib.request.urlopen", return_value=_mock_urlopen(DEFINITION_CONTENT)):
         content = fetch_definition_content(REG, defn)
     assert "summarise" in content
 
 
 def test_fetch_definition_content_raises_on_error():
-    defn = {"name": "summarise", "type": "skill", "path": "skills/summarise.skill.md",
-            "description": "x"}
+    defn = {
+        "name": "summarise",
+        "type": "skill",
+        "path": "skills/summarise.skill.md",
+        "description": "x",
+    }
     with patch("urllib.request.urlopen", side_effect=OSError("timeout")):
         with pytest.raises(RuntimeError, match="timeout"):
             fetch_definition_content(REG, defn)
 
 
 # ── validate_manifest ─────────────────────────────────────────────────────────
+
 
 def test_validate_manifest_valid():
     manifest = yaml.safe_load(MANIFEST_YAML)
@@ -284,6 +300,7 @@ def test_validate_manifest_all_valid_types():
 
 # ── resolve_ref_to_sha ────────────────────────────────────────────────────────
 
+
 def test_resolve_ref_returns_none_for_non_github():
     reg = {"name": "gl", "url": "https://gitlab.com/x/y", "ref": "main"}
     sha = resolve_ref_to_sha(reg)
@@ -298,6 +315,7 @@ def test_resolve_ref_returns_none_on_network_error():
 
 def test_resolve_ref_parses_sha():
     import json
+
     fake_resp = MagicMock()
     fake_resp.__enter__ = lambda s: s
     fake_resp.__exit__ = MagicMock(return_value=False)

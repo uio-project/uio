@@ -1,4 +1,5 @@
 """Load and merge uio.toml project configuration."""
+
 from __future__ import annotations
 
 import os

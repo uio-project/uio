@@ -1,4 +1,5 @@
 """uio registry subcommands: list, search, update, install."""
+
 from __future__ import annotations
 
 import sys
@@ -51,9 +52,7 @@ def registry_list_cmd() -> None:
         return
 
     col_w = [max(len(r.get("name", "")), 8) for r in registries]
-    header = (
-        f"  {'NAME':<{max(col_w)}}  {'URL':<50}  {'REF':<12}  ENABLED"
-    )
+    header = f"  {'NAME':<{max(col_w)}}  {'URL':<50}  {'REF':<12}  ENABLED"
     click.echo(header)
     click.echo("  " + "-" * (len(header) - 2))
     for reg in registries:
@@ -67,8 +66,9 @@ def registry_list_cmd() -> None:
 
 @registry_group.command("search")
 @click.argument("query")
-@click.option("--registry", default=None, metavar="NAME",
-              help="Restrict search to a specific registry.")
+@click.option(
+    "--registry", default=None, metavar="NAME", help="Restrict search to a specific registry."
+)
 def registry_search_cmd(query: str, registry: str | None) -> None:
     """Search for definitions matching QUERY across all enabled registries.
 
@@ -97,10 +97,7 @@ def registry_search_cmd(query: str, registry: str | None) -> None:
     col_type = max(len(r.get("type", "")) for r in results)
     col_reg = max(len(r.get("_registry", "")) for r in results)
 
-    header = (
-        f"  {'NAME':<{col_name}}  {'TYPE':<{col_type}}  "
-        f"{'REGISTRY':<{col_reg}}  DESCRIPTION"
-    )
+    header = f"  {'NAME':<{col_name}}  {'TYPE':<{col_type}}  {'REGISTRY':<{col_reg}}  DESCRIPTION"
     click.echo(header)
     click.echo("  " + "-" * (len(header) - 2))
     for r in results:
@@ -114,8 +111,7 @@ def registry_search_cmd(query: str, registry: str | None) -> None:
 
 
 @registry_group.command("update")
-@click.option("--registry", default=None, metavar="NAME",
-              help="Update only the named registry.")
+@click.option("--registry", default=None, metavar="NAME", help="Update only the named registry.")
 def registry_update_cmd(registry: str | None) -> None:
     """Refresh all (or one) cached registry manifests.
 
@@ -156,12 +152,21 @@ def registry_update_cmd(registry: str | None) -> None:
 
 @registry_group.command("install")
 @click.argument("name")
-@click.option("--registry", default=None, metavar="REGISTRY",
-              help="Use only this registry when resolving NAME.")
-@click.option("--pin", is_flag=True, default=False,
-              help="Resolve the registry ref to a commit SHA and print it.")
-@click.option("--force", is_flag=True, default=False,
-              help="Overwrite an existing local definition.")
+@click.option(
+    "--registry",
+    default=None,
+    metavar="REGISTRY",
+    help="Use only this registry when resolving NAME.",
+)
+@click.option(
+    "--pin",
+    is_flag=True,
+    default=False,
+    help="Resolve the registry ref to a commit SHA and print it.",
+)
+@click.option(
+    "--force", is_flag=True, default=False, help="Overwrite an existing local definition."
+)
 def registry_install_cmd(name: str, registry: str | None, pin: bool, force: bool) -> None:
     """Install a definition from a registry into .uio/.
 
@@ -217,18 +222,14 @@ def registry_install_cmd(name: str, registry: str | None, pin: bool, force: bool
         "prompt": cfg["dirs"]["prompts"],
     }
     if defn_type not in type_to_dir:
-        raise click.ClickException(
-            f"Unknown definition type '{defn_type}' in registry manifest."
-        )
+        raise click.ClickException(f"Unknown definition type '{defn_type}' in registry manifest.")
 
     ext_map = {"agent": ".agent.md", "skill": ".skill.md", "prompt": ".prompt.md"}
     dest_dir = Path(type_to_dir[defn_type])
     dest = dest_dir / f"{name}{ext_map[defn_type]}"
 
     if dest.exists() and not force:
-        raise click.ClickException(
-            f"{dest} already exists. Use --force to overwrite."
-        )
+        raise click.ClickException(f"{dest} already exists. Use --force to overwrite.")
 
     content = fetch_definition_content(found_reg, found_defn)
 
@@ -253,9 +254,9 @@ def registry_install_cmd(name: str, registry: str | None, pin: bool, force: bool
                 f"\n  Pin SHA: {sha}\n"
                 f"  To pin, update uio.toml:\n"
                 f"    [[registries]]\n"
-                f"    name = \"{found_reg['name']}\"\n"
-                f"    url  = \"{found_reg['url']}\"\n"
-                f"    ref  = \"{sha[:12]}\""
+                f'    name = "{found_reg["name"]}"\n'
+                f'    url  = "{found_reg["url"]}"\n'
+                f'    ref  = "{sha[:12]}"'
             )
         else:
             click.echo(
