@@ -1,7 +1,8 @@
-# AI Governance — Attribution Standard
+# AI Governance
 
 > Part of epic #53 (Enterprise GitHub Identity Architecture for AI Agents).
-> Covers the attribution rules for all AI-generated GitHub activity produced by uio agents.
+> Covers attribution standards, app ownership, review cadence, change control, and
+> installation policy for all AI-generated GitHub activity produced by uio agents.
 
 ---
 
@@ -114,4 +115,192 @@ use in tests and tooling:
 
 *See `docs/github-permission-matrix.md` (M1b) for the full permission model.*
 *See `docs/provisioning/` (M2) for App provisioning guides.*
+*See `docs/04-frontmatter.md` for the `github-identity` frontmatter field reference.*
+
+---
+
+## App ownership
+
+Each GitHub App identity has a named technical owner and a named business owner. These
+owners are accountable for the app's permissions, usage, and quarterly review.
+
+| Identity | GitHub App | Technical Owner | Business Owner |
+|---|---|---|---|
+| AI Planner | `uio-ai-planner` | uio maintainer (current: `@jomkz`) | uio project lead |
+| AI Coder | `uio-ai-coder` | uio maintainer (current: `@jomkz`) | uio project lead |
+| AI Reviewer | `uio-ai-reviewer` | uio maintainer (current: `@jomkz`) | uio project lead |
+
+**Technical owner** responsibilities:
+- Maintains the private key and credential files
+- Executes quarterly permission reviews
+- Responds to incidents within 24 hours
+- Updates documentation when configuration changes
+
+**Business owner** responsibilities:
+- Approves permission expansions (see [Change approval](#change-approval))
+- Approves installation into new repositories
+- Conducts or delegates the quarterly governance review
+- Signs off on the annual risk assessment
+
+Ownership transfers must be recorded via a PR that updates this table and the relevant
+`docs/provisioning/` file.
+
+---
+
+## Quarterly review
+
+The quarterly review covers all three GitHub App identities and produces a written record
+of the review outcome. The review must be completed within the first two weeks of each
+calendar quarter (January, April, July, October).
+
+### Review checklist
+
+For each app (`uio-ai-planner`, `uio-ai-coder`, `uio-ai-reviewer`):
+
+- [ ] **Permission audit** — compare current app permissions (visible in GitHub → Settings
+      → Developer settings → GitHub Apps → `<app>` → Permissions) against the documented
+      baseline in `docs/github-permission-matrix.md`. Flag any undocumented permissions.
+- [ ] **Installation audit** — list all repositories where the app is installed. Remove
+      any installations that are no longer active or that were not approved.
+- [ ] **Key age** — confirm the private key was rotated within the last 12 months.
+      If older, schedule rotation (see `docs/runbooks/github-app-credential-rotation.md`).
+- [ ] **Incident review** — review GitHub audit log for any unexpected actions taken by
+      the app identity in the past 90 days (see `docs/runbooks/github-app-audit.md`).
+- [ ] **Rule review** — re-read this document. Confirm all five governance rules still
+      apply and are enforced by the current implementation.
+
+### Recording the review
+
+Open a `ai-governance`-labelled issue titled `Quarterly review — Q[N] [YYYY]`. Paste the
+completed checklist into the issue body. Close the issue after any follow-up actions are
+filed as separate issues.
+
+---
+
+## Change approval
+
+Changes to app permissions or installation scope require explicit approval before being
+applied. "Changes" include:
+
+- Adding a new GitHub permission to any of the three apps
+- Expanding the access level of an existing permission (e.g., Read → Write)
+- Installing an app into a new repository
+- Removing a restriction currently enforced by branch protection or CODEOWNERS
+
+### Approval process
+
+1. Open a GitHub issue labelled `ai-governance` describing the requested change, the
+   business justification, and the security implications.
+2. Assign the issue to the **technical owner** and mention the **business owner**.
+3. The business owner posts an explicit approval comment (`APPROVED`) or rejection.
+4. A minimum two-week trial in a non-production repository is required before the change
+   rolls out to any production repository.
+5. After the trial, a second approval comment is required before production rollout.
+6. The technical owner applies the change and closes the issue with a summary comment.
+
+Changes that reduce permissions (removing Write access, removing an app installation) do
+not require business owner approval — only technical owner sign-off.
+
+---
+
+## App documentation
+
+The following records cover each of the three GitHub App identities.
+
+### Template
+
+```
+**App name:** <github-app-name>
+**Purpose:** <one-sentence purpose>
+**Identity role:** planner | coder | reviewer
+**Permissions:** <link to permission matrix>
+**Installation scope:** <list of repositories>
+**Technical owner:** <GitHub handle>
+**Business owner:** <role or GitHub handle>
+**Private key location:** <path on the operator's machine>
+**Last key rotation:** <YYYY-MM-DD or "never">
+**Last reviewed:** <YYYY-MM-DD or "never">
+**Provisioning guide:** <path to docs/provisioning/*.md>
+```
+
+---
+
+### `uio-ai-planner`
+
+**App name:** `uio-ai-planner`  
+**Purpose:** Create and comment on GitHub issues and PRs on behalf of uio planning agents.  
+**Identity role:** `planner`  
+**Permissions:** See `docs/github-permission-matrix.md` §1 — AI Planner  
+**Installation scope:** `jomkz/uio` (pilot); expand only via [change approval](#change-approval)  
+**Technical owner:** `@jomkz`  
+**Business owner:** uio project lead  
+**Private key location:** `~/.config/uio/uio-ai-planner.private-key.pem`  
+**Last key rotation:** 2026-04-30 (initial)  
+**Last reviewed:** 2026-04-30 (initial provisioning)  
+**Provisioning guide:** `docs/provisioning/ai-planner.md`
+
+---
+
+### `uio-ai-coder`
+
+**App name:** `uio-ai-coder`  
+**Purpose:** Create branches, commit code changes, and open pull requests on behalf of uio coding agents.  
+**Identity role:** `coder`  
+**Permissions:** See `docs/github-permission-matrix.md` §1 — AI Coder  
+**Installation scope:** `jomkz/uio` (pilot); expand only via [change approval](#change-approval)  
+**Technical owner:** `@jomkz`  
+**Business owner:** uio project lead  
+**Private key location:** `~/.config/uio/uio-ai-coder.private-key.pem`  
+**Last key rotation:** 2026-04-30 (initial)  
+**Last reviewed:** 2026-04-30 (initial provisioning)  
+**Provisioning guide:** `docs/provisioning/ai-coder.md`
+
+---
+
+### `uio-ai-reviewer`
+
+**App name:** `uio-ai-reviewer`  
+**Purpose:** Read pull request diffs and post structured review comments on behalf of uio review agents.  
+**Identity role:** `reviewer`  
+**Permissions:** See `docs/github-permission-matrix.md` §1 — AI Reviewer  
+**Installation scope:** `jomkz/uio` (pilot); expand only via [change approval](#change-approval)  
+**Technical owner:** `@jomkz`  
+**Business owner:** uio project lead  
+**Private key location:** `~/.config/uio/uio-ai-reviewer.private-key.pem`  
+**Last key rotation:** 2026-04-30 (initial)  
+**Last reviewed:** 2026-04-30 (initial provisioning)  
+**Provisioning guide:** `docs/provisioning/ai-reviewer.md`
+
+---
+
+## Installation policy
+
+### Default: approval required
+
+Installing any of the three GitHub App identities into a new repository requires
+business owner approval via the [change approval process](#change-approval). Self-service
+installation is not permitted during the M6 pilot phase.
+
+### Eligibility criteria for new installations
+
+A repository is eligible for installation if:
+
+1. It has branch protection enabled on its default branch (at minimum: require PR, require
+   one human reviewer).
+2. The repository owner acknowledges the governance rules in this document by commenting
+   on the approval issue.
+3. The repository does not disable GitHub Actions (required for CI status checks
+   referenced in branch protection).
+
+### Removing an installation
+
+Any technical owner may remove an installation at any time without approval. Removals
+must be logged as a comment on the quarterly review issue or, if urgent, on the
+emergency disable runbook issue (see `docs/runbooks/github-app-emergency-disable.md`).
+
+---
+
+*See `docs/github-permission-matrix.md` (M1b) for the full permission model.*
+*See `docs/provisioning/` (M2) for App provisioning guides.*
+*See `docs/runbooks/` (M5c) for audit, incident, rotation, and emergency disable runbooks.*
 *See `docs/04-frontmatter.md` for the `github-identity` frontmatter field reference.*
