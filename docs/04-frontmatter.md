@@ -38,6 +38,7 @@ tools:
   - terminal
   - github
 timeout: 300
+github-identity: planner
 ---
 ```
 
@@ -48,6 +49,7 @@ timeout: 300
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
 | `tools` | list of strings | No | — | Informational only; documents which tool families the agent uses; not enforced by the runtime |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
+| `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | GitHub App identity to use for this agent's GitHub operations — see below |
 
 ### Complexity tier resolution
 
@@ -67,6 +69,32 @@ Once the tier is resolved, the model is selected based on the provider:
 | `ollama` | `qwen2.5-coder:32b` | `qwen2.5-coder:7b` |
 
 Use `complexity: large` for multi-step analysis tasks, code review, or anything where reasoning quality matters more than cost. Use `complexity: small` (the default) for most agents.
+
+### `github-identity`
+
+When set, uio obtains a short-lived GitHub App installation token for the named identity before the agent's tool loop starts, and exports it as `GH_TOKEN`. Both the `gh` CLI and the GitHub MCP server read `GH_TOKEN`, so all GitHub operations in the run execute as the declared App identity rather than the user's personal account.
+
+| Value | Identity | Permitted GitHub operations |
+|---|---|---|
+| `planner` | AI Planner | Issue create/edit · Issue comments · PR comments |
+| `coder` | AI Coder | Branch create · Commit/push · PR create |
+| `reviewer` | AI Reviewer | PR review · Inline PR comments · Diff summary |
+
+**Prerequisites:** three environment variables must be set for the chosen identity:
+
+```
+GITHUB_APP_PLANNER_ID               — App's numeric ID
+GITHUB_APP_PLANNER_INSTALLATION_ID  — Installation ID for the target repo
+GITHUB_APP_PLANNER_PRIVATE_KEY      — PEM key (literal or path to .pem file)
+```
+
+Replace `PLANNER` with `CODER` or `REVIEWER` for the other identities.
+
+If the env vars are absent at run time, uio emits a warning and falls back to `GITHUB_PERSONAL_ACCESS_TOKEN` / `GH_TOKEN`. An invalid identity value (anything other than `planner`, `coder`, `reviewer`) causes a hard error at startup.
+
+`uio validate` warns (non-fatally) when `github-identity` is declared but the corresponding env vars are not set, so you can catch configuration drift in CI.
+
+See `docs/provisioning/` for setup instructions and `docs/github-permission-matrix.md` for the approved permission model.
 
 ---
 
@@ -150,10 +178,12 @@ When run as `uio prompt run ask-docs "what does the cost ledger store?"`, the fi
 Known keys (do not produce warnings):
 
 ```
-name  description  complexity  tools  timeout  argument-hint  invokable
+name  description  complexity  tools  timeout  argument-hint  invokable  github-identity
 ```
 
-Any other key produces a warning. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
+Any other key produces an error. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
+
+In addition, `uio validate` emits a **non-fatal warning** (exits zero) when `github-identity` is declared but the corresponding `GITHUB_APP_<ROLE>_*` env vars are absent. This flags configuration drift without blocking CI pipelines that run without App credentials.
 
 ---
 

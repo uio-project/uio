@@ -52,3 +52,25 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
             )
 
     return errors
+
+
+def check_identity_env(path: str, frontmatter: dict) -> list[str]:
+    """Return warning strings when github-identity is declared but env vars are absent.
+
+    Non-fatal — the agent can still run using the fallback credential.
+    """
+    from uio.core.github_app import KNOWN_ROLES, env_vars_present
+
+    identity = frontmatter.get("github-identity")
+    if not identity or identity not in KNOWN_ROLES:
+        return []
+
+    if not env_vars_present(identity):
+        role_upper = identity.upper()
+        prefix = f"GITHUB_APP_{role_upper}_"
+        missing = [f"{prefix}{s}" for s in ("ID", "INSTALLATION_ID", "PRIVATE_KEY")]
+        return [
+            f"{path}: 'github-identity: {identity}' declared but env vars not set: "
+            + ", ".join(missing)
+        ]
+    return []

@@ -3,7 +3,7 @@
 import textwrap
 
 
-from uio.schema.parser import parse_definition_file, validate_definition
+from uio.schema.parser import check_identity_env, parse_definition_file, validate_definition
 
 
 def test_standard_frontmatter(tmp_path):
@@ -99,6 +99,55 @@ def test_validate_unknown_key_warns(tmp_path):
     fm, _ = parse_definition_file(str(f))
     errors = validate_definition(str(f), fm)
     assert any("weird_key" in e for e in errors)
+
+
+def test_validate_github_identity_valid(tmp_path):
+    f = tmp_path / "planner.agent.md"
+    f.write_text("---\nname: P\ndescription: D.\ngithub-identity: planner\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert errors == []
+
+
+def test_validate_github_identity_invalid_value(tmp_path):
+    f = tmp_path / "bad.agent.md"
+    f.write_text("---\nname: P\ndescription: D.\ngithub-identity: wizard\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert any("wizard" in e for e in errors)
+
+
+def test_check_identity_env_no_identity(tmp_path):
+    f = tmp_path / "no-identity.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_identity_env(str(f), fm) == []
+
+
+def test_check_identity_env_vars_absent(tmp_path, monkeypatch):
+    for var in (
+        "GITHUB_APP_PLANNER_ID",
+        "GITHUB_APP_PLANNER_INSTALLATION_ID",
+        "GITHUB_APP_PLANNER_PRIVATE_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    f = tmp_path / "planner.agent.md"
+    f.write_text("---\nname: P\ndescription: D.\ngithub-identity: planner\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    warnings = check_identity_env(str(f), fm)
+    assert len(warnings) == 1
+    assert "GITHUB_APP_PLANNER_ID" in warnings[0]
+    assert "planner" in warnings[0]
+
+
+def test_check_identity_env_vars_present(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_APP_REVIEWER_ID", "123")
+    monkeypatch.setenv("GITHUB_APP_REVIEWER_INSTALLATION_ID", "456")
+    monkeypatch.setenv("GITHUB_APP_REVIEWER_PRIVATE_KEY", "fake-pem")
+    f = tmp_path / "reviewer.agent.md"
+    f.write_text("---\nname: R\ndescription: D.\ngithub-identity: reviewer\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_identity_env(str(f), fm) == []
 
 
 def test_argument_hint_list_field(tmp_path):
