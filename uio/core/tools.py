@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from typing import TYPE_CHECKING, NamedTuple
 
 if TYPE_CHECKING:
@@ -10,6 +11,18 @@ if TYPE_CHECKING:
 
 MAX_OUTPUT_BYTES = 32768
 DEFAULT_TIMEOUT = 300
+
+
+def _shell_args(command: str) -> tuple:
+    """Return (args, shell) for subprocess.run.
+
+    On Windows, shell=True routes to cmd.exe which doesn't understand bash idioms.
+    Route to powershell.exe instead so LLM-generated commands work correctly.
+    """
+    if sys.platform == "win32":
+        return ["powershell.exe", "-Command", command], False
+    return command, True
+
 
 TOOL_SCHEMA = {
     "name": "run_command",
@@ -40,8 +53,9 @@ def execute_tool(
         command = tc.args.get("command", "")
         print(f"  [tool] $ {command}")
         try:
+            args, use_shell = _shell_args(command)
             result = subprocess.run(
-                command, shell=True, capture_output=True, text=True, timeout=timeout
+                args, shell=use_shell, capture_output=True, text=True, timeout=timeout
             )
             output = result.stdout + result.stderr
             if len(output) > MAX_OUTPUT_BYTES:

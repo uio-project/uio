@@ -14,7 +14,9 @@ from uio.schema.parser import parse_definition_file
 
 MAX_ITERATIONS = 10
 
-_PREAMBLE_SHELL_ONLY = """\
+_SHELL_NAME = "PowerShell" if sys.platform == "win32" else "bash/sh"
+
+_PREAMBLE_SHELL_ONLY = f"""\
 ## ⚠️ Runtime — MCP Tools Unavailable
 
 You are running inside uio. The ONLY tool available is `run_command`.
@@ -23,16 +25,18 @@ MCP tools (mcp__github__*, etc.) do NOT exist in this runtime.
 Calling them will return "Unknown tool" and waste an iteration — do not attempt them.
 
 For ALL GitHub operations, use `run_command` with the `gh` CLI.
+Shell: {_SHELL_NAME} — emit {_SHELL_NAME}-style commands only.
 
 ---
 """
 
-_PREAMBLE_WITH_MCP = """\
+_PREAMBLE_WITH_MCP = f"""\
 ## ℹ️ Runtime — Tools Available
 
 You are running inside uio. Two tool families are available:
 
 **`run_command`** — execute any shell command (gh CLI, kubectl, s3cmd, etc.)
+Shell: {_SHELL_NAME} — emit {_SHELL_NAME}-style commands only.
 
 **`mcp__<server>__*`** — native MCP tools (typed JSON, full API coverage).
 Active servers and their tool prefixes are listed in the tool schema.
