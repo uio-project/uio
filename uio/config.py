@@ -25,6 +25,7 @@ _DEFAULTS: dict = {
     "large_agents": {
         "names": [],
     },
+    "registries": [],
 }
 
 _STARTER_TOML = """\
@@ -45,6 +46,17 @@ names = []
 
 # [mcp.github]
 # command = "npx -y @github/github-mcp-server stdio"
+
+# Remote registries — each entry is a Git repo with a registry.yaml manifest.
+# Run 'uio registry search <query>' to find definitions.
+# Run 'uio registry install <name>' to copy a definition into .uio/.
+#
+# [[registries]]
+# name    = "official"
+# url     = "https://github.com/jomkz/uio-registry"
+# ref     = "main"           # branch, tag, or commit SHA
+# enabled = true
+# cache_ttl_hours = 24       # how long to keep the cached manifest
 """
 
 
@@ -62,6 +74,7 @@ def load_config(path: str = "uio.toml") -> dict:
             "names": raw.get("large_agents", {}).get("names", []),
         },
         "mcp": raw.get("mcp", {}),
+        "registries": raw.get("registries", []),
     }
 
 
