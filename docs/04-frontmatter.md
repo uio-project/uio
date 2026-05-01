@@ -66,7 +66,7 @@ Once the tier is resolved, the model is selected based on the provider:
 |---|---|---|
 | `gemini` | `gemini-2.5-flash` | `gemini-2.0-flash-lite` |
 | `openai` | `gpt-4o` | `gpt-4o-mini` |
-| `ollama` | `qwen2.5-coder:32b` | `qwen2.5-coder:7b` |
+| `ollama` | `llama3.1:8b` | `llama3.1:8b` |
 
 Use `complexity: large` for multi-step analysis tasks, code review, or anything where reasoning quality matters more than cost. Use `complexity: small` (the default) for most agents.
 

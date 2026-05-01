@@ -231,15 +231,24 @@ When in doubt, start with `small` and move to `large` if the output quality is i
 
 ## The iteration cap
 
-`MAX_ITERATIONS = 10` (defined in `uio/core/runner.py`). If the model calls tools 10 times without producing a tool-call-free response, the loop stops with a warning:
+The runner enforces a per-complexity cap on tool-call iterations:
+
+| Tier | Default cap | `uio.toml` key |
+|---|---|---|
+| `small` | 10 | `runtime.max_iterations` |
+| `large` | 25 | `runtime.max_iterations_large` |
+
+If the model keeps calling tools beyond the cap, the loop stops with a warning that names the key to raise:
 
 ```
-  [warning: reached tool iteration cap]
+⚠️  Reached iteration cap (10). Stopping.
+   The agent did not finish. Increase max_iterations in uio.toml or use --complexity to change the tier.
 ```
 
 The last model response is still printed. This usually indicates:
 - The task is too open-ended — split it into smaller, focused runs
 - The stopping criteria in the body are unclear — add an explicit "stop after producing X" instruction
+- The agent needs `complexity: large` in its frontmatter to get the higher cap
 - The model is stuck in a loop trying something that isn't working — add error handling guidance ("if the command fails, report the error and stop")
 
 ---
