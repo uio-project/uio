@@ -105,6 +105,8 @@ def agent_run_cmd(
         ledger_path=cfg["runtime"]["cost_ledger"],
         large_agent_names=cfg["large_agents"]["names"],
         shell_override=shell,
+        max_iterations=cfg["runtime"]["max_iterations"],
+        max_iterations_large=cfg["runtime"]["max_iterations_large"],
     )
 
 

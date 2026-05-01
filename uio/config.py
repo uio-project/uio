@@ -22,6 +22,8 @@ _DEFAULTS: dict = {
         "default_provider": None,
         "cost_ledger": "uio_cost.jsonl",
         "timeout": 300,
+        "max_iterations": 10,
+        "max_iterations_large": 25,
     },
     "large_agents": {
         "names": [],
@@ -37,8 +39,10 @@ prompts = ".uio/prompts"
 
 [runtime]
 # default_provider = "gemini"
-cost_ledger      = "uio_cost.jsonl"
-timeout          = 300
+cost_ledger          = "uio_cost.jsonl"
+timeout              = 300
+max_iterations       = 10   # small agents (summarise, comment, query)
+max_iterations_large = 25   # large agents (github-coder, multi-step workflows)
 
 [large_agents]
 # Agent names that always use the large model tier (in addition to
