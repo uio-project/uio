@@ -62,6 +62,30 @@ class LLMClient(ABC):
         """Append a completed model turn (plus tool results) to the history."""
 
 
+_GEMINI_SCHEMA_DENYLIST = frozenset({"additionalProperties"})
+
+
+def _sanitize_schema_for_gemini(schema: dict) -> dict:
+    """Recursively strip fields the Gemini API rejects in tool schemas.
+
+    Removes all dollar-prefixed JSON Schema meta-fields ($schema, $defs, $ref)
+    and additionalProperties, which the Gemini API does not recognise.
+    """
+    result = {}
+    for k, v in schema.items():
+        if k.startswith("$") or k in _GEMINI_SCHEMA_DENYLIST:
+            continue
+        if isinstance(v, dict):
+            result[k] = _sanitize_schema_for_gemini(v)
+        elif isinstance(v, list):
+            result[k] = [
+                _sanitize_schema_for_gemini(item) if isinstance(item, dict) else item for item in v
+            ]
+        else:
+            result[k] = v
+    return result
+
+
 class GeminiClient(LLMClient):
     def __init__(self, model: str | None = None, tools: list[dict] | None = None) -> None:
         from google import genai
@@ -75,7 +99,7 @@ class GeminiClient(LLMClient):
             types.FunctionDeclaration(
                 name=t["name"],
                 description=t["description"],
-                parameters=t["parameters"],
+                parameters=_sanitize_schema_for_gemini(t["parameters"]),
             )
             for t in schemas
         ]
