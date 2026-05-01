@@ -34,7 +34,7 @@ These two fields are required on every definition regardless of type.
 name: My Agent
 description: Does something useful.
 complexity: small
-tools:
+capabilities:
   - terminal
   - github
 timeout: 300
@@ -47,7 +47,7 @@ github-identity: planner
 | `name` | string | Yes | — | Display name |
 | `description` | string | Yes | — | One-line summary |
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
-| `tools` | list of strings | No | — | Informational only; documents which tool families the agent uses; not enforced by the runtime. Common values: `terminal`, `github`, `thinking`. |
+| `capabilities` | list of strings | No | — | Informational only; documents which capability families the agent uses; not enforced by the runtime. Common values: `vcs`, `terminal`, `github`, `thinking`. |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
 | `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | GitHub App identity to use for this agent's GitHub operations — see below |
 
@@ -178,7 +178,7 @@ When run as `uio prompt run ask-docs "what does the cost ledger store?"`, the fi
 Known keys (do not produce warnings):
 
 ```
-name  description  complexity  tools  timeout  argument-hint  invokable  github-identity
+name  description  complexity  capabilities  tools  timeout  argument-hint  invokable  github-identity
 ```
 
 Any other key produces an error. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
@@ -196,7 +196,7 @@ In addition, `uio validate` emits a **non-fatal warning** (exits zero) when `git
 name: repo-health
 description: Run tests, lint, TODO count, stale branches, and open PRs.
 complexity: large
-tools:
+capabilities:
   - terminal
   - github
 timeout: 600
@@ -224,7 +224,7 @@ Use `gh` CLI for GitHub operations.
 name: deep-review
 description: Multi-step code review with externalised reasoning.
 complexity: large
-tools:
+capabilities:
   - github
   - thinking
 ---
