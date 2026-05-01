@@ -7,7 +7,7 @@ Only append_turn and build_history are under test — pure message formatting.
 import json
 
 
-from uio.core.clients import GeminiClient, LLMResponse, OpenAIClient, _strip_schema_meta
+from uio.core.clients import GeminiClient, LLMResponse, OpenAIClient, _sanitize_schema_for_gemini
 from uio.core.tools import ToolCall
 
 
@@ -138,21 +138,56 @@ def test_openai_assistant_tool_calls_serialised_as_json():
     assert json.loads(raw_args) == {"command": "ls -la"}
 
 
-# ── _strip_schema_meta ────────────────────────────────────────────────────────
+# ── _sanitize_schema_for_gemini ───────────────────────────────────────────────
 
 
-def test_strip_schema_meta_removes_dollar_schema():
+def test_sanitize_strips_dollar_schema():
     params = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {"x": {"type": "string"}},
     }
-    result = _strip_schema_meta(params)
+    result = _sanitize_schema_for_gemini(params)
     assert "$schema" not in result
     assert result["type"] == "object"
-    assert "properties" in result
 
 
-def test_strip_schema_meta_passthrough_when_no_dollar_schema():
-    params = {"type": "object", "properties": {}}
-    assert _strip_schema_meta(params) == params
+def test_sanitize_strips_additional_properties():
+    params = {"type": "object", "additionalProperties": False, "properties": {}}
+    result = _sanitize_schema_for_gemini(params)
+    assert "additionalProperties" not in result
+    assert result["type"] == "object"
+
+
+def test_sanitize_strips_fields_recursively():
+    params = {
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {"type": "string", "additionalProperties": False},
+            }
+        },
+        "additionalProperties": False,
+    }
+    result = _sanitize_schema_for_gemini(params)
+    assert "additionalProperties" not in result
+    assert "additionalProperties" not in result["properties"]["items"]["items"]
+
+
+def test_sanitize_strips_inside_anyof():
+    params = {
+        "anyOf": [
+            {"type": "string", "$ref": "#/defs/Foo", "additionalProperties": False},
+            {"type": "null"},
+        ]
+    }
+    result = _sanitize_schema_for_gemini(params)
+    assert "$ref" not in result["anyOf"][0]
+    assert "additionalProperties" not in result["anyOf"][0]
+    assert result["anyOf"][1] == {"type": "null"}
+
+
+def test_sanitize_passthrough_clean_schema():
+    params = {"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]}
+    assert _sanitize_schema_for_gemini(params) == params
