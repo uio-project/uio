@@ -26,43 +26,9 @@ class TestDefaultGithubMcpCommand:
                 "@modelcontextprotocol/server-github",
             ]
 
-    def test_gh_on_path_does_not_use_gh_mcp_server(self):
-        """gh being on PATH no longer triggers 'gh mcp server' — requires explicit config."""
-        with patch(
-            "uio.core.mcp.shutil.which", side_effect=lambda x: "/usr/bin/gh" if x == "gh" else None
-        ):
-            assert _default_github_mcp_command() == [
-                "npx",
-                "-y",
-                "@modelcontextprotocol/server-github",
-            ]
-
     def test_binary_wins_over_npm(self):
         with patch("uio.core.mcp.shutil.which", return_value="/some/path"):
             assert _default_github_mcp_command() == ["/some/path", "stdio"]
-
-    def test_app_identity_binary_present(self):
-        """app_identity flag is accepted but no longer changes probe order."""
-
-        def which(name):
-            if name == "github-mcp-server":
-                return "/usr/bin/github-mcp-server"
-            return None
-
-        with patch("uio.core.mcp.shutil.which", side_effect=which):
-            assert _default_github_mcp_command(app_identity=True) == [
-                "/usr/bin/github-mcp-server",
-                "stdio",
-            ]
-
-    def test_app_identity_no_binary_falls_back_to_npm(self):
-        """When app_identity=True and no binary, falls through to community npm."""
-        with patch("uio.core.mcp.shutil.which", return_value=None):
-            assert _default_github_mcp_command(app_identity=True) == [
-                "npx",
-                "-y",
-                "@modelcontextprotocol/server-github",
-            ]
 
 
 class TestMakeMcpClientTokenPriority:
@@ -138,11 +104,11 @@ class TestMakeMcpClientTokenPriority:
         assert result is not None
         assert captured_command == ["/usr/bin/github-mcp-server", "stdio"]
 
-    def test_app_token_warning_mentions_installation_token(self, monkeypatch, capsys):
-        """Warning for App identity failure explains the App token limitation."""
-        monkeypatch.setenv("GH_TOKEN", "ghs_app_token")
+    def test_server_failure_warns_and_returns_none(self, monkeypatch, capsys):
+        """When the MCP server process fails to start, a warning is printed and None returned."""
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "pat-token")
+        monkeypatch.delenv("GH_TOKEN", raising=False)
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
 
         with (
             patch("uio.core.mcp.MCPClient", side_effect=RuntimeError("MCP server closed")),
@@ -152,7 +118,8 @@ class TestMakeMcpClientTokenPriority:
 
         assert result is None
         captured = capsys.readouterr()
-        assert "App installation token" in captured.err
+        assert "Warning" in captured.err
+        assert "MCP_GITHUB_COMMAND" in captured.err
 
 
 def _make_mock_client(server_name: str) -> MagicMock:

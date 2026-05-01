@@ -97,15 +97,12 @@ class MCPClient:
             pass
 
 
-def _default_github_mcp_command(app_identity: bool = False) -> list[str]:
+def _default_github_mcp_command() -> list[str]:
     """Return the best available command to start the GitHub MCP server.
 
     Probe order:
     1. Standalone binary (github-mcp-server) downloaded from GitHub Releases
     2. Community npm package (@modelcontextprotocol/server-github)
-
-    'gh mcp server' is NOT probed automatically — it requires the shuymn/gh-mcp
-    extension and must be opted in via MCP_GITHUB_COMMAND or uio.toml.
     """
     binary = shutil.which("github-mcp-server")
     if binary:
@@ -140,20 +137,14 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
         print(f"  [mcp] '{server_name}' starting with personal token")
 
     raw = os.environ.get("MCP_GITHUB_COMMAND")
-    command = (
-        shlex.split(raw) if raw else _default_github_mcp_command(app_identity=using_app_identity)
-    )
+    command = shlex.split(raw) if raw else _default_github_mcp_command()
     try:
         return MCPClient(command, server_name=server_name, env=command_env)
     except Exception as e:
-        if using_app_identity:
-            hint = (
-                "App installation tokens are not accepted by 'gh mcp server'. "
-                "Install the standalone binary (github-mcp-server) or set "
-                "MCP_GITHUB_COMMAND='npx -y @modelcontextprotocol/server-github'."
-            )
-        else:
-            hint = "install npx (nodejs) or set MCP_GITHUB_COMMAND to an alternative command."
+        hint = (
+            "Install the github-mcp-server binary or set "
+            "MCP_GITHUB_COMMAND='npx -y @modelcontextprotocol/server-github'."
+        )
         print(
             f"  [mcp] Warning: could not start GitHub MCP server: {e}\n  Hint: {hint}",
             file=sys.stderr,
