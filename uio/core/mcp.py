@@ -114,12 +114,31 @@ def _default_github_mcp_command() -> list[str]:
 
 
 def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
-    """Try to start the GitHub MCP server; return None if env token is missing."""
-    token = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    """Try to start the GitHub MCP server; return None if no token is available.
+
+    Token priority: GH_TOKEN (set by App identity injection) → GITHUB_TOKEN → GITHUB_PERSONAL_ACCESS_TOKEN.
+    The selected token is exported under all three names so that any MCP server implementation
+    (gh extension, standalone binary, community npm) can find it regardless of which var it reads.
+    """
+    token = (
+        os.environ.get("GH_TOKEN")
+        or os.environ.get("GITHUB_TOKEN")
+        or os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+    )
     if not token:
         return None
+
     command_env = os.environ.copy()
+    command_env["GH_TOKEN"] = token
+    command_env["GITHUB_TOKEN"] = token
     command_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = token
+
+    using_app_identity = os.environ.get("GH_TOKEN") == token
+    if using_app_identity:
+        print(f"  [mcp] '{server_name}' starting with App identity token (GH_TOKEN)")
+    else:
+        print(f"  [mcp] '{server_name}' starting with personal token")
+
     raw = os.environ.get("MCP_GITHUB_COMMAND")
     command = shlex.split(raw) if raw else _default_github_mcp_command()
     try:
