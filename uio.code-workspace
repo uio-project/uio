@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"name": "🔁 UIO",
+			"path": "."
+		}
+	],
+	"settings": {
+		"git.ignoredRepositories": [
+			"../../.nvm"
+		],
+		"explorer.autoReveal": false,
+		"files.exclude": {
+			"**/.git": true,
+			"**/.DS_Store": true,
+			"**/node_modules": true,
+			"**/.venv": true,
+			"**/__pycache__": true
+		},
+		"explorer.fileNesting.enabled": true,
+		"explorer.fileNesting.patterns": {
+			"LICENSE": "CHANGELOG.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md"
+		}
+	}
+}
