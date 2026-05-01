@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 
 from uio import __version__
 from uio.core.attribution import build_attribution_instructions
@@ -21,6 +22,15 @@ from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.schema.parser import parse_definition_file
 
 MAX_ITERATIONS = 10
+
+_RETRYABLE_SUBSTRINGS = ("503", "429", "UNAVAILABLE", "Too Many Requests", "rate limit")
+_MAX_CHAT_RETRIES = 3
+_RETRY_BACKOFF = [1, 2, 4]  # seconds
+
+
+def _is_retryable(exc: Exception) -> bool:
+    msg = str(exc)
+    return any(s in msg for s in _RETRYABLE_SUBSTRINGS)
 
 
 def _maybe_inject_github_identity(frontmatter: dict) -> None:
@@ -194,7 +204,21 @@ def run_agent(
             try:
                 for iteration in range(1, MAX_ITERATIONS + 1):
                     print(f"[iteration {iteration}]")
-                    response = client.chat(system=system_prompt, history=history)
+                    for attempt in range(_MAX_CHAT_RETRIES):
+                        try:
+                            response = client.chat(system=system_prompt, history=history)
+                            break
+                        except Exception as e:
+                            if _is_retryable(e) and attempt < _MAX_CHAT_RETRIES - 1:
+                                wait = _RETRY_BACKOFF[attempt]
+                                print(
+                                    f"  [router] {candidate_provider} transient error"
+                                    f" (attempt {attempt + 1}), retrying in {wait}s: {e}",
+                                    file=sys.stderr,
+                                )
+                                time.sleep(wait)
+                            else:
+                                raise
 
                     if response.usage:
                         total_prompt += response.usage.prompt_tokens
