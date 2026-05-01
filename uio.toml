@@ -31,7 +31,7 @@ command = "gh mcp server"
 [[mcp.plugins]]
 name    = "git"
 type    = "git"
-command = "npx -y @modelcontextprotocol/server-git"
+command = "npx -y @modelcontextprotocol/server-git {cwd}"
 
 # Structured reasoning scratchpad — no credentials needed.
 # Useful for github-planner decomposing large features.
@@ -40,8 +40,8 @@ name    = "sequential-thinking"
 type    = "think"
 command = "npx -y @modelcontextprotocol/server-sequential-thinking"
 
-# Filesystem access — scoped to this repo root.
+# Filesystem access — scoped to the project root ({cwd} is replaced at startup).
 [[mcp.plugins]]
 name    = "filesystem"
 type    = "fs"
-command = "npx -y @modelcontextprotocol/server-filesystem /home/john/src/uio"
+command = "npx -y @modelcontextprotocol/server-filesystem {cwd}"
