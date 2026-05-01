@@ -25,9 +25,16 @@ from uio.schema.parser import parse_definition_file
 _DEFAULT_MAX_ITERATIONS = 10
 _DEFAULT_MAX_ITERATIONS_LARGE = 25
 
-_RETRYABLE_SUBSTRINGS = ("503", "429", "UNAVAILABLE", "Too Many Requests", "rate limit")
+_RETRYABLE_SUBSTRINGS = (
+    "503",
+    "429",
+    "UNAVAILABLE",
+    "RESOURCE_EXHAUSTED",
+    "Too Many Requests",
+    "rate limit",
+)
 _MAX_CHAT_RETRIES = 3
-_RETRY_BACKOFF = [1, 2, 4]  # seconds
+_RETRY_BACKOFF = [5, 15, 30]  # seconds — enough for Gemini high-demand 503s to clear
 
 
 def _is_retryable(exc: Exception) -> bool:

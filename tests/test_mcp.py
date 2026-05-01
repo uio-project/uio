@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 
-from uio.core.mcp import _default_github_mcp_command, make_mcp_client, make_mcp_clients
+from uio.core.mcp import MCPClient, _default_github_mcp_command, make_mcp_client, make_mcp_clients
 
 
 class TestDefaultGithubMcpCommand:
@@ -409,3 +410,35 @@ class TestMcpGitServer:
 
         assert "git" in result
         assert "github" in result
+
+
+class TestMCPClientCallTool:
+    """Unit tests for MCPClient.call_tool without spawning a real process."""
+
+    def _make_client(self, server_name: str = "github") -> MCPClient:
+        client = MCPClient.__new__(MCPClient)
+        client.server_name = server_name
+        client._id = 0
+        return client
+
+    def test_mcp_tool_error_returned_as_string(self):
+        client = self._make_client()
+        err = RuntimeError("MCP error: {'code': -32603, 'message': 'Unknown tool: get_me'}")
+        with patch.object(client, "_rpc", side_effect=err):
+            result = client.call_tool("mcp__github__get_me", {})
+        assert "MCP error:" in result
+        assert "Unknown tool" in result
+
+    def test_server_closed_error_still_raises(self):
+        client = self._make_client()
+        err = RuntimeError("MCP server closed connection unexpectedly")
+        with patch.object(client, "_rpc", side_effect=err):
+            with pytest.raises(RuntimeError, match="closed connection"):
+                client.call_tool("mcp__github__search_repositories", {})
+
+    def test_successful_call_returns_text_content(self):
+        client = self._make_client()
+        payload = {"content": [{"type": "text", "text": "found 1 repo"}]}
+        with patch.object(client, "_rpc", return_value=payload):
+            result = client.call_tool("mcp__github__search_repositories", {"query": "uio"})
+        assert result == "found 1 repo"
