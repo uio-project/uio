@@ -7,9 +7,9 @@ from pathlib import Path
 from uio.core.ledger import estimate_cost_usd, write_cost_ledger
 
 
-def test_estimate_gemini_flash_lite():
-    cost = estimate_cost_usd("gemini", "gemini-2.0-flash-lite", 1_000_000, 1_000_000)
-    assert abs(cost - (0.075 + 0.30)) < 1e-9
+def test_estimate_gemini_flash():
+    cost = estimate_cost_usd("gemini", "gemini-2.0-flash", 1_000_000, 1_000_000)
+    assert abs(cost - (0.10 + 0.40)) < 1e-9
 
 
 def test_estimate_openai_mini():
