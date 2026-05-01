@@ -2,9 +2,9 @@
 name: github-planner
 description: Create issues, comment on issues and PRs, and summarize GitHub project status using the AI Planner identity.
 complexity: large
-tools:
-  - github
-github-identity: planner
+capabilities:
+  - vcs
+vcs-identity: planner
 argument-hint: "<task-description>"
 ---
 

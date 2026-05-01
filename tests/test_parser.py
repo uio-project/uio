@@ -167,3 +167,85 @@ def test_argument_hint_list_field(tmp_path):
     fm, _ = parse_definition_file(str(f))
     assert isinstance(fm["argument-hint"], list)
     assert len(fm["argument-hint"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# vcs-identity / capabilities (Phase 3 fields)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_vcs_identity_valid(tmp_path):
+    f = tmp_path / "planner.agent.md"
+    f.write_text("---\nname: P\ndescription: D.\nvcs-identity: planner\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert errors == []
+
+
+def test_validate_vcs_identity_invalid_value(tmp_path):
+    f = tmp_path / "bad.agent.md"
+    f.write_text("---\nname: P\ndescription: D.\nvcs-identity: wizard\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert any("wizard" in e for e in errors)
+
+
+def test_validate_vcs_provider_accepted(tmp_path):
+    f = tmp_path / "planner.agent.md"
+    f.write_text(
+        "---\nname: P\ndescription: D.\nvcs-identity: planner\nvcs-provider: github\n---\nBody."
+    )
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert errors == []
+
+
+def test_validate_capabilities_field_accepted(tmp_path):
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\ncapabilities:\n  - vcs\n  - ci\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert errors == []
+
+
+def test_validate_github_identity_still_valid(tmp_path):
+    """Legacy github-identity field must not produce a validation error."""
+    f = tmp_path / "legacy.agent.md"
+    f.write_text("---\nname: L\ndescription: D.\ngithub-identity: coder\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert errors == []
+
+
+def test_check_identity_env_uses_vcs_identity(tmp_path, monkeypatch):
+    for var in (
+        "GITHUB_APP_CODER_ID",
+        "GITHUB_APP_CODER_INSTALLATION_ID",
+        "GITHUB_APP_CODER_PRIVATE_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    f = tmp_path / "coder.agent.md"
+    f.write_text("---\nname: C\ndescription: D.\nvcs-identity: coder\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    warnings = check_identity_env(str(f), fm)
+    assert len(warnings) == 1
+    assert "vcs-identity" in warnings[0]
+    assert "GITHUB_APP_CODER_ID" in warnings[0]
+
+
+def test_check_identity_env_prefers_vcs_identity_over_github_identity(tmp_path, monkeypatch):
+    """When both fields are present, vcs-identity takes precedence in the warning message."""
+    for var in (
+        "GITHUB_APP_REVIEWER_ID",
+        "GITHUB_APP_REVIEWER_INSTALLATION_ID",
+        "GITHUB_APP_REVIEWER_PRIVATE_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    f = tmp_path / "both.agent.md"
+    f.write_text(
+        "---\nname: B\ndescription: D.\nvcs-identity: reviewer\ngithub-identity: reviewer\n---\nBody."
+    )
+    fm, _ = parse_definition_file(str(f))
+    warnings = check_identity_env(str(f), fm)
+    assert len(warnings) == 1
+    assert "vcs-identity" in warnings[0]
