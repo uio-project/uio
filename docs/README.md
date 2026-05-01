@@ -25,27 +25,8 @@
 | [13 — Internals](13-internals.md) | Package architecture, every module's role, how to add a provider or tool, and contributing |
 | [14 — Container image](14-container.md) | Dockerfile, bundled MCP servers, Ollama sidecar, CI/CD usage, and building from source |
 | [15 — Use cases](15-use-cases.md) | Worked examples: repo health, code review, issue planning, AI-authored PRs, multi-agent pipelines |
-
----
-
-## GitHub App identity reference
-
-The following documents cover the enterprise GitHub identity architecture — dedicated GitHub App
-identities (`planner`, `coder`, `reviewer`) for uio agents that act on GitHub.
-
-| Document | What it covers |
-|---|---|
-| [GitHub identity inventory](github-identity-inventory.md) | Current-state survey of GitHub auth usage across uio definitions |
-| [Permission matrix](github-permission-matrix.md) | Minimum permissions, explicit exclusions, and identity routing map |
-| [Governance](governance.md) | Attribution standard, app ownership, quarterly review, change control, installation policy |
-| [Provisioning — AI Planner](provisioning/ai-planner.md) | Step-by-step setup for the `uio-ai-planner` GitHub App |
-| [Provisioning — AI Coder](provisioning/ai-coder.md) | Step-by-step setup for the `uio-ai-coder` GitHub App |
-| [Provisioning — AI Reviewer](provisioning/ai-reviewer.md) | Step-by-step setup for the `uio-ai-reviewer` GitHub App |
-| [Runbook — Audit](runbooks/github-app-audit.md) | Logging requirements and GitHub audit log review process |
-| [Runbook — Incident response](runbooks/github-app-incident-response.md) | P1/P2/P3 incident tiers, 8-step response, post-mortem template |
-| [Runbook — Credential rotation](runbooks/github-app-credential-rotation.md) | Zero-downtime private key rotation using dual-key overlap |
-| [Runbook — Emergency disable](runbooks/github-app-emergency-disable.md) | Fast-path: suspend, delete key, or uninstall in under 2 minutes |
-| [Runbook — Branch protection](runbooks/github-branch-protection.md) | Applied baseline, reconfiguration command, AI Coder bypass verification |
+| [16 — About](16-about.md) | The origin story — why uio exists and where the name comes from |
+| [17 — GitHub App identities](17-github-app-identities.md) | Dedicated GitHub App identities for agents — setup, frontmatter, and links to governance and runbooks |
 
 ---
 
@@ -79,12 +60,13 @@ identities (`planner`, `coder`, `reviewer`) for uio agents that act on GitHub.
 
 ### I want to run agents with dedicated GitHub App identities
 
-1. [Permission matrix](github-permission-matrix.md) — understand what each identity can do
-2. [Provisioning guides](provisioning/) — create and install the GitHub Apps
-3. [Frontmatter schema](04-frontmatter.md#github-identity) — add `github-identity` to your agent
-4. [Configuration](06-configuration.md#github-authentication) — set the required env vars
-5. [Governance](governance.md) — ownership, review cadence, and change control
-6. [Runbooks](runbooks/) — audit, incident response, credential rotation, emergency disable
+1. [GitHub App identities](17-github-app-identities.md) — overview, frontmatter, and further reading index
+2. [Permission matrix](github-permission-matrix.md) — understand what each identity can do
+3. [Provisioning guides](provisioning/) — create and install the GitHub Apps
+4. [Frontmatter schema](04-frontmatter.md#github-identity) — add `github-identity` to your agent
+5. [Configuration](06-configuration.md#github-authentication) — set the required env vars
+6. [Governance](governance.md) — ownership, review cadence, and change control
+7. [Runbooks](runbooks/) — audit, incident response, credential rotation, emergency disable
 
 ### I want to see what uio can do end-to-end
 
