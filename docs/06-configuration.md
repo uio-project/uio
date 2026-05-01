@@ -77,15 +77,19 @@ agents = "/home/alice/shared-agents"
 
 | Key | Default | Description |
 |---|---|---|
-| `default_provider` | `null` | Provider to use when no `--provider` flag is given and no `LLM_PROVIDER` env var is set. One of `gemini`, `openai`, `ollama`. |
+| `default_provider` | `null` | Provider to use when no `--provider` flag is given. One of `gemini`, `openai`, `ollama`. |
 | `cost_ledger` | `uio_cost.jsonl` | Path to the cost ledger file (relative to CWD) |
 | `timeout` | `300` | Default per-command shell timeout in seconds for `run_command` calls |
+| `max_iterations` | `10` | Iteration cap for `small` agents |
+| `max_iterations_large` | `25` | Iteration cap for `large` agents |
 
 ```toml
 [runtime]
-default_provider = "gemini"
-cost_ledger      = "uio_cost.jsonl"
-timeout          = 300
+default_provider     = "gemini"
+cost_ledger          = "uio_cost.jsonl"
+timeout              = 300
+max_iterations       = 10   # small agents (summarise, comment, query)
+max_iterations_large = 25   # large agents (github-coder, multi-step workflows)
 ```
 
 ---
@@ -111,18 +115,18 @@ Agent names are matched case-insensitively with hyphens and underscores treated 
 
 | Key | Default | Description |
 |---|---|---|
-| `command` | `npx -y @github/github-mcp-server stdio` | Full shell command to launch the GitHub MCP server |
+| `command` | auto-detected | Full shell command to launch the GitHub MCP server |
 
-Override when `npx` is not available or you want a pinned version:
+By default uio probes for the best available command in order: `gh mcp server` (gh extension) → `github-mcp-server stdio` (standalone binary) → `npx -y @modelcontextprotocol/server-github` (community npm). Override to pin a specific command:
 
 ```toml
 [mcp.github]
-command = "bun x @github/github-mcp-server@1.2.0 stdio"
+command = "gh mcp server"   # explicit gh extension
+# command = "github-mcp-server stdio"  # standalone binary
+# command = "npx -y @modelcontextprotocol/server-github"  # community npm
 ```
 
-This section only affects the MCP server launch command. The server still requires
-`GITHUB_PERSONAL_ACCESS_TOKEN` or `GITHUB_TOKEN` to be set for agents that do **not**
-declare `github-identity`. See [GitHub authentication](#github-authentication) below.
+This section only affects the MCP server launch command. For agents that do **not** declare `github-identity`, a token must be available via `GH_TOKEN`, `GITHUB_TOKEN`, or `GITHUB_PERSONAL_ACCESS_TOKEN`. See [GitHub authentication](#github-authentication) below.
 
 ---
 
@@ -225,7 +229,7 @@ names = []
 
 # Uncomment to override the GitHub MCP server launch command.
 # [mcp.github]
-# command = "npx -y @github/github-mcp-server stdio"
+# command = "gh mcp server"
 
 # Remote registries — Git repos with a registry.yaml manifest at root.
 # Run 'uio registry search <query>' to find definitions.

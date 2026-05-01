@@ -55,15 +55,17 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | gh mcp serve
 
 ## Enabling GitHub MCP
 
-Set either of these environment variables:
+Set any of these environment variables (checked in priority order):
 
 ```bash
-export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here
+export GH_TOKEN=ghp_your_token_here              # highest priority (set by App identity agents)
 # or
 export GITHUB_TOKEN=ghp_your_token_here
+# or
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here
 ```
 
-uio checks both; `GITHUB_PERSONAL_ACCESS_TOKEN` takes precedence. When the token is set, the GitHub MCP server starts automatically on every `agent run` and `skill run` (unless `--no-mcp` is passed).
+uio checks `GH_TOKEN` first, then `GITHUB_TOKEN`, then `GITHUB_PERSONAL_ACCESS_TOKEN`. When any token is set, the GitHub MCP server starts automatically on every `agent run` and `skill run` (unless `--no-mcp` is passed). The selected token is exported under all three names in the MCP server's child process, so any server implementation finds it.
 
 Verify the setup:
 

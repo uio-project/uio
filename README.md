@@ -104,7 +104,7 @@ Auto-routes across available providers in order: **Gemini → OpenAI → Ollama*
 |---|---|---|
 | `gemini` | `gemini-2.5-flash` | `gemini-2.0-flash-lite` |
 | `openai` | `gpt-4o` | `gpt-4o-mini` |
-| `ollama` | `qwen2.5-coder:32b` | `qwen2.5-coder:7b` |
+| `ollama` | `llama3.1:8b` | `llama3.1:8b` |
 
 ## Container image
 

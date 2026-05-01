@@ -159,7 +159,7 @@ Execution flow:
    - If no tool calls: print response, break
    - For each tool call: call `execute_tool`, collect results
    - Append turn to history (`client.append_turn`)
-   - Repeat up to `MAX_ITERATIONS = 10`
+   - Repeat up to `max_iterations` (small, default 10) or `max_iterations_large` (large, default 25), configurable in `uio.toml` under `[runtime]`
 9. Write cost ledger entry
 10. Close MCP client
 

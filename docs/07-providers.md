@@ -87,10 +87,9 @@ Gemini is the recommended starting point — the small tier (`gemini-2.0-flash-l
 **No API key required.** Ollama runs models locally.
 
 1. Install Ollama: see [ollama.com](https://ollama.com)
-2. Pull the default models:
+2. Pull the default model:
    ```bash
-   ollama pull qwen2.5-coder:7b
-   ollama pull qwen2.5-coder:32b
+   ollama pull llama3.1:8b
    ```
 3. Ensure the Ollama server is running:
    ```bash
@@ -109,8 +108,8 @@ All Ollama runs are recorded in the cost ledger with `estimated_cost_usd: 0.0`.
 
 | Tier | Model |
 |---|---|
-| `small` | `qwen2.5-coder:7b` |
-| `large` | `qwen2.5-coder:32b` |
+| `small` | `llama3.1:8b` |
+| `large` | `llama3.1:8b` |
 
 ---
 

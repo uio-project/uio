@@ -156,8 +156,8 @@ ROUTING_CHAIN: [gemini, openai, ollama]  ← Gemini tried first; Ollama is the f
 ### First-time setup
 
 ```bash
-# Pull the small model (≈4 GB, good for most agents)
-docker compose run --rm ollama ollama pull qwen2.5-coder:7b
+# Pull the default model (≈5 GB, good for most agents)
+docker compose run --rm ollama ollama pull llama3.1:8b
 
 # Verify — run a skill
 docker compose run --rm uio skill run summarise "Hello from Ollama"
@@ -174,14 +174,13 @@ Ollama, the defaults are:
 
 | Tier | Model | VRAM (approx.) | Use when |
 |---|---|---|---|
-| `small` (default) | `qwen2.5-coder:7b` | ~5 GB | Most agents and skills |
-| `large` | `qwen2.5-coder:32b` | ~20 GB | Complex multi-step agents, `complexity: large` frontmatter |
+| `small` (default) | `llama3.1:8b` | ~5 GB | Most agents and skills |
+| `large` | `llama3.1:8b` | ~5 GB | Complex multi-step agents, `complexity: large` frontmatter |
 
-Pull both if you want to use the large tier:
+Both tiers use the same model by default. Pull it once:
 
 ```bash
-docker compose run --rm ollama ollama pull qwen2.5-coder:7b
-docker compose run --rm ollama ollama pull qwen2.5-coder:32b
+docker compose run --rm ollama ollama pull llama3.1:8b
 ```
 
 Force the large tier for a single run:
@@ -205,7 +204,7 @@ To bypass tier selection entirely and use any Ollama model (including ones not i
 table), set `LLM_MODEL` before running:
 
 ```bash
-# Use llama3.2 instead of qwen2.5-coder:7b
+# Use llama3.2 instead of llama3.1:8b
 docker compose run --rm ollama ollama pull llama3.2
 LLM_MODEL=llama3.2 docker compose run --rm uio skill run summarise "Hello"
 ```
@@ -223,7 +222,7 @@ has access to all NVIDIA GPUs on the host.
 
 ```bash
 # Pull into the GPU container's volume (shared with the CPU container)
-docker compose --profile gpu run --rm ollama-gpu ollama pull qwen2.5-coder:32b
+docker compose --profile gpu run --rm ollama-gpu ollama pull llama3.1:8b
 
 # Run with GPU acceleration
 docker compose --profile gpu run --rm uio-gpu agent run repo-health --complexity large
@@ -240,21 +239,21 @@ runs without any internet access:
 2. On the air-gapped host: import the volume and run `docker compose up`.
 
 No requests leave the host — Ollama serves models locally, and MCP servers that make network
-calls (e.g. `@github/github-mcp-server`) are only started if a GitHub token is present.
+calls (e.g. `gh mcp server`) are only started if a GitHub token is present.
 
 ### Recommended models
 
 | Model | Pull command | Notes |
 |---|---|---|
-| `qwen2.5-coder:7b` | `ollama pull qwen2.5-coder:7b` | Default small tier — best general-purpose agentic model at this size |
-| `qwen2.5-coder:32b` | `ollama pull qwen2.5-coder:32b` | Default large tier — stronger reasoning, requires more VRAM |
+| `llama3.1:8b` | `ollama pull llama3.1:8b` | Default (both tiers) — reliable tool-calling support, ~5 GB VRAM |
 | `llama3.2` | `ollama pull llama3.2` | Fast, low VRAM, good for simple skills |
 | `mistral` | `ollama pull mistral` | Good instruction following, widely tested |
 | `deepseek-r1:7b` | `ollama pull deepseek-r1:7b` | Strong reasoning; slow output |
 
-For agents that use many tool calls, models with good instruction following (Qwen, Mistral)
+For agents that use many tool calls, models with reliable tool-calling support (llama3.1, Mistral)
 outperform raw-benchmark leaders. Avoid very small models (≤3b) for agentic use — they
-reliably fail to format tool calls correctly.
+reliably fail to format tool calls correctly. uio probes Ollama for tool-call support before
+committing to a run and will skip the provider if the probe fails.
 
 ## CI/CD usage
 
