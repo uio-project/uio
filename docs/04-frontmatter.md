@@ -47,7 +47,7 @@ github-identity: planner
 | `name` | string | Yes | — | Display name |
 | `description` | string | Yes | — | One-line summary |
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
-| `tools` | list of strings | No | — | Informational only; documents which tool families the agent uses; not enforced by the runtime |
+| `tools` | list of strings | No | — | Informational only; documents which tool families the agent uses; not enforced by the runtime. Common values: `terminal`, `github`, `thinking`. |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
 | `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | GitHub App identity to use for this agent's GitHub operations — see below |
 
@@ -215,6 +215,25 @@ structured report. Check each of the following in order:
 
 Produce a final Markdown report with a section for each item above.
 Use `gh` CLI for GitHub operations.
+```
+
+### Agent with sequential thinking
+
+```markdown
+---
+name: deep-review
+description: Multi-step code review with externalised reasoning.
+complexity: large
+tools:
+  - github
+  - thinking
+---
+
+Before reviewing, use `mcp__sequential-thinking__sequentialthinking` to plan
+your approach. Break the review into steps; revise earlier steps if new
+information changes your assessment.
+
+Then produce a structured review with: Summary, Issues Found, Suggestions.
 ```
 
 ### Full skill

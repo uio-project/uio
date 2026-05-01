@@ -247,7 +247,19 @@ Do **not** use sequential thinking for:
 - Single-file reads or writes
 - Agents with `complexity: small` — the overhead of externalised reasoning exceeds the benefit
 
-The tool is optional: the model will call it when instructed and skip it otherwise. You do not need to declare it in frontmatter — it is available via MCP if the server is running.
+The tool is available via MCP whenever the server is running. Declaring `thinking` in the `tools:` list is optional but recommended for agents where sequential reasoning is central — it documents intent:
+
+```yaml
+---
+name: deep-review
+complexity: large
+tools:
+  - github
+  - thinking
+---
+```
+
+See [Frontmatter schema](04-frontmatter.md#agent-fields-agentmd) for the full field reference.
 
 ---
 
