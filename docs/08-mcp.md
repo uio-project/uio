@@ -183,6 +183,37 @@ If a server fails to start, uio prints a warning and continues without it — th
 
 **Backwards compatibility:** If no `[mcp.github]` section is present in `uio.toml`, uio auto-starts the GitHub server whenever `GITHUB_PERSONAL_ACCESS_TOKEN` is set. Existing setups that rely on the token-based auto-start require no config changes.
 
+---
+
+## Git MCP server
+
+`@modelcontextprotocol/server-git` exposes local Git repository operations as typed JSON tools. Agents that frequently call `run_command` with `git log`, `git diff`, or `git blame` get structured responses instead of raw shell output — fewer parse errors and fewer context tokens consumed.
+
+### Tools exposed
+
+| Tool | Description |
+|---|---|
+| `mcp__git__git_log` | Structured commit history — author, date, message, sha |
+| `mcp__git__git_diff` | Typed diff between refs or against the working tree |
+| `mcp__git__git_show` | File content at a specific commit |
+| `mcp__git__git_blame` | Per-line attribution |
+| `mcp__git__git_status` | Working tree status |
+| `mcp__git__git_branch` | List or create branches |
+| `mcp__git__git_commit` | Stage and commit changes |
+
+### Configuration
+
+The server requires a `path` argument — the absolute path to the repository root inside the container:
+
+```toml
+[mcp.git]
+command = "npx -y @modelcontextprotocol/server-git /workspace"
+```
+
+`/workspace` is the default mount point in the uio container image. Adjust the path if you mount your repository elsewhere.
+
+`server-git` has no token requirement and starts unconditionally when `[mcp.git]` is present in `uio.toml`.
+
 **Duplicate server names** are not possible via `uio.toml` (TOML forbids duplicate keys). If `make_mcp_clients` is called programmatically with a dict that happens to have collisions, the first entry wins and subsequent ones are silently skipped.
 
 ---
