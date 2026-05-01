@@ -12,13 +12,13 @@ from uio.core.tools import TOOL_SCHEMA, ToolCall
 PROVIDER_DEFAULTS = {
     "gemini": "gemini-2.5-flash",
     "openai": "gpt-4o",
-    "ollama": "qwen2.5-coder:32b",
+    "ollama": "llama3.1:8b",
 }
 
 PROVIDER_SMALL_MODELS = {
     "gemini": "gemini-2.0-flash-lite",
     "openai": "gpt-4o-mini",
-    "ollama": "qwen2.5-coder:7b",
+    "ollama": "llama3.1:8b",
 }
 
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
@@ -224,6 +224,22 @@ class OllamaClient(OpenAIClient):
             base_url=effective_url,
             api_key=effective_key,
         )
+
+
+def probe_tool_calling(client: LLMClient) -> bool:
+    """Return True if the client correctly returns a structured ToolCall.
+
+    Used to verify Ollama models honour the OpenAI function-calling spec before
+    committing them to a multi-step agentic run.
+    """
+    try:
+        history = client.build_history("Call run_command with command='echo probe'")
+        response = client.chat(
+            system="You are a tool caller. Always call tools when asked.", history=history
+        )
+        return len(response.tool_calls) > 0
+    except Exception:
+        return False
 
 
 def make_client(
