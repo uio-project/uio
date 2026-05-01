@@ -29,7 +29,7 @@ Each line is a JSON object:
   "timestamp": "2026-04-30T12:01:05.341000+00:00",
   "agent": "summarise",
   "provider": "gemini",
-  "model": "gemini-2.0-flash-lite",
+  "model": "gemini-2.5-flash-lite",
   "prompt_tokens": 512,
   "completion_tokens": 87,
   "total_tokens": 599,
@@ -88,9 +88,9 @@ Example table output:
 
 ```
 TIMESTAMP            AGENT        PROVIDER  MODEL                   TOKENS  COST
-2026-04-30 12:01:05  summarise    gemini    gemini-2.0-flash-lite      599  $0.000065
-2026-04-30 12:02:14  shell-helper gemini    gemini-2.0-flash-lite     1243  $0.000124
-2026-04-30 12:15:33  chat         gemini    gemini-2.0-flash-lite     4218  $0.000422
+2026-04-30 12:01:05  summarise    gemini    gemini-2.5-flash-lite      599  $0.000065
+2026-04-30 12:02:14  shell-helper gemini    gemini-2.5-flash-lite     1243  $0.000124
+2026-04-30 12:15:33  chat         gemini    gemini-2.5-flash-lite     4218  $0.000422
 
 Total: 3 run(s) | 6,060 tokens | $0.000611
 ```

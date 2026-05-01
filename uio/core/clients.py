@@ -16,7 +16,7 @@ PROVIDER_DEFAULTS = {
 }
 
 PROVIDER_SMALL_MODELS = {
-    "gemini": "gemini-2.0-flash-lite",
+    "gemini": "gemini-2.5-flash-lite",
     "openai": "gpt-4o-mini",
     "ollama": "llama3.1:8b",
 }
@@ -25,7 +25,7 @@ OLLAMA_BASE_URL = "http://localhost:11434/v1"
 
 TOKEN_COSTS_PER_1M: dict[str, tuple[float, float]] = {
     "gemini/gemini-2.5-flash": (0.15, 0.60),
-    "gemini/gemini-2.0-flash-lite": (0.075, 0.30),
+    "gemini/gemini-2.5-flash-lite": (0.10, 0.40),
     "openai/gpt-4o": (2.50, 10.0),
     "openai/gpt-4o-mini": (0.15, 0.60),
     "ollama": (0.0, 0.0),

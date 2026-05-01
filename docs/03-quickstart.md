@@ -103,7 +103,7 @@ uio skill run summarise "Pipes in Unix connect the stdout of one process to the 
 The model responds with a concise summary. You'll see the provider and model used printed at the start:
 
 ```
-  [uio] Running skill 'summarise' via gemini/gemini-2.0-flash-lite
+  [uio] Running skill 'summarise' via gemini/gemini-2.5-flash-lite
 
 Unix pipes connect process outputs to inputs, enabling powerful composition of small programs.
 ```
@@ -121,7 +121,7 @@ uio agent run shell-helper "show me all git branches sorted by last commit date"
 When the model wants to run a command, uio prints it and asks for your approval:
 
 ```
-  [uio] Running agent 'shell-helper' via gemini/gemini-2.0-flash-lite
+  [uio] Running agent 'shell-helper' via gemini/gemini-2.5-flash-lite
 
   $ git branch --sort=-committerdate
   Execute? [Y/n]
@@ -180,8 +180,8 @@ uio cost
 ```
   TIMESTAMP            AGENT        PROVIDER  MODEL                     TOKENS  COST
   ───────────────────────────────────────────────────────────────────────────────────
-  2026-04-30 12:01:05  summarise    gemini    gemini-2.0-flash-lite        892  $0.000089
-  2026-04-30 12:02:14  shell-helper gemini    gemini-2.0-flash-lite       1243  $0.000124
+  2026-04-30 12:01:05  summarise    gemini    gemini-2.5-flash-lite        892  $0.000089
+  2026-04-30 12:02:14  shell-helper gemini    gemini-2.5-flash-lite       1243  $0.000124
 
 Total: 2 run(s) | 2,135 tokens | $0.000213
 ```

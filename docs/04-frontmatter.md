@@ -66,7 +66,7 @@ Once the tier is resolved, the model is selected based on the provider:
 
 | Provider | `large` | `small` |
 |---|---|---|
-| `gemini` | `gemini-2.5-flash` | `gemini-2.0-flash-lite` |
+| `gemini` | `gemini-2.5-flash` | `gemini-2.5-flash-lite` |
 | `openai` | `gpt-4o` | `gpt-4o-mini` |
 | `ollama` | `llama3.1:8b` | `llama3.1:8b` |
 

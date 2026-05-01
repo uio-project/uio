@@ -102,7 +102,7 @@ Auto-routes across available providers in order: **Gemini → OpenAI → Ollama*
 
 | Provider | Large model | Small model |
 |---|---|---|
-| `gemini` | `gemini-2.5-flash` | `gemini-2.0-flash-lite` |
+| `gemini` | `gemini-2.5-flash` | `gemini-2.5-flash-lite` |
 | `openai` | `gpt-4o` | `gpt-4o-mini` |
 | `ollama` | `llama3.1:8b` | `llama3.1:8b` |
 
