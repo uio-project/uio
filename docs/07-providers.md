@@ -52,13 +52,13 @@ export LLM_PROVIDER=gemini
    export GEMINI_API_KEY=your-key-here
    ```
 
-Gemini is the recommended starting point — the small tier (`gemini-2.0-flash-lite`) has very low per-token costs and a generous free tier.
+Gemini is the recommended starting point — the small tier (`gemini-2.5-flash-lite`) has very low per-token costs and a generous free tier.
 
 ### Models
 
 | Tier | Model | Notes |
 |---|---|---|
-| `small` | `gemini-2.0-flash-lite` | Default; fastest and cheapest |
+| `small` | `gemini-2.5-flash-lite` | Default; fastest and cheapest |
 | `large` | `gemini-2.5-flash` | Better reasoning; use for complex multi-step agents |
 
 ---
@@ -183,7 +183,7 @@ Costs are in USD per 1 million tokens (input / output).
 | Provider | Model | Input ($/1M) | Output ($/1M) |
 |---|---|---|---|
 | `gemini` | `gemini-2.5-flash` | $0.15 | $0.60 |
-| `gemini` | `gemini-2.0-flash-lite` | $0.075 | $0.30 |
+| `gemini` | `gemini-2.5-flash-lite` | $0.10 | $0.40 |
 | `openai` | `gpt-4o` | $2.50 | $10.00 |
 | `openai` | `gpt-4o-mini` | $0.15 | $0.60 |
 | `ollama` | any | $0.00 | $0.00 |

@@ -13,7 +13,7 @@ uio chat
 The header line shows the selected provider, model, and whether tools are enabled:
 
 ```
-uio chat  [gemini/gemini-2.0-flash-lite]
+uio chat  [gemini/gemini-2.5-flash-lite]
 Type /help for commands, Ctrl-D or /exit to quit.
 
 You:
@@ -22,7 +22,7 @@ You:
 With tools enabled, the header shows `+tools`:
 
 ```
-uio chat  [gemini/gemini-2.0-flash-lite +tools]
+uio chat  [gemini/gemini-2.5-flash-lite +tools]
 ```
 
 ---
