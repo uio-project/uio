@@ -3,7 +3,7 @@
 Run with:
     pytest -m integration -v
 
-Skipped automatically when required tools (npx, gh token) are absent.
+Skipped automatically when required tools (uvx, npx, gh token) are absent.
 """
 
 from __future__ import annotations
@@ -16,11 +16,6 @@ import pytest
 from uio.core.mcp import MCPClient, make_mcp_client
 
 
-_npx = shutil.which("npx")
-_needs_npx = pytest.mark.skipif(_npx is None, reason="npx not on PATH")
-# Invert: skip when npx IS missing
-_skip_no_npx = pytest.mark.skipif(_npx is None, reason="npx not on PATH")
-
 _github_token = (
     os.environ.get("GH_TOKEN")
     or os.environ.get("GITHUB_TOKEN")
@@ -29,16 +24,15 @@ _github_token = (
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(shutil.which("npx") is None, reason="npx not on PATH")
+@pytest.mark.skipif(shutil.which("uvx") is None, reason="uvx not on PATH")
 def test_git_server_lists_tools(tmp_path):
     """server-git starts, performs JSON-RPC handshake, and lists at least one tool."""
-    # Initialise a bare git repo so the server has a valid working directory.
     import subprocess
 
     subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True)
 
     client = MCPClient(
-        ["npx", "-y", "@modelcontextprotocol/server-git", str(tmp_path)],
+        ["uvx", "mcp-server-git", "--repository", str(tmp_path)],
         server_name="git",
     )
     try:

@@ -28,10 +28,11 @@ command = "gh mcp server"
 
 # Local git operations (non-hosted) — no credentials needed.
 # Resolves vcs__* tool names for local repo inspection.
+# Uses the Python mcp-server-git package via uvx (pip install uv).
 [[mcp.plugins]]
 name    = "git"
 type    = "git"
-command = "npx -y @modelcontextprotocol/server-git {cwd}"
+command = "uvx mcp-server-git --repository {cwd}"
 
 # Structured reasoning scratchpad — no credentials needed.
 # Useful for github-planner decomposing large features.
