@@ -227,6 +227,40 @@ The model will call tools for steps 1 and 3, then produce the review in step 4 w
 
 When in doubt, start with `small` and move to `large` if the output quality is insufficient. The cost difference is often 4–10x.
 
+### When to add `thinking` to your agent's capabilities
+
+If the Sequential Thinking MCP server is configured (see [MCP Integration](08-mcp.md#sequential-thinking-mcp-server)), you can explicitly request it in the agent's body to externalise reasoning before acting.
+
+Add an instruction like this to the agent body for agents that:
+- Decompose a large feature into sub-tasks (`github-planner`-style work)
+- Review code across multiple files where step ordering matters
+- Execute long tool-use chains where an early mistake is expensive to undo
+
+```markdown
+Before taking any action, use `mcp__sequential-thinking__sequentialthinking`
+to plan your approach. Set nextThoughtNeeded to false only when you have a
+complete plan, then execute it.
+```
+
+Do **not** use sequential thinking for:
+- Simple summarisation or translation skills
+- Single-file reads or writes
+- Agents with `complexity: small` — the overhead of externalised reasoning exceeds the benefit
+
+The tool is available via MCP whenever the server is running. Declaring `thinking` in `capabilities:` is optional but recommended for agents where sequential reasoning is central — it documents intent:
+
+```yaml
+---
+name: deep-review
+complexity: large
+capabilities:
+  - github
+  - thinking
+---
+```
+
+See [Frontmatter schema](04-frontmatter.md#agent-fields-agentmd) for the full field reference.
+
 ---
 
 ## The iteration cap

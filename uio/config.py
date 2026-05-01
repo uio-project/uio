@@ -61,6 +61,11 @@ names = []
 # 'env_keys' lists required environment variables; uio warns and skips if any are absent.
 #
 # [[mcp.plugins]]
+# name    = "sequential-thinking"
+# type    = "think"
+# command = "npx -y @modelcontextprotocol/server-sequential-thinking"
+#
+# [[mcp.plugins]]
 # name     = "gitlab"
 # type     = "vcs"
 # command  = "npx -y @gitlab/mcp-server stdio"

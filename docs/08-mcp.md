@@ -218,6 +218,55 @@ command = "npx -y @modelcontextprotocol/server-git /workspace"
 
 ---
 
+## Sequential Thinking MCP server
+
+`@modelcontextprotocol/server-sequential-thinking` externalises an agent's reasoning process as discrete, revisable tool calls. Instead of reasoning implicitly inside a single model response, the agent emits each thought step as a `sequentialthinking` tool call — making the chain visible in the uio run output and cost ledger.
+
+This is most useful for planning and review agents where auditability of the reasoning chain matters, and for high-iteration tool-use loops where the model would otherwise skip steps.
+
+### Tool exposed
+
+The server exposes a single tool: `mcp__sequential-thinking__sequentialthinking`
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `thought` | string | yes | The current reasoning step |
+| `nextThoughtNeeded` | boolean | yes | Whether more steps are needed |
+| `thoughtNumber` | integer | yes | Step index (1-based) |
+| `totalThoughts` | integer | yes | Estimated total steps |
+| `isRevision` | boolean | no | Whether this step revises a prior one |
+| `revisesThought` | integer | no | Index of the step being revised |
+
+### Configuration
+
+Add as a plugin entry in `uio.toml`:
+
+```toml
+[[mcp.plugins]]
+name    = "sequential-thinking"
+type    = "think"
+command = "npx -y @modelcontextprotocol/server-sequential-thinking"
+```
+
+The server has no token requirement and starts unconditionally when the entry is present.
+
+### Usage pattern for planning agents
+
+Include an explicit instruction in the agent body to drive the reasoning chain before taking action:
+
+```markdown
+Before creating any issues or making any changes:
+1. Use the `mcp__sequential-thinking__sequentialthinking` tool to think through the problem.
+   - Break the task into steps (set totalThoughts to your estimate).
+   - Revise earlier steps if new information changes your approach.
+   - Set nextThoughtNeeded to false only when you have a complete plan.
+2. Execute the plan produced by your reasoning chain.
+```
+
+Reasoning steps appear in the run output like any other tool call, so they are captured in the cost ledger and visible in CI logs.
+
+---
+
 ## Troubleshooting
 
 **`[mcp] Warning: could not start GitHub MCP server: ...`**

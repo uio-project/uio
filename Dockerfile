@@ -30,7 +30,8 @@ RUN for pkg in \
         @modelcontextprotocol/server-filesystem \
         @modelcontextprotocol/server-fetch \
         @modelcontextprotocol/server-memory \
-        @modelcontextprotocol/server-git; \
+        @modelcontextprotocol/server-git \
+        @modelcontextprotocol/server-sequential-thinking; \
     do npx -y "$pkg" --version 2>/dev/null || true; done
 
 # /workspace is the default mount point for uio.toml and .uio/ definitions.

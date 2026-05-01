@@ -34,11 +34,11 @@ These two fields are required on every definition regardless of type.
 name: My Agent
 description: Does something useful.
 complexity: small
-tools:
+capabilities:
   - terminal
   - github
 timeout: 300
-github-identity: planner
+vcs-identity: planner
 ---
 ```
 
@@ -47,9 +47,11 @@ github-identity: planner
 | `name` | string | Yes | — | Display name |
 | `description` | string | Yes | — | One-line summary |
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
-| `tools` | list of strings | No | — | Informational only; documents which tool families the agent uses; not enforced by the runtime |
+| `capabilities` | list of strings | No | — | Informational only; documents which capability families the agent uses; not enforced by the runtime. Common values: `vcs`, `terminal`, `github`, `thinking`. (`tools` is an accepted legacy alias.) |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
-| `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | GitHub App identity to use for this agent's GitHub operations — see below |
+| `vcs-identity` | `planner` \| `coder` \| `reviewer` | No | — | VCS App identity to obtain for this agent's repository operations — see below |
+| `vcs-provider` | `github` \| `gitlab` | No | `github` | VCS platform targeted by `vcs-identity`; controls which MCP tool aliases are injected |
+| `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | **Deprecated.** Use `vcs-identity` instead. Accepted as an alias for backwards compatibility. |
 
 ### Complexity tier resolution
 
@@ -70,11 +72,11 @@ Once the tier is resolved, the model is selected based on the provider:
 
 Use `complexity: large` for multi-step analysis tasks, code review, or anything where reasoning quality matters more than cost. Use `complexity: small` (the default) for most agents.
 
-### `github-identity`
+### `vcs-identity`
 
-When set, uio obtains a short-lived GitHub App installation token for the named identity before the agent's tool loop starts, and exports it as `GH_TOKEN`. Both the `gh` CLI and the GitHub MCP server read `GH_TOKEN`, so all GitHub operations in the run execute as the declared App identity rather than the user's personal account.
+When set, uio obtains a short-lived VCS App installation token for the named identity before the agent's tool loop starts, and exports it as `GH_TOKEN`. Both the `gh` CLI and the GitHub MCP server read `GH_TOKEN`, so all VCS operations in the run execute as the declared App identity rather than the user's personal account.
 
-| Value | Identity | Permitted GitHub operations |
+| Value | Identity | Permitted operations |
 |---|---|---|
 | `planner` | AI Planner | Issue create/edit · Issue comments · PR comments |
 | `coder` | AI Coder | Branch create · Commit/push · PR create |
@@ -92,7 +94,22 @@ Replace `PLANNER` with `CODER` or `REVIEWER` for the other identities.
 
 If the env vars are absent at run time, uio exits with an error listing the missing variables — falling back to `GITHUB_PERSONAL_ACCESS_TOKEN` / `GH_TOKEN` is not permitted for identity agents. An invalid identity value (anything other than `planner`, `coder`, `reviewer`) also causes a hard error at startup.
 
-`uio validate` warns (non-fatally) when `github-identity` is declared but the corresponding env vars are not set, so you can catch configuration drift in CI.
+`uio validate` warns (non-fatally) when `vcs-identity` is declared but the corresponding env vars are not set, so you can catch configuration drift in CI.
+
+### `vcs-provider`
+
+Defaults to `github`. Set to `gitlab` when the agent targets a GitLab instance. When set, uio injects a VCS tool alias table into the system prompt so the agent can use provider-neutral `vcs__*` tool names (e.g. `vcs__list_pull_requests`) that resolve to the correct MCP server's tools at runtime.
+
+```yaml
+vcs-identity: coder
+vcs-provider: gitlab
+```
+
+Non-GitHub providers do not validate `vcs-identity` env vars at startup (env var names vary by installation).
+
+### `github-identity` (deprecated)
+
+`github-identity` is a deprecated alias for `vcs-identity`. It is still accepted by the parser for backwards compatibility, but new definitions should use `vcs-identity`.
 
 See `docs/provisioning/` for setup instructions and `docs/github-permission-matrix.md` for the approved permission model.
 
@@ -178,12 +195,13 @@ When run as `uio prompt run ask-docs "what does the cost ledger store?"`, the fi
 Known keys (do not produce warnings):
 
 ```
-name  description  complexity  tools  timeout  argument-hint  invokable  github-identity
+name  description  complexity  capabilities  tools  timeout  argument-hint  invokable
+vcs-identity  vcs-provider  github-identity
 ```
 
 Any other key produces an error. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
 
-In addition, `uio validate` emits a **non-fatal warning** (exits zero) when `github-identity` is declared but the corresponding `GITHUB_APP_<ROLE>_*` env vars are absent. This flags configuration drift without blocking CI pipelines that run without App credentials.
+In addition, `uio validate` emits a **non-fatal warning** (exits zero) when `vcs-identity` (or the deprecated `github-identity`) is declared but the corresponding `GITHUB_APP_<ROLE>_*` env vars are absent. This flags configuration drift without blocking CI pipelines that run without App credentials.
 
 ---
 
@@ -196,7 +214,7 @@ In addition, `uio validate` emits a **non-fatal warning** (exits zero) when `git
 name: repo-health
 description: Run tests, lint, TODO count, stale branches, and open PRs.
 complexity: large
-tools:
+capabilities:
   - terminal
   - github
 timeout: 600
@@ -215,6 +233,25 @@ structured report. Check each of the following in order:
 
 Produce a final Markdown report with a section for each item above.
 Use `gh` CLI for GitHub operations.
+```
+
+### Agent with sequential thinking
+
+```markdown
+---
+name: deep-review
+description: Multi-step code review with externalised reasoning.
+complexity: large
+capabilities:
+  - github
+  - thinking
+---
+
+Before reviewing, use `mcp__sequential-thinking__sequentialthinking` to plan
+your approach. Break the review into steps; revise earlier steps if new
+information changes your assessment.
+
+Then produce a structured review with: Summary, Issues Found, Suggestions.
 ```
 
 ### Full skill

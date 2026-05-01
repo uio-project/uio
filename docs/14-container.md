@@ -16,6 +16,7 @@ The following MCP servers are pre-warmed in the image (no download on first use)
 | Fetch | `@modelcontextprotocol/server-fetch` | `mcp__fetch__*` — typed HTTP GET/POST |
 | Memory | `@modelcontextprotocol/server-memory` | `mcp__memory__*` — persistent KV store per session |
 | Git | `@modelcontextprotocol/server-git` | `mcp__git__*` — structured git log, diff, blame, show, status, branch, commit. Requires a `path` argument pointing to the repository root. |
+| Sequential Thinking | `@modelcontextprotocol/server-sequential-thinking` | `mcp__sequential-thinking__sequentialthinking` — structured reasoning scratchpad; exposes multi-step thought chains as discrete tool calls. |
 
 MCP server configuration is managed via `uio.toml`. See [MCP integration](08-mcp.md) for details.
 
@@ -83,6 +84,12 @@ command = "npx -y @modelcontextprotocol/server-memory"
 
 [mcp.git]
 command = "npx -y @modelcontextprotocol/server-git /workspace"
+
+# Optional: structured reasoning scratchpad for planning/review agents
+# [[mcp.plugins]]
+# name    = "sequential-thinking"
+# type    = "think"
+# command = "npx -y @modelcontextprotocol/server-sequential-thinking"
 ```
 
 ## Stateful paths
