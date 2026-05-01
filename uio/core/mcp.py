@@ -191,7 +191,7 @@ def make_mcp_clients(
         if name in clients:
             # Already running (github auto-start) or duplicate key — skip.
             continue
-        raw_cmd = server_cfg.get("command", "")
+        raw_cmd = server_cfg.get("command", "").replace("{cwd}", os.getcwd())
         if not raw_cmd:
             continue
         try:
@@ -218,7 +218,7 @@ def make_mcp_clients(
                 file=sys.stderr,
             )
             continue
-        raw_cmd = plugin.get("command", "")
+        raw_cmd = plugin.get("command", "").replace("{cwd}", os.getcwd())
         if not raw_cmd:
             continue
         try:
