@@ -21,7 +21,8 @@ from uio.core.routing import infer_complexity, select_model, select_provider_cha
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.schema.parser import parse_definition_file
 
-MAX_ITERATIONS = 10
+_DEFAULT_MAX_ITERATIONS = 10
+_DEFAULT_MAX_ITERATIONS_LARGE = 25
 
 _RETRYABLE_SUBSTRINGS = ("503", "429", "UNAVAILABLE", "Too Many Requests", "rate limit")
 _MAX_CHAT_RETRIES = 3
@@ -125,6 +126,8 @@ def run_agent(
     ledger_path: str = DEFAULT_LEDGER_PATH,
     large_agent_names: list[str] | None = None,
     shell_override: str | None = None,
+    max_iterations: int = _DEFAULT_MAX_ITERATIONS,
+    max_iterations_large: int = _DEFAULT_MAX_ITERATIONS_LARGE,
 ) -> None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -174,6 +177,7 @@ def run_agent(
 
     resolved_complexity = infer_complexity(agent_name, frontmatter, complexity, large_agent_names)
     provider_chain = select_provider_chain(provider, resolved_complexity)
+    cap = max_iterations_large if resolved_complexity == "large" else max_iterations
 
     try:
         last_error: Exception | None = None
@@ -211,7 +215,7 @@ def run_agent(
             total_completion = 0
 
             try:
-                for iteration in range(1, MAX_ITERATIONS + 1):
+                for iteration in range(1, cap + 1):
                     print(f"[iteration {iteration}]")
                     for attempt in range(_MAX_CHAT_RETRIES):
                         try:
@@ -262,7 +266,11 @@ def run_agent(
                     ]
                     client.append_turn(history, response, tool_results)
 
-                print(f"\n⚠️  Reached iteration cap ({MAX_ITERATIONS}). Stopping.")
+                print(f"\n⚠️  Reached iteration cap ({cap}). Stopping.")
+                print(
+                    f"   The agent did not finish. Increase max_iterations{'_large' if resolved_complexity == 'large' else ''}"
+                    " in uio.toml or use --complexity to change the tier."
+                )
                 write_cost_ledger(
                     agent_name,
                     candidate_provider,
