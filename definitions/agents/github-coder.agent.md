@@ -2,10 +2,9 @@
 name: github-coder
 description: Create branches, apply AI-generated code changes, and open pull requests using the AI Coder identity.
 complexity: large
-tools:
-  - terminal
-  - github
-github-identity: coder
+capabilities:
+  - vcs
+vcs-identity: coder
 argument-hint: "<change-description> | repo: <owner>/<repo> [| branch: <name>] [| base: <branch>]"
 ---
 

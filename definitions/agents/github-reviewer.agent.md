@@ -2,9 +2,9 @@
 name: github-reviewer
 description: Review pull requests, summarize diffs, and post structured review comments using the AI Reviewer identity.
 complexity: large
-tools:
-  - github
-github-identity: reviewer
+capabilities:
+  - vcs
+vcs-identity: reviewer
 argument-hint: "<pr-url-or-owner/repo#number>"
 ---
 

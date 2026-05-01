@@ -186,3 +186,128 @@ class TestMakeMcpClients:
             result = make_mcp_clients({})
 
         assert result["github"] is auto_client
+
+
+class TestMcpPlugins:
+    def test_plugin_with_all_env_vars_starts(self, monkeypatch, capsys):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.setenv("GITLAB_TOKEN", "gl-token")
+
+        plugin_client = _make_mock_client("gitlab")
+        plugins = [
+            {
+                "name": "gitlab",
+                "type": "vcs",
+                "command": "npx gitlab-mcp",
+                "env_keys": ["GITLAB_TOKEN"],
+            }
+        ]
+
+        with patch("uio.core.mcp.MCPClient", return_value=plugin_client):
+            result = make_mcp_clients({}, plugins=plugins)
+
+        assert "gitlab" in result
+        assert result["gitlab"] is plugin_client
+
+    def test_plugin_with_missing_env_var_skipped(self, monkeypatch, capsys):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GITLAB_TOKEN", raising=False)
+
+        plugins = [
+            {
+                "name": "gitlab",
+                "type": "vcs",
+                "command": "npx gitlab-mcp",
+                "env_keys": ["GITLAB_TOKEN"],
+            }
+        ]
+
+        with patch("uio.core.mcp.MCPClient") as MockCls:
+            result = make_mcp_clients({}, plugins=plugins)
+
+        MockCls.assert_not_called()
+        assert "gitlab" not in result
+        captured = capsys.readouterr()
+        assert "Warning" in captured.err
+        assert "GITLAB_TOKEN" in captured.err
+
+    def test_plugin_with_no_env_keys_starts_unconditionally(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+        plugin_client = _make_mock_client("sequential-thinking")
+        plugins = [{"name": "sequential-thinking", "type": "think", "command": "npx mcp-think"}]
+
+        with patch("uio.core.mcp.MCPClient", return_value=plugin_client):
+            result = make_mcp_clients({}, plugins=plugins)
+
+        assert "sequential-thinking" in result
+
+    def test_plugin_name_collision_with_inline_server_skipped(self, monkeypatch, capsys):
+        """Plugin whose name matches an already-running inline server is skipped."""
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.setenv("GITLAB_TOKEN", "tok")
+
+        inline_client = _make_mock_client("gitlab")
+        plugins = [{"name": "gitlab", "command": "npx gitlab-mcp", "env_keys": ["GITLAB_TOKEN"]}]
+
+        with patch("uio.core.mcp.MCPClient", return_value=inline_client):
+            result = make_mcp_clients(
+                {"gitlab": {"command": "npx another-gitlab"}}, plugins=plugins
+            )
+
+        # Inline server wins; plugin is skipped
+        assert result["gitlab"] is inline_client
+        captured = capsys.readouterr()
+        assert "already running" in captured.err
+
+    def test_plugin_no_command_skipped(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+        plugins = [{"name": "empty", "type": "vcs"}]  # no command field
+
+        with patch("uio.core.mcp.MCPClient") as MockCls:
+            result = make_mcp_clients({}, plugins=plugins)
+
+        MockCls.assert_not_called()
+        assert result == {}
+
+    def test_plugins_none_is_same_as_empty(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+        result = make_mcp_clients({}, plugins=None)
+        assert result == {}
+
+    def test_plugins_do_not_bleed_into_inline_iteration(self, monkeypatch):
+        """[[mcp.plugins]] entries must not appear as inline server dicts."""
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.setenv("LINEAR_API_KEY", "lin-key")
+
+        linear_client = _make_mock_client("linear")
+        plugins = [
+            {
+                "name": "linear",
+                "type": "tracker",
+                "command": "npx linear-mcp",
+                "env_keys": ["LINEAR_API_KEY"],
+            }
+        ]
+
+        calls = []
+
+        def fake_mcp(command, server_name, **kwargs):
+            calls.append(server_name)
+            return linear_client
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp):
+            result = make_mcp_clients({}, plugins=plugins)
+
+        # MCPClient called exactly once (for the plugin), not twice
+        assert calls == ["linear"]
+        assert "linear" in result

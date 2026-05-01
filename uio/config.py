@@ -29,6 +29,7 @@ _DEFAULTS: dict = {
         "names": [],
     },
     "registries": [],
+    "mcp_plugins": [],
 }
 
 _STARTER_TOML = """\
@@ -52,6 +53,22 @@ names = []
 # [mcp.github]
 # command = "npx -y @github/github-mcp-server stdio"
 
+# MCP plugin registry — external-provider servers loaded alongside bundled ones.
+# 'type' declares the capability class (vcs, db, browser, search, chat, tracker, ci, …).
+# 'env_keys' lists required environment variables; uio warns and skips if any are absent.
+#
+# [[mcp.plugins]]
+# name     = "gitlab"
+# type     = "vcs"
+# command  = "npx -y @gitlab/mcp-server stdio"
+# env_keys = ["GITLAB_TOKEN"]
+#
+# [[mcp.plugins]]
+# name     = "linear"
+# type     = "tracker"
+# command  = "npx -y @linear/mcp-server stdio"
+# env_keys = ["LINEAR_API_KEY"]
+
 # Remote registries — each entry is a Git repo with a registry.yaml manifest.
 # Run 'uio registry search <query>' to find definitions.
 # Run 'uio registry install <name>' to copy a definition into .uio/.
@@ -72,13 +89,20 @@ def load_config(path: str = "uio.toml") -> dict:
         with open(path, "rb") as f:
             raw = tomllib.load(f)
 
+    mcp_raw = raw.get("mcp", {})
+    # [[mcp.plugins]] entries are a list under the "plugins" key; extract them so they
+    # don't get iterated as inline server entries by make_mcp_clients().
+    mcp_plugins = [p for p in mcp_raw.get("plugins", []) if isinstance(p, dict)]
+    mcp_inline = {k: v for k, v in mcp_raw.items() if k != "plugins"}
+
     return {
         "dirs": {**_DEFAULTS["dirs"], **raw.get("dirs", {})},
         "runtime": {**_DEFAULTS["runtime"], **raw.get("runtime", {})},
         "large_agents": {
             "names": raw.get("large_agents", {}).get("names", []),
         },
-        "mcp": raw.get("mcp", {}),
+        "mcp": mcp_inline,
+        "mcp_plugins": mcp_plugins,
         "registries": raw.get("registries", []),
     }
 

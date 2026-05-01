@@ -101,6 +101,7 @@ def agent_run_cmd(
         timeout=timeout or cfg["runtime"]["timeout"],
         no_mcp=no_mcp,
         mcp_cfg=cfg["mcp"],
+        mcp_plugins=cfg.get("mcp_plugins", []),
         definition_path=definition_path,
         ledger_path=cfg["runtime"]["cost_ledger"],
         large_agent_names=cfg["large_agents"]["names"],

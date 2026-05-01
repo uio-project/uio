@@ -1,0 +1,47 @@
+[dirs]
+agents  = "definitions/agents"
+skills  = ".uio/skills"
+prompts = ".uio/prompts"
+
+[runtime]
+cost_ledger          = "uio_cost.jsonl"
+timeout              = 300
+max_iterations       = 10
+max_iterations_large = 25
+
+[large_agents]
+# github-planner, github-coder, and github-reviewer declare complexity: large in their
+# frontmatter, so they are already on the large tier without being listed here.
+names = []
+
+# GitHub MCP server — started automatically when GH_TOKEN / GITHUB_PERSONAL_ACCESS_TOKEN
+# is present even without this entry, but declaring it explicitly pins the command.
+[mcp.github]
+command = "gh mcp server"
+
+# ---------------------------------------------------------------------------
+# MCP plugin registry (#108)
+# External-provider servers loaded alongside the bundled GitHub server above.
+# 'type' declares the capability class the server provides.
+# 'env_keys' lists required env vars — uio warns and skips if any are absent.
+# ---------------------------------------------------------------------------
+
+# Local git operations (non-hosted) — no credentials needed.
+# Resolves vcs__* tool names for local repo inspection.
+[[mcp.plugins]]
+name    = "git"
+type    = "git"
+command = "npx -y @modelcontextprotocol/server-git"
+
+# Structured reasoning scratchpad — no credentials needed.
+# Useful for github-planner decomposing large features.
+[[mcp.plugins]]
+name    = "sequential-thinking"
+type    = "think"
+command = "npx -y @modelcontextprotocol/server-sequential-thinking"
+
+# Filesystem access — scoped to this repo root.
+[[mcp.plugins]]
+name    = "filesystem"
+type    = "fs"
+command = "npx -y @modelcontextprotocol/server-filesystem /home/john/src/uio"

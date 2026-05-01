@@ -19,6 +19,7 @@ from uio.core.ledger import DEFAULT_LEDGER_PATH, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
+from uio.core.vcs import build_tool_alias_section
 from uio.schema.parser import parse_definition_file
 
 _DEFAULT_MAX_ITERATIONS = 10
@@ -34,23 +35,40 @@ def _is_retryable(exc: Exception) -> bool:
     return any(s in msg for s in _RETRYABLE_SUBSTRINGS)
 
 
-def _maybe_inject_github_identity(frontmatter: dict) -> None:
-    """Set GH_TOKEN from a GitHub App installation token when github-identity is declared.
+def _inject_vcs_identity(frontmatter: dict) -> str | None:
+    """Set credentials for a VCS identity agent; return the resolved role or None.
 
-    If ``github-identity`` is not set this is a no-op — the caller's existing
-    GITHUB_PERSONAL_ACCESS_TOKEN or GH_TOKEN is left untouched.
+    Reads ``vcs-identity`` first; falls back to the deprecated ``github-identity``
+    field with a warning.  When neither field is set this is a no-op.
 
-    When ``github-identity`` IS set, App credentials are mandatory. Missing env vars or
-    a failed token exchange are hard errors — no fallback to PAT is permitted.
+    Only GitHub App authentication is implemented in this phase.  GitLab and
+    other providers return early after emitting an informational message.
+
+    When a GitHub identity IS declared, App credentials are mandatory — no
+    fallback to GITHUB_PERSONAL_ACCESS_TOKEN is permitted.
     """
-    role = frontmatter.get("github-identity")
+    role = frontmatter.get("vcs-identity")
+    if role is None:
+        legacy = frontmatter.get("github-identity")
+        if legacy:
+            print(
+                f"  [vcs-identity] Warning: 'github-identity' is deprecated —"
+                f" use 'vcs-identity: {legacy}' instead.",
+                file=sys.stderr,
+            )
+            role = legacy
     if not role:
-        return
+        return None
+
+    provider = frontmatter.get("vcs-provider", "github")
+
+    if provider != "github":
+        print(f"  [vcs-identity] provider '{provider}' — credential injection not yet implemented")
+        return role
 
     if role not in KNOWN_ROLES:
         sys.exit(
-            f"Error: unsupported 'github-identity' value '{role}'"
-            f" — must be one of {sorted(KNOWN_ROLES)}"
+            f"Error: unsupported vcs-identity value '{role}' — must be one of {sorted(KNOWN_ROLES)}"
         )
 
     if not env_vars_present(role):
@@ -58,7 +76,7 @@ def _maybe_inject_github_identity(frontmatter: dict) -> None:
         prefix = f"GITHUB_APP_{role_upper}_"
         missing = ", ".join(f"{prefix}{s}" for s in ("ID", "INSTALLATION_ID", "PRIVATE_KEY"))
         sys.exit(
-            f"Error: 'github-identity: {role}' requires App credentials but env vars are not set.\n"
+            f"Error: 'vcs-identity: {role}' requires App credentials but env vars are not set.\n"
             f"  Missing: {missing}\n"
             f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents.\n"
             f"  See docs/provisioning/ for setup instructions."
@@ -67,21 +85,30 @@ def _maybe_inject_github_identity(frontmatter: dict) -> None:
     try:
         token = get_token_for_identity(role)
         os.environ["GH_TOKEN"] = token
-        print(f"  [github-identity] authenticated as '{role}' GitHub App identity")
+        print(f"  [vcs-identity] authenticated as '{role}' GitHub App identity")
     except GitHubAppError as exc:
         sys.exit(
             f"Error: could not obtain GitHub App token for identity '{role}': {exc}\n"
             f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents."
         )
+    return role
 
 
-def _build_preamble(has_mcp: bool, shell_override: str | None = None) -> str:
+def _build_preamble(
+    has_mcp: bool,
+    shell_override: str | None = None,
+    vcs_provider: str | None = None,
+) -> str:
     """Build the runtime preamble injected before the agent system prompt.
 
     shell_override (from --shell) takes precedence over platform auto-detection so
     the LLM is told the correct shell syntax regardless of the host OS.
+
+    vcs_provider, when set, appends a VCS tool alias table so the LLM knows that
+    ``vcs__*`` abstract names map to the active provider's MCP tool names.
     """
     shell_name = shell_override or ("PowerShell" if sys.platform == "win32" else "bash/sh")
+    alias_section = build_tool_alias_section(vcs_provider) if vcs_provider else ""
     if has_mcp:
         return f"""\
 ## ℹ️ Runtime — Tools Available
@@ -96,7 +123,7 @@ Active servers and their tool prefixes are listed in the tool schema.
 Prefer MCP tools over `run_command` equivalents when a matching server is available.
 
 ---
-"""
+{alias_section}"""
     return f"""\
 ## ⚠️ Runtime — MCP Tools Unavailable
 
@@ -109,7 +136,7 @@ For ALL GitHub operations, use `run_command` with the `gh` CLI.
 Shell: {shell_name} — emit {shell_name}-style commands only.
 
 ---
-"""
+{alias_section}"""
 
 
 def run_agent(
@@ -122,6 +149,7 @@ def run_agent(
     timeout: int = DEFAULT_TIMEOUT,
     no_mcp: bool = False,
     mcp_cfg: dict | None = None,
+    mcp_plugins: "list[dict] | None" = None,
     definition_path: str | None = None,
     ledger_path: str = DEFAULT_LEDGER_PATH,
     large_agent_names: list[str] | None = None,
@@ -136,11 +164,11 @@ def run_agent(
 
     frontmatter, body = parse_definition_file(definition_path)
 
-    _maybe_inject_github_identity(frontmatter)
+    role = _inject_vcs_identity(frontmatter)
 
     mcp_clients: dict = {}
     if not no_mcp:
-        mcp_clients = make_mcp_clients(mcp_cfg or {})
+        mcp_clients = make_mcp_clients(mcp_cfg or {}, plugins=mcp_plugins)
 
     all_tools = [TOOL_SCHEMA]
     failed: list[str] = []
@@ -158,9 +186,13 @@ def run_agent(
     for name in failed:
         del mcp_clients[name]
 
-    preamble = _build_preamble(bool(mcp_clients), shell_override)
+    # Determine VCS provider for tool alias injection (only when a vcs-identity is active).
+    vcs_provider: str | None = None
+    if role in KNOWN_ROLES:
+        vcs_provider = frontmatter.get("vcs-provider", "github")
 
-    role = frontmatter.get("github-identity")
+    preamble = _build_preamble(bool(mcp_clients), shell_override, vcs_provider)
+
     attribution_block = (
         build_attribution_instructions(role, frontmatter.get("name", agent_name), __version__)
         if role in KNOWN_ROLES

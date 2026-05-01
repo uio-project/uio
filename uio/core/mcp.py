@@ -152,7 +152,10 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
         return None
 
 
-def make_mcp_clients(mcp_cfg: dict) -> "dict[str, MCPClient]":
+def make_mcp_clients(
+    mcp_cfg: dict,
+    plugins: "list[dict] | None" = None,
+) -> "dict[str, MCPClient]":
     """Start all MCP servers from config and return a name→client mapping.
 
     Backwards-compat: if GITHUB_PERSONAL_ACCESS_TOKEN is present and 'github'
@@ -161,6 +164,11 @@ def make_mcp_clients(mcp_cfg: dict) -> "dict[str, MCPClient]":
     TOML already forbids duplicate keys, but if the same name appears twice in
     a programmatically-constructed dict, the first entry wins (subsequent ones
     are silently skipped so the already-running process is not leaked).
+
+    ``plugins`` is a list of ``[[mcp.plugins]]`` entries from uio.toml.  Each
+    entry must have ``name`` and ``command`` fields.  If ``env_keys`` is set,
+    all listed environment variables must be present — missing ones cause the
+    plugin to be skipped with a warning rather than a hard failure.
     """
     clients: dict[str, MCPClient] = {}
 
@@ -181,5 +189,33 @@ def make_mcp_clients(mcp_cfg: dict) -> "dict[str, MCPClient]":
             clients[name] = MCPClient(shlex.split(raw_cmd), server_name=name)
         except Exception as e:
             print(f"  [mcp] Warning: could not start '{name}' MCP server: {e}", file=sys.stderr)
+
+    for plugin in plugins or []:
+        name = plugin.get("name", "")
+        if not name:
+            continue
+        if name in clients:
+            print(
+                f"  [mcp] Plugin '{name}' skipped — a server with that name is already running.",
+                file=sys.stderr,
+            )
+            continue
+        env_keys = plugin.get("env_keys", [])
+        missing = [k for k in env_keys if not os.environ.get(k)]
+        if missing:
+            print(
+                f"  [mcp] Warning: plugin '{name}' skipped — missing env vars: "
+                + ", ".join(missing),
+                file=sys.stderr,
+            )
+            continue
+        raw_cmd = plugin.get("command", "")
+        if not raw_cmd:
+            continue
+        try:
+            clients[name] = MCPClient(shlex.split(raw_cmd), server_name=name)
+            print(f"  [mcp] plugin '{name}' started (type={plugin.get('type', '?')})")
+        except Exception as e:
+            print(f"  [mcp] Warning: could not start plugin '{name}': {e}", file=sys.stderr)
 
     return clients
