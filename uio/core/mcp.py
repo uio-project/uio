@@ -97,15 +97,15 @@ class MCPClient:
             pass
 
 
-def _default_github_mcp_command() -> list[str]:
+def _default_github_mcp_command(app_identity: bool = False) -> list[str]:
     """Return the best available command to start the GitHub MCP server.
 
     Probe order:
-    1. gh extension (gh extension install github/gh-mcp) — official, zero extra binary
+    1. gh extension — skipped when app_identity=True (gh rejects App installation tokens)
     2. Standalone binary downloaded from GitHub Releases
-    3. Community npm package (@modelcontextprotocol/server-github) — PAT-only but widely available
+    3. Community npm package (@modelcontextprotocol/server-github) — accepts Bearer tokens including App installation tokens
     """
-    if shutil.which("gh"):
+    if not app_identity and shutil.which("gh"):
         return ["gh", "mcp", "server"]
     binary = shutil.which("github-mcp-server")
     if binary:
@@ -140,13 +140,22 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
         print(f"  [mcp] '{server_name}' starting with personal token")
 
     raw = os.environ.get("MCP_GITHUB_COMMAND")
-    command = shlex.split(raw) if raw else _default_github_mcp_command()
+    command = (
+        shlex.split(raw) if raw else _default_github_mcp_command(app_identity=using_app_identity)
+    )
     try:
         return MCPClient(command, server_name=server_name, env=command_env)
     except Exception as e:
+        if using_app_identity:
+            hint = (
+                "App installation tokens are not accepted by 'gh mcp server'. "
+                "Install the standalone binary (github-mcp-server) or set "
+                "MCP_GITHUB_COMMAND='npx -y @modelcontextprotocol/server-github'."
+            )
+        else:
+            hint = "run 'gh extension install github/gh-mcp' or set MCP_GITHUB_COMMAND."
         print(
-            f"  [mcp] Warning: could not start GitHub MCP server: {e}\n"
-            f"  Hint: run 'gh extension install github/gh-mcp' or set MCP_GITHUB_COMMAND.",
+            f"  [mcp] Warning: could not start GitHub MCP server: {e}\n  Hint: {hint}",
             file=sys.stderr,
         )
         return None

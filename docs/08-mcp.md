@@ -29,9 +29,9 @@ uio probes for the best available command in this order:
 
 | Priority | Method | Install | Notes |
 |---|---|---|---|
-| **1** | **gh extension** (recommended) | `gh extension install github/gh-mcp` | Uses `gh`'s ambient auth; no extra token needed |
-| **2** | Standalone binary | Download from [GitHub Releases](https://github.com/github/github-mcp-server/releases) | Place `github-mcp-server` on `$PATH` |
-| **3** | Community npm | `npx @modelcontextprotocol/server-github` | Requires `GITHUB_PERSONAL_ACCESS_TOKEN`; widely available |
+| **1** | **gh extension** (recommended) | `gh extension install github/gh-mcp` | Uses `gh`'s ambient auth; no extra token needed. **Skipped for App identity agents** — see below. |
+| **2** | Standalone binary | Download from [GitHub Releases](https://github.com/github/github-mcp-server/releases) | Place `github-mcp-server` on `$PATH`. Accepts App installation tokens. |
+| **3** | Community npm | `npx @modelcontextprotocol/server-github` | Accepts App installation tokens; widely available. |
 
 **Recommended setup (one-time):**
 
@@ -197,6 +197,25 @@ This warning is printed to stderr when the server fails to start. The run contin
 - `gh` not authenticated — run `gh auth login`
 - `npx` not found (community npm fallback) — install Node.js
 - Token is invalid or expired — regenerate it at GitHub
+
+**App installation tokens and `gh mcp server`**
+
+Identity agents (Planner, Coder, Reviewer) authenticate with a short-lived GitHub App installation token (`ghs_…`). The `gh mcp server` extension validates the token type on startup and rejects App installation tokens — only user OAuth tokens and PATs are accepted.
+
+uio automatically skips `gh mcp server` when an App identity token is detected and falls through to the standalone binary or community npm fallback, both of which accept App installation tokens as raw Bearer tokens.
+
+If neither the standalone binary nor `npx` is available in your environment, set `MCP_GITHUB_COMMAND` to a working server invocation:
+
+```bash
+export MCP_GITHUB_COMMAND="npx -y @modelcontextprotocol/server-github"
+```
+
+Or configure it in `uio.toml` to apply permanently:
+
+```toml
+[mcp.github]
+command = "npx -y @modelcontextprotocol/server-github"
+```
 
 **The agent keeps using `gh` CLI even though MCP is enabled**
 
