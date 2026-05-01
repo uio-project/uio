@@ -140,6 +140,26 @@ def test_provider_chain_always_includes_ollama(monkeypatch):
     assert "ollama" in chain
 
 
+def test_provider_chain_large_complexity_excludes_ollama(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None, complexity="large")
+    assert "ollama" not in chain
+
+
+def test_provider_chain_large_complexity_forced_provider_keeps_ollama(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    chain = select_provider_chain("ollama", complexity="large")
+    assert chain == ["ollama"]
+
+
+def test_provider_chain_small_complexity_includes_ollama(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None, complexity="small")
+    assert "ollama" in chain
+
+
 def test_provider_chain_full_when_all_keys_present(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "g-key")
     monkeypatch.setenv("OPENAI_API_KEY", "o-key")

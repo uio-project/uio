@@ -8,7 +8,7 @@ import time
 
 from uio import __version__
 from uio.core.attribution import build_attribution_instructions
-from uio.core.clients import make_client
+from uio.core.clients import make_client, probe_tool_calling
 from uio.core.github_app import (
     KNOWN_ROLES,
     GitHubAppError,
@@ -173,7 +173,7 @@ def run_agent(
         user_message = f"Begin your workflow now. Argument: {arg}"
 
     resolved_complexity = infer_complexity(agent_name, frontmatter, complexity, large_agent_names)
-    provider_chain = select_provider_chain(provider)
+    provider_chain = select_provider_chain(provider, resolved_complexity)
 
     try:
         last_error: Exception | None = None
@@ -189,6 +189,15 @@ def run_agent(
                     file=sys.stderr,
                 )
                 last_error = e
+                continue
+
+            if candidate_provider == "ollama" and not probe_tool_calling(client):
+                print(
+                    "  [router] ollama: tool-calling probe failed —"
+                    " model does not return structured tool calls. Skipping.",
+                    file=sys.stderr,
+                )
+                last_error = RuntimeError("ollama tool-calling probe failed")
                 continue
 
             print(f"\n🤖 Agent: {frontmatter.get('name', agent_name)}")
