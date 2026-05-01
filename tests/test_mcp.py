@@ -385,3 +385,65 @@ class TestMcpPlugins:
         # MCPClient called exactly once (for the plugin), not twice
         assert calls == ["linear"]
         assert "linear" in result
+
+
+class TestMcpGitServer:
+    def test_git_server_starts_from_config(self, monkeypatch):
+        """[mcp.git] config entry launches MCPClient with the git server command."""
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+        git_client = _make_mock_client("git")
+        captured = {}
+
+        def fake_mcp(command, server_name, **kwargs):
+            captured["command"] = command
+            captured["server_name"] = server_name
+            return git_client
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp):
+            result = make_mcp_clients(
+                {"git": {"command": "npx -y @modelcontextprotocol/server-git /workspace"}}
+            )
+
+        assert "git" in result
+        assert result["git"] is git_client
+        assert captured["server_name"] == "git"
+        assert "@modelcontextprotocol/server-git" in " ".join(captured["command"])
+
+    def test_git_server_no_token_required(self, monkeypatch):
+        """server-git starts without any GitHub token set."""
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+
+        git_client = _make_mock_client("git")
+        with patch("uio.core.mcp.MCPClient", return_value=git_client):
+            result = make_mcp_clients(
+                {"git": {"command": "npx -y @modelcontextprotocol/server-git /workspace"}}
+            )
+
+        assert "git" in result
+
+    def test_git_server_coexists_with_github_server(self, monkeypatch):
+        """git and github servers can run alongside each other."""
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "tok")
+
+        clients = {
+            "github": _make_mock_client("github"),
+            "git": _make_mock_client("git"),
+        }
+
+        def fake_mcp(command, server_name, **kwargs):
+            return clients[server_name]
+
+        with (
+            patch("uio.core.mcp.MCPClient", side_effect=fake_mcp),
+            patch("uio.core.mcp.make_mcp_client", return_value=clients["github"]),
+        ):
+            result = make_mcp_clients(
+                {"git": {"command": "npx -y @modelcontextprotocol/server-git /workspace"}}
+            )
+
+        assert "git" in result
+        assert "github" in result

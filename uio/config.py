@@ -53,6 +53,9 @@ names = []
 # [mcp.github]
 # command = "npx -y @github/github-mcp-server stdio"
 
+# [mcp.git]
+# command = "npx -y @modelcontextprotocol/server-git /workspace"
+
 # MCP plugin registry — external-provider servers loaded alongside bundled ones.
 # 'type' declares the capability class (vcs, db, browser, search, chat, tracker, ci, …).
 # 'env_keys' lists required environment variables; uio warns and skips if any are absent.

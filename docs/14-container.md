@@ -15,6 +15,7 @@ The following MCP servers are pre-warmed in the image (no download on first use)
 | Filesystem | `@modelcontextprotocol/server-filesystem` | `mcp__filesystem__*` — typed file read/write/list |
 | Fetch | `@modelcontextprotocol/server-fetch` | `mcp__fetch__*` — typed HTTP GET/POST |
 | Memory | `@modelcontextprotocol/server-memory` | `mcp__memory__*` — persistent KV store per session |
+| Git | `@modelcontextprotocol/server-git` | `mcp__git__*` — structured git log, diff, blame, show, status, branch, commit. Requires a `path` argument pointing to the repository root. |
 
 MCP server configuration is managed via `uio.toml`. See [MCP integration](08-mcp.md) for details.
 
@@ -79,6 +80,9 @@ command = "npx -y @modelcontextprotocol/server-fetch"
 
 [mcp.memory]
 command = "npx -y @modelcontextprotocol/server-memory"
+
+[mcp.git]
+command = "npx -y @modelcontextprotocol/server-git /workspace"
 ```
 
 ## Stateful paths
