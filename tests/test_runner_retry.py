@@ -23,6 +23,9 @@ class TestIsRetryable:
     def test_rate_limit_is_retryable(self):
         assert _is_retryable(Exception("rate limit exceeded"))
 
+    def test_resource_exhausted_is_retryable(self):
+        assert _is_retryable(Exception("RESOURCE_EXHAUSTED: quota exceeded"))
+
     def test_auth_error_is_not_retryable(self):
         assert not _is_retryable(Exception("401 Unauthorized"))
 

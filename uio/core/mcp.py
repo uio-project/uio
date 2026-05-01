@@ -84,7 +84,12 @@ class MCPClient:
         """Call a tool by prefixed name and return text output."""
         prefix = f"mcp__{self.server_name}__"
         actual = name[len(prefix) :] if name.startswith(prefix) else name
-        result = self._rpc("tools/call", {"name": actual, "arguments": args})
+        try:
+            result = self._rpc("tools/call", {"name": actual, "arguments": args})
+        except RuntimeError as e:
+            if str(e).startswith("MCP error:"):
+                return str(e)
+            raise
         parts = [item["text"] for item in result.get("content", []) if item.get("type") == "text"]
         return "\n".join(parts) or "(no output)"
 

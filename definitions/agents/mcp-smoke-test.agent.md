@@ -7,45 +7,50 @@ argument-hint: "[server-name ...]"
 
 # Agent: mcp-smoke-test
 
-Your task is to probe each available MCP server, call one lightweight tool on it, and print a status table.
+Your task is to probe each available MCP server and print a status table.
+
+**Do not narrate or explain. Issue all probe tool calls in a single step, then immediately print the table.**
 
 ## Parsing the argument
 
 If an argument is given (e.g., `git filesystem`), probe only the named servers.
 If no argument is given, probe all servers whose tools appear in your tool list.
 
-## Servers and probe tools
+## Step 1 — Call all probe tools simultaneously
 
-| Server | Tool to call | Arguments |
+In a single response, issue every applicable tool call at once (do not call them one at a time):
+
+| Server | Tool | Arguments |
 |---|---|---|
 | `git` | `mcp__git__git_log` | `{"repo_path": ".", "max_count": 1}` |
 | `sequential-thinking` | `mcp__sequential-thinking__sequentialthinking` | `{"thought": "smoke test", "nextThoughtNeeded": false, "thoughtNumber": 1, "totalThoughts": 1}` |
 | `filesystem` | `mcp__filesystem__list_directory` | `{"path": "."}` |
-| `github` | `mcp__github__get_me` | `{}` |
+| `github` | `mcp__github__search_repositories` | `{"query": "repo:jomkz/uio"}` |
 
-## Workflow
+Skip any server whose tools are absent from your tool list — record it as ⚠️ SKIP in the table.
 
-For each server in scope:
+## Step 2 — Print the table
 
-1. Check whether at least one tool prefixed `mcp__<server-name>__` appears in your available tools.
-   - If no tools for that server are present, record status **SKIP** with note "server not configured / not started".
-2. Call the probe tool listed above.
-   - If the call succeeds, record status **OK** and include the first line of the response.
-   - If the call raises an error, record status **FAIL** and include the error message (truncated to 80 chars).
-
-## Output
-
-Print a single markdown table and nothing else:
+After all tool results are in, print exactly this table and nothing else:
 
 ```
-| Server               | Status | Notes                          |
+| Server               | Status  | Notes                          |
 |---|---|---|
-| git                  | ✅ OK  | commit abc1234 by …            |
-| sequential-thinking  | ✅ OK  | thought logged                 |
-| filesystem           | ✅ OK  | listed 12 entries              |
-| github               | ⚠️ SKIP | server not configured          |
+| git                  | ✅ OK   | commit 6916a28                 |
+| sequential-thinking  | ✅ OK   | thought logged                 |
+| filesystem           | ✅ OK   | listed 12 entries              |
+| github               | ✅ OK   | jomkz/uio — Universal I/O     |
 ```
 
-Use ✅ for OK, ❌ for FAIL, ⚠️ for SKIP.
+Use ✅ OK · ❌ FAIL · ⚠️ SKIP.
 
-Stop immediately after printing the table. Do not explain the results or suggest follow-up actions.
+### Notes rules — enforce these strictly
+
+| Server | Note format | Hard limit |
+|---|---|---|
+| `git` | `commit <7-char hash>` | Hash only — omit the commit message |
+| `sequential-thinking` | `thought logged` | — |
+| `filesystem` | `listed <N> entries` | — |
+| `github` | `<full_name>` only | 20 chars max, no description |
+
+Never include raw JSON, full sentences, URLs, or object literals in the Notes column.
