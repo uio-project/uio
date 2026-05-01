@@ -62,6 +62,11 @@ class LLMClient(ABC):
         """Append a completed model turn (plus tool results) to the history."""
 
 
+def _strip_schema_meta(params: dict) -> dict:
+    """Remove JSON Schema meta-fields that Gemini's FunctionDeclaration rejects."""
+    return {k: v for k, v in params.items() if k != "$schema"}
+
+
 class GeminiClient(LLMClient):
     def __init__(self, model: str | None = None, tools: list[dict] | None = None) -> None:
         from google import genai
@@ -75,7 +80,7 @@ class GeminiClient(LLMClient):
             types.FunctionDeclaration(
                 name=t["name"],
                 description=t["description"],
-                parameters=t["parameters"],
+                parameters=_strip_schema_meta(t["parameters"]),
             )
             for t in schemas
         ]

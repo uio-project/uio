@@ -7,7 +7,7 @@ Only append_turn and build_history are under test — pure message formatting.
 import json
 
 
-from uio.core.clients import GeminiClient, LLMResponse, OpenAIClient
+from uio.core.clients import GeminiClient, LLMResponse, OpenAIClient, _strip_schema_meta
 from uio.core.tools import ToolCall
 
 
@@ -136,3 +136,23 @@ def test_openai_assistant_tool_calls_serialised_as_json():
     client.append_turn(history, LLMResponse(text=None, tool_calls=[call]), [(call, "out")])
     raw_args = history[1]["tool_calls"][0]["function"]["arguments"]
     assert json.loads(raw_args) == {"command": "ls -la"}
+
+
+# ── _strip_schema_meta ────────────────────────────────────────────────────────
+
+
+def test_strip_schema_meta_removes_dollar_schema():
+    params = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"x": {"type": "string"}},
+    }
+    result = _strip_schema_meta(params)
+    assert "$schema" not in result
+    assert result["type"] == "object"
+    assert "properties" in result
+
+
+def test_strip_schema_meta_passthrough_when_no_dollar_schema():
+    params = {"type": "object", "properties": {}}
+    assert _strip_schema_meta(params) == params
