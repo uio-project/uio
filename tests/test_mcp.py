@@ -5,7 +5,37 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 
-from uio.core.mcp import make_mcp_clients
+from uio.core.mcp import _default_github_mcp_command, make_mcp_clients
+
+
+class TestDefaultGithubMcpCommand:
+    def test_gh_present_returns_gh_mcp_server(self):
+        with patch(
+            "uio.core.mcp.shutil.which", side_effect=lambda x: "/usr/bin/gh" if x == "gh" else None
+        ):
+            assert _default_github_mcp_command() == ["gh", "mcp", "server"]
+
+    def test_no_gh_but_binary_present_returns_binary(self):
+        def which(name):
+            if name == "github-mcp-server":
+                return "/usr/local/bin/github-mcp-server"
+            return None
+
+        with patch("uio.core.mcp.shutil.which", side_effect=which):
+            assert _default_github_mcp_command() == ["/usr/local/bin/github-mcp-server", "stdio"]
+
+    def test_neither_falls_back_to_community_npm(self):
+        with patch("uio.core.mcp.shutil.which", return_value=None):
+            assert _default_github_mcp_command() == [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-github",
+            ]
+
+    def test_gh_takes_priority_over_binary(self):
+        with patch("uio.core.mcp.shutil.which", return_value="/some/path"):
+            # shutil.which returns truthy for both, but gh is checked first
+            assert _default_github_mcp_command() == ["gh", "mcp", "server"]
 
 
 def _make_mock_client(server_name: str) -> MagicMock:
