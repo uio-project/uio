@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 
-from uio.core.mcp import _default_github_mcp_command, make_mcp_clients
+from uio.core.mcp import _default_github_mcp_command, make_mcp_client, make_mcp_clients
 
 
 class TestDefaultGithubMcpCommand:
@@ -36,6 +36,54 @@ class TestDefaultGithubMcpCommand:
         with patch("uio.core.mcp.shutil.which", return_value="/some/path"):
             # shutil.which returns truthy for both, but gh is checked first
             assert _default_github_mcp_command() == ["gh", "mcp", "server"]
+
+
+class TestMakeMcpClientTokenPriority:
+    def test_gh_token_wins_over_pat(self, monkeypatch):
+        """GH_TOKEN (App identity) takes priority over GITHUB_PERSONAL_ACCESS_TOKEN."""
+        monkeypatch.setenv("GH_TOKEN", "app-token")
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "pat-token")
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+        captured_env = {}
+
+        def fake_mcp_cls(command, server_name, env=None, **kwargs):
+            captured_env.update(env or {})
+            return MagicMock()
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_cls):
+            result = make_mcp_client()
+
+        assert result is not None
+        assert captured_env["GH_TOKEN"] == "app-token"
+        assert captured_env["GITHUB_TOKEN"] == "app-token"
+        assert captured_env["GITHUB_PERSONAL_ACCESS_TOKEN"] == "app-token"
+
+    def test_all_three_vars_set_in_child_env(self, monkeypatch):
+        """Selected token is exported under all three env var names."""
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "pat-token")
+
+        captured_env = {}
+
+        def fake_mcp_cls(command, server_name, env=None, **kwargs):
+            captured_env.update(env or {})
+            return MagicMock()
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_cls):
+            result = make_mcp_client()
+
+        assert result is not None
+        assert captured_env["GH_TOKEN"] == "pat-token"
+        assert captured_env["GITHUB_TOKEN"] == "pat-token"
+        assert captured_env["GITHUB_PERSONAL_ACCESS_TOKEN"] == "pat-token"
+
+    def test_no_token_returns_none(self, monkeypatch):
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        assert make_mcp_client() is None
 
 
 def _make_mock_client(server_name: str) -> MagicMock:
