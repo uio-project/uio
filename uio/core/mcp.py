@@ -101,12 +101,12 @@ def _default_github_mcp_command(app_identity: bool = False) -> list[str]:
     """Return the best available command to start the GitHub MCP server.
 
     Probe order:
-    1. gh extension — skipped when app_identity=True (gh rejects App installation tokens)
-    2. Standalone binary downloaded from GitHub Releases
-    3. Community npm package (@modelcontextprotocol/server-github) — accepts Bearer tokens including App installation tokens
+    1. Standalone binary (github-mcp-server) downloaded from GitHub Releases
+    2. Community npm package (@modelcontextprotocol/server-github)
+
+    'gh mcp server' is NOT probed automatically — it requires the shuymn/gh-mcp
+    extension and must be opted in via MCP_GITHUB_COMMAND or uio.toml.
     """
-    if not app_identity and shutil.which("gh"):
-        return ["gh", "mcp", "server"]
     binary = shutil.which("github-mcp-server")
     if binary:
         return [binary, "stdio"]
@@ -153,7 +153,7 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
                 "MCP_GITHUB_COMMAND='npx -y @modelcontextprotocol/server-github'."
             )
         else:
-            hint = "run 'gh extension install github/gh-mcp' or set MCP_GITHUB_COMMAND."
+            hint = "install npx (nodejs) or set MCP_GITHUB_COMMAND to an alternative command."
         print(
             f"  [mcp] Warning: could not start GitHub MCP server: {e}\n  Hint: {hint}",
             file=sys.stderr,

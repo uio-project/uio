@@ -9,13 +9,7 @@ from uio.core.mcp import _default_github_mcp_command, make_mcp_client, make_mcp_
 
 
 class TestDefaultGithubMcpCommand:
-    def test_gh_present_returns_gh_mcp_server(self):
-        with patch(
-            "uio.core.mcp.shutil.which", side_effect=lambda x: "/usr/bin/gh" if x == "gh" else None
-        ):
-            assert _default_github_mcp_command() == ["gh", "mcp", "server"]
-
-    def test_no_gh_but_binary_present_returns_binary(self):
+    def test_binary_present_returns_binary(self):
         def which(name):
             if name == "github-mcp-server":
                 return "/usr/local/bin/github-mcp-server"
@@ -24,7 +18,7 @@ class TestDefaultGithubMcpCommand:
         with patch("uio.core.mcp.shutil.which", side_effect=which):
             assert _default_github_mcp_command() == ["/usr/local/bin/github-mcp-server", "stdio"]
 
-    def test_neither_falls_back_to_community_npm(self):
+    def test_no_binary_falls_back_to_community_npm(self):
         with patch("uio.core.mcp.shutil.which", return_value=None):
             assert _default_github_mcp_command() == [
                 "npx",
@@ -32,17 +26,27 @@ class TestDefaultGithubMcpCommand:
                 "@modelcontextprotocol/server-github",
             ]
 
-    def test_gh_takes_priority_over_binary(self):
-        with patch("uio.core.mcp.shutil.which", return_value="/some/path"):
-            # shutil.which returns truthy for both, but gh is checked first
-            assert _default_github_mcp_command() == ["gh", "mcp", "server"]
+    def test_gh_on_path_does_not_use_gh_mcp_server(self):
+        """gh being on PATH no longer triggers 'gh mcp server' — requires explicit config."""
+        with patch(
+            "uio.core.mcp.shutil.which", side_effect=lambda x: "/usr/bin/gh" if x == "gh" else None
+        ):
+            assert _default_github_mcp_command() == [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-github",
+            ]
 
-    def test_app_identity_skips_gh_mcp_server(self):
-        """gh mcp server is skipped when app_identity=True; falls through to binary."""
+    def test_binary_wins_over_npm(self):
+        with patch("uio.core.mcp.shutil.which", return_value="/some/path"):
+            assert _default_github_mcp_command() == ["/some/path", "stdio"]
+
+    def test_app_identity_binary_present(self):
+        """app_identity flag is accepted but no longer changes probe order."""
 
         def which(name):
-            if name in ("gh", "github-mcp-server"):
-                return f"/usr/bin/{name}"
+            if name == "github-mcp-server":
+                return "/usr/bin/github-mcp-server"
             return None
 
         with patch("uio.core.mcp.shutil.which", side_effect=which):
@@ -59,13 +63,6 @@ class TestDefaultGithubMcpCommand:
                 "-y",
                 "@modelcontextprotocol/server-github",
             ]
-
-    def test_app_identity_false_uses_gh_when_present(self):
-        """Explicit app_identity=False behaves identically to the default."""
-        with patch(
-            "uio.core.mcp.shutil.which", side_effect=lambda x: "/usr/bin/gh" if x == "gh" else None
-        ):
-            assert _default_github_mcp_command(app_identity=False) == ["gh", "mcp", "server"]
 
 
 class TestMakeMcpClientTokenPriority:
@@ -115,8 +112,8 @@ class TestMakeMcpClientTokenPriority:
         monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
         assert make_mcp_client() is None
 
-    def test_app_token_does_not_use_gh_mcp_server(self, monkeypatch):
-        """When GH_TOKEN is set (App identity), gh mcp server is not chosen."""
+    def test_app_token_uses_binary_when_present(self, monkeypatch):
+        """When GH_TOKEN is set (App identity), the standalone binary is used if found."""
         monkeypatch.setenv("GH_TOKEN", "ghs_app_token")
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
         monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
@@ -127,20 +124,18 @@ class TestMakeMcpClientTokenPriority:
             captured_command.extend(command)
             return MagicMock()
 
-        # gh is on PATH but should be skipped; binary also present
-        def which(name):
-            if name in ("gh", "github-mcp-server"):
-                return f"/usr/bin/{name}"
-            return None
-
         with (
             patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_cls),
-            patch("uio.core.mcp.shutil.which", side_effect=which),
+            patch(
+                "uio.core.mcp.shutil.which",
+                side_effect=lambda x: (
+                    "/usr/bin/github-mcp-server" if x == "github-mcp-server" else None
+                ),
+            ),
         ):
             result = make_mcp_client()
 
         assert result is not None
-        assert captured_command != ["gh", "mcp", "server"]
         assert captured_command == ["/usr/bin/github-mcp-server", "stdio"]
 
     def test_app_token_warning_mentions_installation_token(self, monkeypatch, capsys):
