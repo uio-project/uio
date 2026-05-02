@@ -228,7 +228,9 @@ def validate_workflow_definition(path: str, frontmatter: dict) -> list[str]:
         if key not in _WORKFLOW_KNOWN_KEYS:
             errors.append(f"{path}: unrecognised workflow frontmatter key '{key}'")
     steps = frontmatter.get("steps")
-    if steps is not None and not isinstance(steps, list):
+    if steps is None:
+        errors.append(f"{path}: missing required field 'steps'")
+    elif not isinstance(steps, list):
         errors.append(f"{path}: 'steps' must be a list, got {type(steps).__name__}")
     return errors
 

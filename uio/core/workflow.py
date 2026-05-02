@@ -147,8 +147,15 @@ def run_workflow(
             print(f"\n❌ Workflow halted at step '{step.name}': {exc}", file=sys.stderr)
             raise
 
-        if step.output is not None and result is not None:
-            variables[step.output] = result
-            print(f"  → captured output as '${step.output}'\n")
+        if step.output is not None:
+            if result is not None:
+                variables[step.output] = result
+                print(f"  → captured output as '${step.output}'\n")
+            else:
+                print(
+                    f"  [workflow] Warning: step '{step.name}' produced no output"
+                    f" (iteration cap reached?) — '${step.output}' will be empty\n",
+                    file=sys.stderr,
+                )
 
     print("\n✅ Workflow complete.")

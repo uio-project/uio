@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import textwrap
+from unittest.mock import patch
 
-
-from uio.core.workflow import _eval_when, _interpolate, parse_workflow_steps
+from uio.core.workflow import _eval_when, _interpolate, parse_workflow_steps, run_workflow
 from uio.schema.parser import check_workflow_steps, validate_workflow_definition
 
 
@@ -267,3 +267,227 @@ def test_workflow_list_shows_workflows(tmp_path, monkeypatch):
     assert "review-and-fix" in result.output
     assert "Review a PR" in result.output
     assert "2" in result.output  # step count
+
+
+# ---------------------------------------------------------------------------
+# run_workflow execution
+# ---------------------------------------------------------------------------
+
+_MINIMAL_CFG: dict = {
+    "dirs": {
+        "agents": ".uio/agents",
+        "skills": ".uio/skills",
+        "workflows": ".uio/workflows",
+        "memory": None,
+    },
+    "runtime": {
+        "default_provider": None,
+        "timeout": 10,
+        "max_iterations": 5,
+        "max_iterations_large": 10,
+        "cost_ledger": "uio_cost.jsonl",
+        "routing_chain": None,
+        "context_max_tokens": 1000,
+        "anthropic_max_tokens": None,
+    },
+    "large_agents": {"names": []},
+    "mcp": {},
+    "mcp_plugins": [],
+}
+
+
+def _make_cfg(tmp_path) -> dict:
+    cfg = {k: dict(v) if isinstance(v, dict) else v for k, v in _MINIMAL_CFG.items()}
+    cfg["dirs"] = dict(_MINIMAL_CFG["dirs"])
+    cfg["dirs"]["workflows"] = str(tmp_path / "workflows")
+    cfg["dirs"]["agents"] = str(tmp_path / "agents")
+    cfg["dirs"]["skills"] = str(tmp_path / "skills")
+    return cfg
+
+
+def _write_workflow(tmp_path, name: str, content: str) -> None:
+    wf_dir = tmp_path / "workflows"
+    wf_dir.mkdir(exist_ok=True)
+    (wf_dir / f"{name}.workflow.md").write_text(content)
+
+
+def test_run_workflow_sequences_and_threads_output(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "seq",
+        textwrap.dedent("""\
+            ---
+            name: seq
+            description: D.
+            steps:
+              - name: step-a
+                agent: agent-a
+                arg: "{{ input }}"
+                output: result_a
+              - name: step-b
+                agent: agent-b
+                arg: "{{ result_a }}"
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    calls: list[tuple[str, str | None]] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        calls.append((name, arg))
+        return f"output-of-{name}"
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("seq", "my-input", cfg=cfg)
+
+    assert calls[0] == ("agent-a", "my-input")
+    assert calls[1] == ("agent-b", "output-of-agent-a")  # output threaded
+
+
+def test_run_workflow_when_condition_skips_step(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "cond",
+        textwrap.dedent("""\
+            ---
+            name: cond
+            description: D.
+            steps:
+              - name: check
+                agent: checker
+                arg: "{{ input }}"
+                output: check_result
+              - name: fix
+                agent: fixer
+                arg: "{{ input }}"
+                when: "check_result contains BLOCKER"
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    calls: list[str] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        calls.append(name)
+        return "All good, no issues."
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("cond", "pr-ref", cfg=cfg)
+
+    assert calls == ["checker"]  # fixer was skipped — no BLOCKER in output
+
+
+def test_run_workflow_when_condition_runs_step(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "cond2",
+        textwrap.dedent("""\
+            ---
+            name: cond2
+            description: D.
+            steps:
+              - name: check
+                agent: checker
+                arg: "{{ input }}"
+                output: check_result
+              - name: fix
+                agent: fixer
+                arg: "{{ input }}"
+                when: "check_result contains BLOCKER"
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    calls: list[str] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        calls.append(name)
+        return "Found a BLOCKER in the diff."
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("cond2", "pr-ref", cfg=cfg)
+
+    assert calls == ["checker", "fixer"]  # fixer ran — BLOCKER present
+
+
+def test_run_workflow_warns_on_none_output(tmp_path, capsys):
+    _write_workflow(
+        tmp_path,
+        "cap",
+        textwrap.dedent("""\
+            ---
+            name: cap
+            description: D.
+            steps:
+              - name: capped
+                agent: slow-agent
+                arg: "{{ input }}"
+                output: capped_result
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+
+    def fake_run_agent(name, arg, **kwargs):
+        return None  # simulates iteration cap
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("cap", "arg", cfg=cfg)
+
+    captured = capsys.readouterr()
+    assert "Warning" in captured.err
+    assert "capped_result" in captured.err
+
+
+def test_run_workflow_no_steps(tmp_path, capsys):
+    _write_workflow(
+        tmp_path,
+        "empty",
+        textwrap.dedent("""\
+            ---
+            name: empty
+            description: D.
+            steps: []
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    with patch("uio.core.runner.run_agent") as mock_agent:
+        run_workflow("empty", None, cfg=cfg)
+        mock_agent.assert_not_called()
+
+
+def test_run_workflow_skill_step(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "skill-wf",
+        textwrap.dedent("""\
+            ---
+            name: skill-wf
+            description: D.
+            steps:
+              - name: summarise
+                skill: summarise
+                arg: "{{ input }}"
+                output: summary
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        calls.append((name, kwargs.get("definition_path", "")))
+        return "the summary"
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("skill-wf", "some text", cfg=cfg)
+
+    assert calls[0][0] == "summarise"
+    assert ".skill.md" in calls[0][1]  # resolved as a skill, not an agent

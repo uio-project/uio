@@ -116,9 +116,10 @@ def init_cmd(examples: bool) -> None:
     agents_dir = Path(cfg["dirs"]["agents"])
     skills_dir = Path(cfg["dirs"]["skills"])
     prompts_dir = Path(cfg["dirs"]["prompts"])
+    workflows_dir = Path(cfg["dirs"]["workflows"])
     memory_dir = Path(cfg["dirs"]["memory"])
 
-    for d in (agents_dir, skills_dir, prompts_dir, memory_dir):
+    for d in (agents_dir, skills_dir, prompts_dir, workflows_dir, memory_dir):
         d.mkdir(parents=True, exist_ok=True)
         click.echo(f"  Created directory: {d}/")
 
@@ -227,7 +228,7 @@ def validate_cmd(strict: bool) -> None:
         for path in sorted(glob(f"{directory}/{pattern}")):
             total += 1
             try:
-                fm, body = parse_definition_file(path)
+                fm, _ = parse_definition_file(path)
             except Exception as e:
                 errors.append(f"{path}: could not parse: {e}")
                 continue
