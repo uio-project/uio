@@ -16,9 +16,8 @@ names = []
 
 # GitHub MCP server — started automatically when GH_TOKEN / GITHUB_PERSONAL_ACCESS_TOKEN
 # is present even without this entry, but declaring it explicitly pins the command.
-# Use 'gh mcp server' here if you have the shuymn/gh-mcp extension installed.
 [mcp.github]
-command = "npx -y @modelcontextprotocol/server-github"
+command = "github-mcp-server stdio"
 
 # ---------------------------------------------------------------------------
 # MCP plugin registry (#108)
