@@ -38,7 +38,7 @@ so they are unaffected by the working-directory limitation. Fall back to `find` 
 ## Parsing the argument
 
 The argument describes the change to make. Extract:
-- **Repository** — `owner/repo` (required; abort with a clear error if absent)
+- **Repository** — `owner/repo`. If not explicitly provided, derive it from the current working directory's `origin` remote by running `git remote get-url origin` and parsing `owner/repo` from the URL (supports both `https://github.com/owner/repo` and `git@github.com:owner/repo` formats). Abort with a clear error only if the remote URL cannot be parsed.
 - **Change description** — what to implement or fix (required)
 - **Issue number** — optional; if provided, fetch the full issue body to derive or refine the change description
 - **Branch name** — optional; default to `ai-coder/<slugified-description>`
