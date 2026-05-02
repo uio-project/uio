@@ -13,6 +13,7 @@ from uio.cli.agent import agent_group
 from uio.cli.chat import chat_cmd
 from uio.cli.config import config_group
 from uio.cli.cost import cost_cmd
+from uio.cli.link import link_cmd
 from uio.cli.prompt import prompt_group
 from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
@@ -79,6 +80,7 @@ main.add_command(prompt_group, "prompt")
 main.add_command(chat_cmd, "chat")
 main.add_command(cost_cmd, "cost")
 main.add_command(config_group, "config")
+main.add_command(link_cmd, "link")
 main.add_command(registry_group, "registry")
 
 
