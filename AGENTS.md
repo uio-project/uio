@@ -37,3 +37,15 @@ equivalent and must always run via shell commands (`run_command` in uio, `Bash`
 in Claude Code). Commit operations that require a custom author identity
 (`-c user.name=... -c user.email=...`) also require the shell; no git MCP tool
 supports custom author flags.
+
+## `git_create_branch` does not switch HEAD
+
+`mcp__mcp-git__git_create_branch` (and its environment-specific equivalents)
+creates the branch but leaves HEAD on the current branch. Always follow it with
+an explicit checkout via shell:
+
+```bash
+git -C <work-dir> checkout <branch-name>
+```
+
+Skipping this step causes subsequent commits to land on the wrong branch.
