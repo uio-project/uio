@@ -212,3 +212,46 @@ def check_minimal_body(path: str, body: str) -> list[str]:
     if len(body) < 100:
         return [f"{path}: body is very short ({len(body)} chars); consider adding more detail"]
     return []
+
+
+_WORKFLOW_KNOWN_KEYS = {"name", "description", "steps"}
+_STEP_KNOWN_KEYS = {"name", "agent", "skill", "arg", "output", "when"}
+
+
+def validate_workflow_definition(path: str, frontmatter: dict) -> list[str]:
+    """Return error strings for a *.workflow.md file."""
+    errors = []
+    for field in REQUIRED_FIELDS:
+        if not frontmatter.get(field):
+            errors.append(f"{path}: missing required field '{field}'")
+    for key in frontmatter:
+        if key not in _WORKFLOW_KNOWN_KEYS:
+            errors.append(f"{path}: unrecognised workflow frontmatter key '{key}'")
+    steps = frontmatter.get("steps")
+    if steps is not None and not isinstance(steps, list):
+        errors.append(f"{path}: 'steps' must be a list, got {type(steps).__name__}")
+    return errors
+
+
+def check_workflow_steps(path: str, frontmatter: dict) -> list[str]:
+    """Warn about individual step problems in a *.workflow.md file."""
+    warnings = []
+    steps = frontmatter.get("steps") or []
+    if not isinstance(steps, list):
+        return warnings
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict):
+            warnings.append(f"{path}: step {i + 1} is not a mapping")
+            continue
+        for key in step:
+            if key not in _STEP_KNOWN_KEYS:
+                warnings.append(f"{path}: step {i + 1} has unrecognised key '{key}'")
+        has_agent = "agent" in step
+        has_skill = "skill" in step
+        if has_agent and has_skill:
+            warnings.append(
+                f"{path}: step {i + 1} defines both 'agent' and 'skill' — they are mutually exclusive"
+            )
+        elif not has_agent and not has_skill:
+            warnings.append(f"{path}: step {i + 1} has neither 'agent' nor 'skill'")
+    return warnings

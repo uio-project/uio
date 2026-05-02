@@ -233,7 +233,7 @@ def run_agent(
     routing_chain: list[str] | None = None,
     memory_dir: str | None = None,
     context_max_tokens: int = 8000,
-) -> None:
+) -> str | None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
     if not os.path.exists(definition_path):
@@ -388,7 +388,7 @@ def run_agent(
                             total_completion,
                             ledger_path,
                         )
-                        return
+                        return response.text or ""
 
                     if guardrail_max_cost is not None:
                         running_cost = estimate_cost_usd(
@@ -451,7 +451,7 @@ def run_agent(
                     total_completion,
                     ledger_path,
                 )
-                return
+                return None
 
             except GuardrailError:
                 raise

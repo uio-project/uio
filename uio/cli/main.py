@@ -19,6 +19,7 @@ from uio.cli.memory import memory_group
 from uio.cli.prompt import prompt_group
 from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
+from uio.cli.workflow import workflow_group
 from uio.config import load_config
 from uio.examples import EXAMPLES
 from uio.schema.parser import (
@@ -29,8 +30,10 @@ from uio.schema.parser import (
     check_skill_references,
     check_stopping_criteria,
     check_thinking_complexity,
+    check_workflow_steps,
     parse_definition_file,
     validate_definition,
+    validate_workflow_definition,
 )
 
 _EXAMPLE_AGENT = """\
@@ -79,6 +82,7 @@ def main() -> None:
 main.add_command(agent_group, "agent")
 main.add_command(skill_group, "skill")
 main.add_command(prompt_group, "prompt")
+main.add_command(workflow_group, "workflow")
 main.add_command(chat_cmd, "chat")
 main.add_command(cost_cmd, "cost")
 main.add_command(config_group, "config")
@@ -188,17 +192,20 @@ def validate_cmd(strict: bool) -> None:
     """
     cfg = load_config()
     skills_dir = cfg["dirs"]["skills"]
-    patterns = [
+    agent_skill_prompt_patterns = [
         (cfg["dirs"]["agents"], "*.agent.md"),
         (skills_dir, "*.skill.md"),
         (cfg["dirs"]["prompts"], "*.prompt.md"),
+    ]
+    workflow_patterns = [
+        (cfg["dirs"]["workflows"], "*.workflow.md"),
     ]
 
     errors: list[str] = []
     warnings: list[str] = []
     total = 0
 
-    for directory, pattern in patterns:
+    for directory, pattern in agent_skill_prompt_patterns:
         for path in sorted(glob(f"{directory}/{pattern}")):
             total += 1
             try:
@@ -215,6 +222,17 @@ def validate_cmd(strict: bool) -> None:
             warnings.extend(check_minimal_body(path, body))
             if strict:
                 warnings.extend(check_stopping_criteria(path, body))
+
+    for directory, pattern in workflow_patterns:
+        for path in sorted(glob(f"{directory}/{pattern}")):
+            total += 1
+            try:
+                fm, body = parse_definition_file(path)
+            except Exception as e:
+                errors.append(f"{path}: could not parse: {e}")
+                continue
+            errors.extend(validate_workflow_definition(path, fm))
+            warnings.extend(check_workflow_steps(path, fm))
 
     if total == 0:
         click.echo("  No definition files found.")
