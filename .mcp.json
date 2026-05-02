@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "github": {
+    "mcp-github": {
       "command": "/usr/local/bin/github-mcp-server",
       "args": [
         "stdio"
