@@ -53,6 +53,34 @@ Code, create `.mcp.json` at the repo root:
 Until that file exists, `ToolSearch` will not find any GitHub MCP tools and the
 `gh` CLI fallback is the correct path.
 
+## MCP tool path restrictions
+
+The MCP git and filesystem servers in this environment enforce an allowed-paths
+allowlist restricted to the workspace root (e.g. `/home/john/src/uio`). Any
+operation on a path outside the workspace — including `/tmp` — will fail with
+"Access denied / outside allowed repository".
+
+Agent clone workspaces must therefore be placed under `<workspace-root>/.tmp/`
+rather than `/tmp/`. The `.tmp/` directory is git-ignored. Use this pattern for
+the work dir:
+
+```
+<workspace-root>/.tmp/<repo>-<branch-slug>
+```
+
+## GitHub MCP write operations (temporary limitation)
+
+`mcp__mcp-github__create_pull_request` and `mcp__mcp-github__issue_write`
+currently return 403 in this environment due to token scope. This is temporary.
+Until resolved, fall back to the `gh` CLI for PR creation and issue creation:
+
+```bash
+gh pr create --repo <owner>/<repo> ...
+gh issue create --repo <owner>/<repo> ...
+```
+
+Read operations (`issue_read`, `pull_request_read`, etc.) work correctly.
+
 ## Running agent definitions directly
 
 When a user asks to execute a workflow described in `definitions/agents/*.agent.md`,
