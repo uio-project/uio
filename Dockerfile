@@ -1,15 +1,13 @@
 FROM python:3.11-slim
 
-# Node.js 20 LTS — required solely for @modelcontextprotocol/server-filesystem.
-# Investigation result (issue #155): no Python MCP server exposes the same tool
-# names (read_file, list_directory, search_files, …) that agent definitions
-# reference, so this dependency cannot be removed yet.
-# All other previously-npx-based servers have been replaced:
-#   @github/github-mcp-server              → native Go binary (github-mcp-server stdio)
-#   @modelcontextprotocol/server-sequential-thinking → uvx sequential-thinking-mcp
-#   @modelcontextprotocol/server-git        → uvx mcp-server-git
-#   @modelcontextprotocol/server-fetch      → not used in default uio.toml (removed)
-#   @modelcontextprotocol/server-memory     → not used in default uio.toml (removed)
+# Node.js 20 LTS — required for @modelcontextprotocol/* MCP servers bundled in the
+# default uio.toml. Investigation result (issue #155): no Python MCP server exposes
+# the same tool names (read_file, list_directory, search_files, …) that agent
+# definitions reference, so the official @modelcontextprotocol packages are kept.
+# Removed from the original pre-warm list:
+#   @modelcontextprotocol/server-git    → replaced by uvx mcp-server-git
+#   @modelcontextprotocol/server-fetch  → not used in default uio.toml
+#   @modelcontextprotocol/server-memory → not used in default uio.toml
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl gnupg git \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -34,7 +32,8 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 # invocations resolve them without any network access.
 RUN npm install -g \
         @github/github-mcp-server \
-        @modelcontextprotocol/server-filesystem
+        @modelcontextprotocol/server-filesystem \
+        @modelcontextprotocol/server-sequential-thinking
 
 WORKDIR /workspace
 
