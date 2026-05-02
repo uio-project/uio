@@ -129,9 +129,10 @@ def test_provider_chain_explicit_override_even_without_key(monkeypatch):
 def test_provider_chain_auto_includes_gemini_when_key_present(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     chain = select_provider_chain(None)
     assert "gemini" in chain
-    assert chain.index("gemini") == 0
+    assert chain.index("ollama") < chain.index("gemini")
 
 
 def test_provider_chain_auto_skips_gemini_when_key_missing(monkeypatch):
@@ -182,10 +183,10 @@ def test_provider_chain_respects_routing_order(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "o-key")
     chain = select_provider_chain(None)
     assert (
-        chain.index("gemini")
-        < chain.index("anthropic")
+        chain.index("ollama")
         < chain.index("openai")
-        < chain.index("ollama")
+        < chain.index("gemini")
+        < chain.index("anthropic")
     )
 
 
@@ -210,7 +211,8 @@ def test_provider_chain_anthropic_only_when_only_anthropic_key(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     chain = select_provider_chain(None)
-    assert chain[0] == "anthropic"
+    assert "anthropic" in chain
+    assert chain.index("ollama") < chain.index("anthropic")
 
 
 # ── estimate_cost_usd ──────────────────────────────────────────────────────────
