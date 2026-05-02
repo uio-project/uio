@@ -55,7 +55,43 @@ Run `/github-fetch-issue` with `owner/repo: <owner>/<repo>` and `issue-number: <
 
 Treat comments as **additive overrides**: process them in chronological order. Later comments can refine, restrict, or supersede guidance in the issue body. Use the combined title + body + comments as the authoritative change description. If the argument also contains a description, prefer the issue content but use the argument as a hint for scope.
 
-#### 0b. Scan for blocking questions
+#### 0b. Search for a linked open PR
+
+Search for an existing open PR that references this issue number. Use a GitHub MCP tool if available:
+
+```
+mcp__mcp-github__search_pull_requests  query="repo:<owner>/<repo> is:open is:pr \"closes #<issue>\""
+```
+
+Otherwise fall back to a client-side body filter (the `--search` flag does not reliably match PR body text):
+
+```bash
+gh pr list --repo <owner>/<repo> --state open --json number,headRefName,url,body \
+  | jq '[.[] | select(.body | ascii_downcase | contains("closes #<issue>"))]'
+```
+
+**If multiple open PRs match**, proceed as `$existing_pr = false` and note the ambiguity in the output — do not guess which PR to update.
+
+**If exactly one open PR is found:**
+
+1. Fetch PR-level comments (where reviewer agents post suggestions) using `mcp__mcp-github__pull_request_read` with `method: get_comments`, or:
+   ```bash
+   gh api repos/<owner>/<repo>/issues/<pr-number>/comments
+   ```
+   Also fetch inline review comments using `method: get_review_comments`, or:
+   ```bash
+   gh api repos/<owner>/<repo>/pulls/<pr-number>/comments
+   ```
+   Collect unresolved suggestions from both sources.
+2. Add the unresolved suggestions as explicit requirements appended to the change description — they are the primary implementation target for this run.
+3. Override the branch name with the PR's existing `headRefName`. Do not generate a new slug. **Recompute `<work-dir>` from the overridden branch name** so the work dir path stays consistent with the actual branch slug.
+4. Set a flag `$existing_pr = true` and record `$existing_pr_number`. You will **not** create a new PR in step 8 — pushing to the same branch updates the existing PR automatically.
+
+**If no open PR is found**, proceed with a fresh branch and new PR as normal (`$existing_pr = false`).
+
+---
+
+#### 0c. Scan for blocking questions
 
 Before writing any code or creating a branch, scan the full thread for open questions. A question is **blocking** if it meets **all three** criteria:
 
@@ -96,7 +132,20 @@ filesystem tools when available:
 
 Read `.github/workflows/` (do **not** edit these files) to identify every check that runs on PRs — formatting, linting, type checking, tests. Note the exact commands used so you can replicate them locally before pushing.
 
-### 3. Create the feature branch
+### 3. Create or check out the feature branch
+
+**If `$existing_pr = true`** (a linked PR was found in step 0b):
+
+The branch exists on the remote but the clone only fetched `<base-branch>`. Fetch the PR branch explicitly before checking it out:
+
+```bash
+git -C <work-dir> fetch origin <branch-name>
+git -C <work-dir> checkout <branch-name>
+```
+
+Do not reset to `origin/<base-branch>` — the existing PR commits must be preserved. If the fetch fails (e.g. branch was deleted), report the error and stop.
+
+**If `$existing_pr = false`** (fresh implementation):
 
 Prefer MCP git tools when available — they accept `repo_path` so no `-C` flag is needed:
 
@@ -116,7 +165,7 @@ Fall back to `run_command` if the MCP tool is absent:
 git -C <work-dir> checkout -b <branch-name>
 ```
 
-If the branch already exists locally (a previous run left it behind), check it out instead and reset it to the base branch:
+If the branch already exists locally (a previous run left it behind), check it out and reset it to the base branch:
 
 ```
 mcp__mcp-git__git_checkout  repo_path=<work-dir>  branch_name=<branch-name>
@@ -158,6 +207,24 @@ If there were formatting-only changes from step 6, include them in the same comm
 
 ### 8. Publish and open a pull request
 
+**If `$existing_pr = true`:**
+
+Push to the existing branch — GitHub updates the open PR automatically:
+
+```bash
+git -C <work-dir> push origin <branch-name>
+```
+
+Then post a comment on the existing PR summarising what was changed to address the review:
+
+```bash
+gh pr comment <existing_pr_number> --repo <owner>/<repo> --body "..."
+```
+
+The comment should list each review suggestion and confirm how it was addressed. Report `https://github.com/<owner>/<repo>/pull/<existing_pr_number>` and stop.
+
+**If `$existing_pr = false`:**
+
 Run `/github-create-pr` with:
 - `owner/repo: <owner>/<repo>`
 - `base-branch: <base-branch>`
@@ -175,7 +242,7 @@ The PR body must include:
 
 ### 9. Verify and report
 
-Print `$pr_url` returned by `/github-create-pr` and a one-sentence summary. Stop immediately — do not merge, approve, or request review.
+Print the PR URL and a one-sentence summary of what was implemented (fresh implementation) or which review suggestions were addressed (follow-up run). Stop immediately — do not merge, approve, or request review.
 
 ## Constraints
 
