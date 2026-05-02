@@ -12,11 +12,11 @@ from uio import __version__
 from uio.core.attribution import build_attribution_instructions
 from uio.core.clients import make_client, probe_tool_calling
 from uio.core.github_app import (
-    KNOWN_ROLES,
     GitHubAppError,
     env_vars_present,
     get_token_for_identity,
 )
+from uio.core.identities import KNOWN_ROLES
 from uio.core.ledger import DEFAULT_LEDGER_PATH, estimate_cost_usd, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
 from uio.core.memory import build_memory_section, clear_session_memory
