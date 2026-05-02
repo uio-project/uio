@@ -36,10 +36,12 @@ command = "uvx mcp-server-git --repository {cwd}"
 
 # Structured reasoning scratchpad — no credentials needed.
 # Useful for github-planner decomposing large features.
+# Uses the Python sequential-thinking-mcp package via uvx (pip install uv).
+# Replaces the previous npx @modelcontextprotocol/server-sequential-thinking (#155).
 [[mcp.plugins]]
 name    = "sequential-thinking"
 type    = "think"
-command = "npx -y @modelcontextprotocol/server-sequential-thinking"
+command = "uvx sequential-thinking-mcp"
 
 # Filesystem access — scoped to the project root ({cwd} is replaced at startup).
 [[mcp.plugins]]
