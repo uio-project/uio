@@ -43,7 +43,7 @@ The argument describes the change to make. Extract:
 - **Issue number** — optional; if provided, fetch the full issue body to derive or refine the change description
 - **Branch name** — optional; default to `ai-coder/<slugified-description>`
 - **Base branch** — optional; default to `main`
-- **Work dir** — optional; default to `<workspace-root>/.agents/<repo>-<branch-slug>` where `<workspace-root>` is the root of the current project (run `git rev-parse --show-toplevel` to detect it), `<repo>` is the repository name without the owner prefix, and `<branch-slug>` is the branch name with `/` replaced by `-` (e.g. branch `ai-coder/my-fix` → slug `ai-coder-my-fix`). Placing workspaces under `.agents/` keeps them inside the MCP server allowlist so `mcp__mcp-git__*` and `mcp__mcp-filesystem__*` tools work without fallback. Each branch gets its own subdirectory so concurrent or sequential runs do not share state. Derive this once and use it as `<work-dir>` in every subsequent step.
+- **Work dir** — optional; default to `<workspace-root>/.tmp/<repo>-<branch-slug>` where `<workspace-root>` is the root of the current project (run `git rev-parse --show-toplevel` to detect it), `<repo>` is the repository name without the owner prefix, and `<branch-slug>` is the branch name with `/` replaced by `-` (e.g. branch `ai-coder/my-fix` → slug `ai-coder-my-fix`). Placing workspaces under `.tmp/` keeps them inside the MCP server allowlist so `mcp__mcp-git__*` and `mcp__mcp-filesystem__*` tools work without fallback. Each branch gets its own subdirectory so concurrent or sequential runs do not share state. Derive this once and use it as `<work-dir>` in every subsequent step.
 
 Example argument:
 ```

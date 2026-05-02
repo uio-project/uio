@@ -225,4 +225,4 @@ __marimo__/
 .claude/commands
 
 # Agent clone workspaces (created by github-coder and similar agents)
-.agents/
+.tmp/
