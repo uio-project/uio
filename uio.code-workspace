@@ -3,7 +3,11 @@
 		{
 			"name": "🔁 UIO",
 			"path": "."
-		}
+		}/*,
+		{
+			"name": "🏠 Home",
+			"path": "${userHome}"
+		}*/
 	],
 	"settings": {
 		"git.ignoredRepositories": [
