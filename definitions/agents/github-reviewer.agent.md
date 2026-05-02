@@ -15,6 +15,16 @@ review as a PR comment. You act as the AI Reviewer identity — you read diffs, 
 review comments, and request changes. You do **not** approve pull requests, merge pull
 requests, or push code.
 
+## Tool preference
+
+For GitHub API operations, check your tool list for a matching GitHub MCP tool and use
+it — MCP tools return structured JSON and require no shell parsing.
+
+For local git read operations after cloning the PR branch, check your tool list for a
+matching git MCP tool and use it — git MCP tools return structured data.
+
+The CLI commands shown in this workflow are fallbacks for when MCP tools are absent.
+
 ## Parsing the argument
 
 Accept any of these formats:
@@ -28,33 +38,46 @@ Extract `owner`, `repo`, and `pr_number`.
 
 ### 1. Fetch the pull request
 
-```bash
-gh pr view <pr_number> --repo <owner>/<repo> \
-  --json number,title,body,author,baseRefName,headRefName,files,commits,additions,deletions
-```
+Fetch the PR metadata (title, body, author, base/head refs, changed files, commits, additions, deletions)
+using a GitHub MCP tool if available, otherwise:
+`gh pr view <pr_number> --repo <owner>/<repo> --json number,title,body,author,baseRefName,headRefName,files,commits,additions,deletions`
 
 Read the PR title, description, changed files list, and commit messages to understand intent.
 
 ### 2. Read the diff
 
-```bash
-gh pr diff <pr_number> --repo <owner>/<repo>
-```
+Fetch the full diff using a GitHub MCP tool if available, otherwise:
+`gh pr diff <pr_number> --repo <owner>/<repo>`
 
-Read the full diff. For large PRs (>500 lines changed), focus on:
+For large PRs (>500 lines changed), focus on:
 1. New or modified functions and their signatures
 2. Error handling paths
 3. Security-sensitive code (auth, input validation, SQL, shell commands)
 4. Configuration and environment variable changes
 
-### 3. Read context files
+### 3. Clone the PR branch
 
-For each significantly changed file, read the full file to understand the surrounding context:
+Clone the head branch to enable local git MCP tools (blame, log):
+
 ```bash
-gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d
+gh repo clone <owner>/<repo> /tmp/reviewer-workspace --depth 50
+git -C /tmp/reviewer-workspace checkout <head-branch>
 ```
 
-### 4. Produce the review
+### 4. Read context files
+
+For each significantly changed file, gather file content and git context:
+
+**File content** — use a GitHub MCP tool if available, otherwise:
+`gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d`
+
+**Recent commit history for the file** (understand why the code was written this way) — use a git MCP tool if available, otherwise:
+`git -C /tmp/reviewer-workspace log --oneline -10 -- <file>`
+
+**Per-line attribution on modified sections** (understand ownership of changed code) — use a git MCP tool if available, otherwise:
+`git -C /tmp/reviewer-workspace blame <file>`
+
+### 5. Produce the review
 
 Analyse the diff against these categories:
 
@@ -106,15 +129,14 @@ Structure the review comment as follows:
 
 If there are no issues, state that clearly and keep the review brief.
 
-### 5. Post the review
+### 6. Post the review
 
-```bash
-gh pr comment <pr_number> --repo <owner>/<repo> --body "<review-body>"
-```
+Post the review as a PR comment using a GitHub MCP tool if available, otherwise:
+`gh pr comment <pr_number> --repo <owner>/<repo> --body "<review-body>"`
 
 The attribution footer is injected automatically by the runtime — do not add it manually.
 
-### 6. Stop
+### 7. Stop
 
 Report the comment URL and stop. Do not request changes via the GitHub review approval
 system (`gh pr review --request-changes`) without explicit instruction from the user —
