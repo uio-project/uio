@@ -60,24 +60,31 @@ Treat comments as **additive overrides**: process them in chronological order. L
 Search for an existing open PR that references this issue number. Use a GitHub MCP tool if available:
 
 ```
-mcp__mcp-github__search_pull_requests  query="repo:<owner>/<repo> is:open closes:#<issue>"
+mcp__mcp-github__search_pull_requests  query="repo:<owner>/<repo> is:open is:pr \"closes #<issue>\""
 ```
 
-Otherwise fall back to:
+Otherwise fall back to a client-side body filter (the `--search` flag does not reliably match PR body text):
 
 ```bash
-gh pr list --repo <owner>/<repo> --state open --json number,headRefName,url \
-  --search "closes:#<issue>"
+gh pr list --repo <owner>/<repo> --state open --json number,headRefName,url,body \
+  | jq '[.[] | select(.body | ascii_downcase | contains("closes #<issue>"))]'
 ```
 
-**If an open PR is found:**
+**If multiple open PRs match**, proceed as `$existing_pr = false` and note the ambiguity in the output — do not guess which PR to update.
 
-1. Fetch its review comments using `mcp__mcp-github__pull_request_read` with `method: get_review_comments`, or:
+**If exactly one open PR is found:**
+
+1. Fetch PR-level comments (where reviewer agents post suggestions) using `mcp__mcp-github__pull_request_read` with `method: get_comments`, or:
+   ```bash
+   gh api repos/<owner>/<repo>/issues/<pr-number>/comments
+   ```
+   Also fetch inline review comments using `method: get_review_comments`, or:
    ```bash
    gh api repos/<owner>/<repo>/pulls/<pr-number>/comments
    ```
-2. Collect every unresolved suggestion from the review. Add these as explicit requirements appended to the change description — they are the primary implementation target for this run.
-3. Override the branch name with the PR's existing `headRefName`. Do not generate a new slug.
+   Collect unresolved suggestions from both sources.
+2. Add the unresolved suggestions as explicit requirements appended to the change description — they are the primary implementation target for this run.
+3. Override the branch name with the PR's existing `headRefName`. Do not generate a new slug. **Recompute `<work-dir>` from the overridden branch name** so the work dir path stays consistent with the actual branch slug.
 4. Set a flag `$existing_pr = true` and record `$existing_pr_number`. You will **not** create a new PR in step 8 — pushing to the same branch updates the existing PR automatically.
 
 **If no open PR is found**, proceed with a fresh branch and new PR as normal (`$existing_pr = false`).
@@ -129,15 +136,14 @@ Read `.github/workflows/` (do **not** edit these files) to identify every check 
 
 **If `$existing_pr = true`** (a linked PR was found in step 0b):
 
-The branch already exists on the remote. Check it out from the clone:
+The branch exists on the remote but the clone only fetched `<base-branch>`. Fetch the PR branch explicitly before checking it out:
 
 ```bash
+git -C <work-dir> fetch origin <branch-name>
 git -C <work-dir> checkout <branch-name>
-# Ensure it is up to date with the remote:
-git -C <work-dir> pull origin <branch-name> --ff-only
 ```
 
-Do not reset to `origin/<base-branch>` — the existing PR commits must be preserved.
+Do not reset to `origin/<base-branch>` — the existing PR commits must be preserved. If the fetch fails (e.g. branch was deleted), report the error and stop.
 
 **If `$existing_pr = false`** (fresh implementation):
 
