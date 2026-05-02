@@ -7,6 +7,8 @@ import re
 
 import yaml
 
+from uio.core.identities import KNOWN_ROLES
+
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
 
 REQUIRED_FIELDS = ("name", "description")
@@ -65,8 +67,6 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     # vcs-identity validation
     vcs_identity = frontmatter.get("vcs-identity")
     if vcs_identity is not None:
-        from uio.core.identities import KNOWN_ROLES
-
         if vcs_identity not in KNOWN_ROLES:
             errors.append(
                 f"{path}: invalid 'vcs-identity' value '{vcs_identity}'"
@@ -76,8 +76,6 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     # github-identity is the deprecated predecessor of vcs-identity
     identity = frontmatter.get("github-identity")
     if identity is not None:
-        from uio.core.identities import KNOWN_ROLES
-
         if identity not in KNOWN_ROLES:
             errors.append(
                 f"{path}: invalid 'github-identity' value '{identity}'"
@@ -93,8 +91,6 @@ def check_identity_env(path: str, frontmatter: dict) -> list[str]:
     Non-fatal — the agent can still run using the fallback credential.
     Checks ``vcs-identity`` first, then the deprecated ``github-identity``.
     """
-    from uio.core.identities import KNOWN_ROLES
-
     identity = frontmatter.get("vcs-identity") or frontmatter.get("github-identity")
     if not identity or identity not in KNOWN_ROLES:
         return []
