@@ -9,7 +9,7 @@ uio supports three built-in providers and any OpenAI-compatible endpoint. This p
 When no `--provider` flag is given, uio tries providers in this order:
 
 ```
-Gemini  →  OpenAI  →  Ollama
+Gemini  →  Anthropic  →  OpenAI  →  Ollama
 ```
 
 A provider is included in the chain if its required API key is present in the environment. Ollama has no key requirement and is always the final fallback (as long as the Ollama process is running).
@@ -60,6 +60,54 @@ Gemini is the recommended starting point — the small tier (`gemini-2.5-flash-l
 |---|---|---|
 | `small` | `gemini-2.5-flash-lite` | Default; fastest and cheapest |
 | `large` | `gemini-2.5-flash` | Better reasoning; use for complex multi-step agents |
+
+---
+
+## Anthropic
+
+**Key env var:** `ANTHROPIC_API_KEY`
+
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com/settings/keys).
+2. Export it:
+   ```bash
+   export ANTHROPIC_API_KEY=your-key-here
+   ```
+
+### Models
+
+| Tier | Model | Notes |
+|---|---|---|
+| `small` | `claude-haiku-4-5-20251001` | Fast and cost-efficient |
+| `large` | `claude-sonnet-4-6` | Default; strong reasoning for complex agents |
+
+> **Note:** The LiteLLM proxy workaround for Claude (previously documented below) is no longer needed. Use `--provider anthropic` or set `ANTHROPIC_API_KEY` directly.
+
+### Extended thinking
+
+When `complexity: large` is set (in frontmatter or via `--complexity large`), uio automatically enables Anthropic's extended thinking. The model reasons internally before producing its response, which improves accuracy on multi-step tasks at the cost of additional tokens.
+
+The thinking budget is derived automatically from `max_tokens` (see below) and cannot be set independently.
+
+### max_tokens
+
+Anthropic requires an explicit `max_tokens` value. The default is `16000`, which provides ~10 000 tokens of thinking budget and ~6 000 tokens of output for large-complexity runs.
+
+Override project-wide in `uio.toml`:
+
+```toml
+[runtime]
+anthropic_max_tokens = 32000
+```
+
+Override per-agent in frontmatter:
+
+```yaml
+---
+name: my-agent
+complexity: large
+max_tokens: 8192
+---
+```
 
 ---
 
@@ -184,6 +232,8 @@ Costs are in USD per 1 million tokens (input / output).
 |---|---|---|---|
 | `gemini` | `gemini-2.5-flash` | $0.15 | $0.60 |
 | `gemini` | `gemini-2.5-flash-lite` | $0.10 | $0.40 |
+| `anthropic` | `claude-sonnet-4-6` | $3.00 | $15.00 |
+| `anthropic` | `claude-haiku-4-5-20251001` | $0.80 | $4.00 |
 | `openai` | `gpt-4o` | $2.50 | $10.00 |
 | `openai` | `gpt-4o-mini` | $0.15 | $0.60 |
 | `ollama` | any | $0.00 | $0.00 |

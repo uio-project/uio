@@ -1,4 +1,4 @@
-"""LLM client abstractions: GeminiClient, OpenAIClient, OllamaClient."""
+"""LLM client abstractions: GeminiClient, OpenAIClient, OllamaClient, AnthropicClient."""
 
 from __future__ import annotations
 
@@ -11,12 +11,14 @@ from uio.core.tools import TOOL_SCHEMA, ToolCall
 
 PROVIDER_DEFAULTS = {
     "gemini": "gemini-2.5-flash",
+    "anthropic": "claude-sonnet-4-6",
     "openai": "gpt-4o",
     "ollama": "llama3.1:8b",
 }
 
 PROVIDER_SMALL_MODELS = {
     "gemini": "gemini-2.5-flash-lite",
+    "anthropic": "claude-haiku-4-5-20251001",
     "openai": "gpt-4o-mini",
     "ollama": "llama3.1:8b",
 }
@@ -26,6 +28,8 @@ OLLAMA_BASE_URL = "http://localhost:11434/v1"
 TOKEN_COSTS_PER_1M: dict[str, tuple[float, float]] = {
     "gemini/gemini-2.5-flash": (0.15, 0.60),
     "gemini/gemini-2.5-flash-lite": (0.10, 0.40),
+    "anthropic/claude-sonnet-4-6": (3.00, 15.00),
+    "anthropic/claude-haiku-4-5-20251001": (0.80, 4.00),
     "openai/gpt-4o": (2.50, 10.0),
     "openai/gpt-4o-mini": (0.15, 0.60),
     "ollama": (0.0, 0.0),
@@ -231,6 +235,112 @@ class OpenAIClient(LLMClient):
             history.append({"role": "tool", "tool_call_id": tc.call_id, "content": out})
 
 
+def _to_anthropic_tool(tool: dict) -> dict:
+    """Convert an OpenAI-style tool schema to Anthropic's {name, description, input_schema} shape."""
+    return {
+        "name": tool["name"],
+        "description": tool["description"],
+        "input_schema": tool["parameters"],
+    }
+
+
+_ANTHROPIC_DEFAULT_MAX_TOKENS = 16000
+
+
+def _serialize_anthropic_block(block) -> dict:
+    """Convert an Anthropic SDK content block to a plain dict for history storage."""
+    if block.type == "text":
+        return {"type": "text", "text": block.text}
+    if block.type == "tool_use":
+        return {"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}
+    if block.type == "thinking":
+        return {"type": "thinking", "thinking": block.thinking, "signature": block.signature}
+    if block.type == "redacted_thinking":
+        return {"type": "redacted_thinking", "data": block.data}
+    return {"type": block.type}
+
+
+class AnthropicClient(LLMClient):
+    def __init__(
+        self,
+        model: str | None = None,
+        tools: list[dict] | None = None,
+        complexity: str | None = None,
+        max_tokens: int | None = None,
+    ) -> None:
+        import anthropic
+
+        self._client = anthropic.Anthropic()
+        self._model = model or os.environ.get("LLM_MODEL") or PROVIDER_DEFAULTS["anthropic"]
+        schemas = tools if tools is not None else [TOOL_SCHEMA]
+        self._tools = [_to_anthropic_tool(t) for t in schemas]
+        self._complexity = complexity or "small"
+        self._max_tokens = max_tokens or _ANTHROPIC_DEFAULT_MAX_TOKENS
+        self._last_raw_content: list[dict] = []
+
+    def build_history(self, user_text: str) -> list:
+        return [{"role": "user", "content": user_text}]
+
+    def chat(self, system: str, history: list) -> LLMResponse:
+        kwargs: dict = {}
+        if self._complexity == "large":
+            budget = min(10000, max(1024, self._max_tokens - 4096))
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            system=system,
+            tools=self._tools,
+            messages=history,
+            **kwargs,
+        )
+        self._last_raw_content = [_serialize_anthropic_block(b) for b in resp.content]
+        text = next((b.text for b in resp.content if b.type == "text"), None)
+        calls = [
+            ToolCall(name=b.name, args=b.input, call_id=b.id)
+            for b in resp.content
+            if b.type == "tool_use"
+        ]
+        usage: TokenUsage | None = None
+        if resp.usage:
+            usage = TokenUsage(
+                prompt_tokens=resp.usage.input_tokens,
+                completion_tokens=resp.usage.output_tokens,
+            )
+        return LLMResponse(text=text, tool_calls=calls, usage=usage)
+
+    def append_turn(
+        self,
+        history: list,
+        response: LLMResponse,
+        tool_results: list[tuple[ToolCall, str]],
+    ) -> None:
+        # When thinking blocks are present they must be round-tripped as-is.
+        # Use stored raw content if available; otherwise build from response fields.
+        raw = getattr(self, "_last_raw_content", None)
+        if raw:
+            content = list(raw)
+        else:
+            content = []
+            if response.text:
+                content.append({"type": "text", "text": response.text})
+            for tc in response.tool_calls:
+                content.append(
+                    {"type": "tool_use", "id": tc.call_id, "name": tc.name, "input": tc.args}
+                )
+        history.append({"role": "assistant", "content": content})
+        if tool_results:
+            history.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "tool_result", "tool_use_id": tc.call_id, "content": out}
+                        for tc, out in tool_results
+                    ],
+                }
+            )
+
+
 class OllamaClient(OpenAIClient):
     """OpenAI-compatible client targeting a local Ollama instance."""
 
@@ -271,11 +381,19 @@ def make_client(
     model: str | None = None,
     tools: list[dict] | None = None,
     base_url: str | None = None,
+    complexity: str | None = None,
+    max_tokens: int | None = None,
 ) -> LLMClient:
     if provider == "gemini":
         return GeminiClient(model=model, tools=tools)
+    if provider == "anthropic":
+        return AnthropicClient(
+            model=model, tools=tools, complexity=complexity, max_tokens=max_tokens
+        )
     if provider == "openai":
         return OpenAIClient(model=model, tools=tools, base_url=base_url)
     if provider == "ollama":
         return OllamaClient(model=model, tools=tools, base_url=base_url)
-    raise ValueError(f"Unknown provider: {provider!r}. Supported: gemini, openai, ollama")
+    raise ValueError(
+        f"Unknown provider: {provider!r}. Supported: gemini, anthropic, openai, ollama"
+    )

@@ -6,10 +6,11 @@ import os
 
 from uio.core.clients import PROVIDER_DEFAULTS, PROVIDER_SMALL_MODELS
 
-ROUTING_CHAIN = ["gemini", "openai", "ollama"]
+ROUTING_CHAIN = ["gemini", "anthropic", "openai", "ollama"]
 
 PROVIDER_KEY_ENV: dict[str, str | None] = {
     "gemini": "GEMINI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
     "ollama": None,
 }

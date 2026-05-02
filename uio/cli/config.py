@@ -30,7 +30,7 @@ def config_show_cmd() -> None:
     chain = select_provider_chain(cfg["runtime"].get("default_provider"))
 
     click.echo("Provider routing chain:\n")
-    all_providers = ["gemini", "openai", "ollama"]
+    all_providers = ["gemini", "anthropic", "openai", "ollama"]
     for provider in all_providers:
         key_env = PROVIDER_KEY_ENV.get(provider)
         if key_env:
@@ -41,15 +41,15 @@ def config_show_cmd() -> None:
             status = "✓"
             key_display = "(no key required)"
         chain_note = "  [in routing chain]" if provider in chain else ""
-        click.echo(f"  {provider:<8}  {status}  {key_display}{chain_note}")
+        click.echo(f"  {provider:<10}  {status}  {key_display}{chain_note}")
 
     click.echo("\nDefault models:\n")
-    click.echo(f"  {'PROVIDER':<8}  {'LARGE (default)':<34}  SMALL")
-    click.echo(f"  {'--------':<8}  {'---------------':<34}  -----")
+    click.echo(f"  {'PROVIDER':<10}  {'LARGE (default)':<34}  SMALL")
+    click.echo(f"  {'--------':<10}  {'---------------':<34}  -----")
     for provider in all_providers:
         large = PROVIDER_DEFAULTS.get(provider, "—")
         small = PROVIDER_SMALL_MODELS.get(provider, "—")
-        click.echo(f"  {provider:<8}  {large:<34}  {small}")
+        click.echo(f"  {provider:<10}  {large:<34}  {small}")
 
     click.echo("\nSettings:\n")
     click.echo(f"  Dirs:         agents={cfg['dirs']['agents']}")

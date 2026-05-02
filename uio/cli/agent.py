@@ -108,6 +108,7 @@ def agent_run_cmd(
         shell_override=shell,
         max_iterations=cfg["runtime"]["max_iterations"],
         max_iterations_large=cfg["runtime"]["max_iterations_large"],
+        anthropic_max_tokens=cfg["runtime"]["anthropic_max_tokens"],
     )
 
 

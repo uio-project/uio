@@ -14,6 +14,7 @@ dependencies = [
     "google-genai>=1.0",
     "pyyaml>=6.0.3",
     "openai>=1.0",
+    "anthropic>=0.50",
     "PyJWT[crypto]>=2.8",
 ]
 
