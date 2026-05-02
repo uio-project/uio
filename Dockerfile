@@ -25,15 +25,23 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get install -y --no-install-recommends gh \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install MCP server npm packages globally before ARG UIO_VERSION so this layer
-# is cache-stable between releases (ARG changes bust all subsequent layers).
-# Using npm install -g instead of npx pre-warm: packages land in
-# /usr/local/lib/node_modules and their bins are on PATH, so runtime npx
-# invocations resolve them without any network access.
-RUN npm install -g \
-        @github/github-mcp-server \
-        @modelcontextprotocol/server-filesystem \
-        @modelcontextprotocol/server-sequential-thinking
+# @github/github-mcp-server wraps a platform-specific Go binary and must be
+# installed inside the container (npm postinstall fetches the arch-correct
+# binary). Placed before ARG UIO_VERSION so this layer is cached between releases.
+RUN npm install -g @github/github-mcp-server
+
+# Pure-JS MCP packages are pre-bundled by the release workflow on the native
+# runner (see the "Pre-bundle npm MCP packages" step in release.yml) and
+# COPYed here so no npm network access is needed during the Docker build —
+# this is especially valuable for the arm64 slice built under QEMU.
+# mcp-vendor/node_modules/ is always present in the checkout (gitkeep placeholder),
+# so this COPY succeeds even for local builds; the RUN fallback fires instead.
+COPY mcp-vendor/node_modules/ /usr/local/lib/node_modules/
+RUN if [ ! -d "/usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem" ]; then \
+        npm install -g \
+            @modelcontextprotocol/server-filesystem \
+            @modelcontextprotocol/server-sequential-thinking; \
+    fi
 
 WORKDIR /workspace
 
