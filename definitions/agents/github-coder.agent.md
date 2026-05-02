@@ -110,11 +110,17 @@ Make the minimal set of code edits required to implement the described change.
 - Do not reformat unrelated code or fix unrelated issues.
 - Do not modify any file under `.github/workflows/` — stop with an error if the change requires it.
 
-### 5. Run code quality checks
+### 5. Set up the Python environment
+
+If the repository contains a Python project, run `/setup-python-env` with `project-path: <work-dir>`. This ensures `/quality-checks` runs against an environment that matches CI.
+
+Skip this step for non-Python repositories.
+
+### 6. Run code quality checks
 
 Before committing, run `/quality-checks` with `project-path: <work-dir>`. Stop if it reports any unfixable errors.
 
-### 6. Commit with the AI Coder author identity
+### 7. Commit with the AI Coder author identity
 
 The runtime will instruct you to use the correct author flags. Use them on every commit:
 
@@ -127,15 +133,15 @@ git -C <work-dir> \
 Commit message format: `<type>: <short imperative subject>` (conventional commits).
 Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`.
 
-If there were formatting-only changes from step 5, include them in the same commit.
+If there were formatting-only changes from step 6, include them in the same commit.
 
-### 7. Push the branch
+### 8. Push the branch
 
 ```bash
 git -C <work-dir> push origin <branch-name>
 ```
 
-### 8. Open a pull request
+### 9. Open a pull request
 
 Create the PR using a GitHub MCP tool if available, otherwise:
 `gh pr create --repo <owner>/<repo> --base <base-branch> --head <branch-name> --title "<type>: <subject>" --body "<pr-body>"`
@@ -146,7 +152,7 @@ The PR body must include:
 - `Closes #<issue>` if an issue number was provided
 - The AI disclosure footer (injected automatically by the runtime)
 
-### 9. Verify the PR and report
+### 10. Verify the PR and report
 
 Fetch the created PR to confirm it exists using a GitHub MCP tool if available, otherwise:
 `gh pr view <pr-number> --repo <owner>/<repo>`
