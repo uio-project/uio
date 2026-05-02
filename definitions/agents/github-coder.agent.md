@@ -68,21 +68,7 @@ Use the full issue title, body, and comments as the authoritative change descrip
 
 Use `<work-dir>` (resolved during argument parsing) in every git command as `git -C <work-dir> ...`. The shell does not persist the working directory between tool calls, so bare `git` commands will silently target the wrong repository.
 
-Clone or update the workspace:
-
-```bash
-# If the directory does not yet exist:
-gh repo clone <owner>/<repo> <work-dir> -- --depth 1
-git -C <work-dir> checkout <base-branch>
-git -C <work-dir> pull origin <base-branch>
-
-# If the directory already exists (previous run left it behind):
-git -C <work-dir> fetch origin
-git -C <work-dir> checkout <base-branch>
-git -C <work-dir> pull origin <base-branch>
-# If pull fails due to diverged history:
-git -C <work-dir> reset --hard origin/<base-branch>
-```
+Run `/github-clone-repo` with `owner/repo: <owner>/<repo>`, `target-path: <work-dir>`, and `branch: <base-branch>`.
 
 Read enough of the codebase to understand the context for the change. Prefer MCP
 filesystem tools when available:

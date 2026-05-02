@@ -8,7 +8,10 @@ description: Clone a GitHub repository to a local path and check out a branch.
 ## Input
 
 - `owner/repo` — repository to clone (required)
-- `target-path` — local filesystem path to clone into (required)
+- `target-path` — local filesystem path to clone into (required). Callers should use an
+  isolated path derived from both the repo and the branch (e.g. `/tmp/<repo>-<branch-slug>`,
+  where `<branch-slug>` is the branch name with `/` replaced by `-`) so that concurrent or
+  sequential runs on the same repo do not share state.
 - `branch` — branch to check out after cloning (optional; defaults to the repository's default branch)
 
 ## Output
