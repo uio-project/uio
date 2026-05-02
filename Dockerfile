@@ -25,10 +25,16 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get install -y --no-install-recommends gh \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# @github/github-mcp-server wraps a platform-specific Go binary and must be
-# installed inside the container (npm postinstall fetches the arch-correct
-# binary). Placed before ARG UIO_VERSION so this layer is cached between releases.
-RUN npm install -g @github/github-mcp-server
+# github-mcp-server native Go binary — downloaded from GitHub Releases by the
+# release workflow for both amd64 (Linux_x86_64) and arm64. Falls back
+# gracefully for local builds where mcp-vendor/bin/ contains only .gitkeep.
+COPY mcp-vendor/bin/ /tmp/mcp-bin/
+RUN arch=$(uname -m | sed 's/aarch64/arm64/') && \
+    if [ -f "/tmp/mcp-bin/github-mcp-server-${arch}" ]; then \
+        cp "/tmp/mcp-bin/github-mcp-server-${arch}" /usr/local/bin/github-mcp-server && \
+        chmod +x /usr/local/bin/github-mcp-server; \
+    fi && \
+    rm -rf /tmp/mcp-bin
 
 # Pure-JS MCP packages are pre-bundled by the release workflow on the native
 # runner (see the "Pre-bundle npm MCP packages" step in release.yml) and

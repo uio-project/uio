@@ -200,11 +200,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Pre-bundle npm MCP packages
+      - name: Pre-bundle npm MCP packages and github-mcp-server binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install --prefix mcp-vendor \
             @modelcontextprotocol/server-filesystem \
             @modelcontextprotocol/server-sequential-thinking
+          mkdir -p mcp-vendor/bin
+          for arch_pair in "amd64:x86_64" "arm64:arm64"; do
+            DOCKER_ARCH="${arch_pair%%:*}"
+            GH_ARCH="${arch_pair##*:}"
+            URL=$(gh api repos/github/github-mcp-server/releases/latest \
+              --jq ".assets[].browser_download_url" \
+              | grep "Linux_${GH_ARCH}\.tar\.gz$")
+            curl -fsSL "$URL" | tar -xz -C mcp-vendor/bin github-mcp-server
+            mv mcp-vendor/bin/github-mcp-server "mcp-vendor/bin/github-mcp-server-${DOCKER_ARCH}"
+          done
 
       - name: Wait for uio-ai to appear on PyPI
         run: |
