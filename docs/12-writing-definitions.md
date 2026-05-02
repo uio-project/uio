@@ -193,6 +193,29 @@ Use mcp__github__list_issues to get open issues.
 Use mcp__github__get_file_contents to read a specific file.
 ```
 
+### Environment portability
+
+Agent definitions run in at least two environments: `uio agent run` from the terminal, and VS Code (via the Claude or Copilot extension). Tool naming differs between them:
+
+| Environment | Tool name format |
+|---|---|
+| uio | `mcp__github__search_repositories` |
+| VS Code | `search_repositories` |
+
+**Definitions that hardcode `mcp__*__*` tool names will only work in uio.** The `mcp-smoke-test` agent is a deliberate exception — its purpose is to probe tools by name and is inherently environment-specific.
+
+For all other agents, write definitions that describe *intent*, not tool names. The model discovers the available tools at runtime and adapts its calls accordingly:
+
+```markdown
+# Good — works in both environments
+Search for open issues labeled "bug" and summarise them.
+
+# Avoid — breaks in VS Code
+Call mcp__github__list_issues with labels=["bug"].
+```
+
+The one exception worth keeping is explicit MCP tool guidance in the body for uio-only agents (those that will never run in VS Code), where naming the tool avoids the model falling back to slower `gh` CLI equivalents.
+
 ### Iterative refinement
 
 The agent loop is designed for tasks that require multiple steps. Write the body to guide the model through stages:

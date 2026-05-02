@@ -110,6 +110,26 @@ Agents do not need to know about the naming convention — the model sees the fu
 
 ---
 
+## VS Code MCP
+
+When running agents inside VS Code (via the Claude or Copilot extension), VS Code acts as its own MCP client — it starts and manages MCP server processes independently of uio. Tool names in VS Code use the server's native names directly (`search_repositories`, `list_issues`) without the `mcp__<server>__` prefix that uio adds.
+
+### MCP servers are not shared
+
+stdio MCP servers are per-process: each host (uio, VS Code, Claude Code) spawns its own independent instances. VS Code's running MCP servers are not accessible to a uio process running in the terminal, and vice versa. If you want the same servers available in both environments, each must be configured separately.
+
+### Mirroring uio's server config in VS Code
+
+To give VS Code agents the same MCP tools that uio provides, add each server from `uio.toml` to `.vscode/mcp.json`. The servers configured in this project are already mirrored — see `.vscode/mcp.json`. The `{cwd}` placeholder used in `uio.toml` maps to `${workspaceFolder}` in VS Code config.
+
+### Writing agents that work in both environments
+
+Because tool names differ between uio and VS Code, agent definitions that hardcode `mcp__github__*` tool names will only work in uio. Agent definitions that describe *what to do* rather than which specific tool call to invoke will work in both — the model discovers available tools at runtime and adapts.
+
+See [Writing Definitions — Environment portability](12-writing-definitions.md#environment-portability) for the full guidance.
+
+---
+
 ## Disabling MCP
 
 To run without any MCP servers:
