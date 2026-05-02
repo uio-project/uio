@@ -23,6 +23,7 @@ uio
 │   ├── show
 │   └── init
 ├── init
+├── link
 ├── validate
 ├── registry
 │   ├── list
@@ -247,6 +248,57 @@ uio init --examples
 | `--examples` | Also install the seven bundled real-world example definitions |
 
 Existing files are skipped (not overwritten).
+
+---
+
+## `uio link`
+
+Creates and maintains platform integration symlinks so that IDE and CI platforms can discover uio definitions.
+
+Reads source directories from `uio.toml` (`dirs.agents`, `dirs.skills`, `dirs.prompts`) and creates the correct symlinks for each platform.
+
+For `.claude/commands/` the command creates **per-file symlinks** that strip the `.prompt` infix so Claude Code discovers them as `/name` rather than `/name.prompt`.
+
+```bash
+uio link
+uio link --dry-run
+uio link --platforms claude
+uio link --force
+```
+
+| Flag | Description |
+|---|---|
+| `--platforms` | Comma-separated list of platforms to link: `github,claude`. Default: all. |
+| `--dry-run` | Print planned changes without modifying the filesystem. |
+| `--force` | Replace an existing `.claude/commands` directory symlink without prompting. |
+
+### What gets linked
+
+**`.github/`** (directory symlinks):
+
+```
+.github/agents  →  <agents_dir>
+.github/prompts →  <prompts_dir>
+.github/skills  →  <skills_dir>
+```
+
+**`.claude/`** (directory symlinks for agents and skills):
+
+```
+.claude/agents  →  <agents_dir>
+.claude/skills  →  <skills_dir>
+```
+
+**`.claude/commands/`** (real directory with per-file symlinks):
+
+```
+.claude/commands/take-issue.md         →  ../../.uio/prompts/take-issue.prompt.md
+.claude/commands/check-api-contract.md →  ../../.uio/prompts/check-api-contract.prompt.md
+```
+
+Running `uio link` a second time is a no-op. Adding or deleting a prompt file and re-running `uio link` adds or removes the corresponding symlink in `.claude/commands/`.
+
+If `.claude/commands` already exists as a directory symlink (legacy setup), `uio link` will prompt to replace it with a real directory. Pass `--force` to replace without prompting.
 
 ---
 
