@@ -83,6 +83,7 @@ def prompt_run_cmd(
         shell_override=shell,
         routing_chain=cfg["runtime"].get("routing_chain"),
         memory_dir=cfg["dirs"]["memory"],
+        context_max_tokens=cfg["runtime"]["context_max_tokens"],
     )
 
 

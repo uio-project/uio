@@ -27,6 +27,7 @@ _DEFAULTS: dict = {
         "max_iterations": 10,
         "max_iterations_large": 25,
         "anthropic_max_tokens": 16000,
+        "context_max_tokens": 8000,
     },
     "large_agents": {
         "names": [],
@@ -50,6 +51,7 @@ timeout              = 300
 max_iterations       = 10   # small agents (summarise, comment, query)
 max_iterations_large = 25   # large agents (github-coder, multi-step workflows)
 # anthropic_max_tokens = 16000  # Anthropic only; also overridable per-agent via frontmatter
+# context_max_tokens   = 8000   # token cap for context: glob injection (default 8000)
 
 [large_agents]
 # Agent names that always use the large model tier (in addition to

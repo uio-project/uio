@@ -6,6 +6,9 @@ capabilities:
   - vcs
 vcs-identity: coder
 argument-hint: "<change-description> | repo: <owner>/<repo> [| issue: <number>] [| branch: <name>] [| base: <branch>] [| workdir: <path>]"
+context:
+  - CONTRIBUTING.md
+  - AGENTS.md
 ---
 
 # Agent: coder
