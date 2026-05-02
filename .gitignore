@@ -227,6 +227,10 @@ __marimo__/
 # Agent clone workspaces (created by github-coder and similar agents)
 .tmp/
 
+# github-mcp-server binaries downloaded by the release workflow
+mcp-vendor/bin/*
+!mcp-vendor/bin/.gitkeep
+
 # npm packages pre-bundled for the Docker build by the release workflow.
 # Only the .gitkeep placeholder is committed; package contents are generated.
 mcp-vendor/node_modules/*
