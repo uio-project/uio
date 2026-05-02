@@ -126,8 +126,7 @@ def check_heading_format(path: str, frontmatter: dict, body: str) -> list[str]:
     heading_name = m.group(2).strip()
     if heading_name != name:
         warnings.append(
-            f"{path}: H1 heading name '{heading_name}' does not match"
-            f" frontmatter name '{name}'"
+            f"{path}: H1 heading name '{heading_name}' does not match frontmatter name '{name}'"
         )
     return warnings
 
@@ -200,8 +199,5 @@ def check_stopping_criteria(path: str, body: str) -> list[str]:
 def check_minimal_body(path: str, body: str) -> list[str]:
     """Warn when the body (non-frontmatter content) is under 100 characters."""
     if len(body) < 100:
-        return [
-            f"{path}: body is very short ({len(body)} chars);"
-            " consider adding more detail"
-        ]
+        return [f"{path}: body is very short ({len(body)} chars); consider adding more detail"]
     return []
