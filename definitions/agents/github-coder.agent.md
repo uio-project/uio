@@ -59,10 +59,44 @@ repo: jomkz/uio | issue: 42
 
 ### 0. Fetch issue details (if issue number provided)
 
-Fetch the issue title, body, and comments using a GitHub MCP tool if available, otherwise:
-`gh issue view <number> --repo <owner>/<repo>`
+#### 0a. Fetch body and all comments
 
-Use the full issue title, body, and comments as the authoritative change description. If the argument also contains a description, prefer the issue body but use the argument as a hint for scope.
+Call both methods explicitly — body and comments are separate API calls:
+
+```
+mcp__mcp-github__issue_read  method=get           owner=<owner>  repo=<repo>  issue_number=<number>
+mcp__mcp-github__issue_read  method=get_comments  owner=<owner>  repo=<repo>  issue_number=<number>  perPage=100
+```
+
+If the response indicates more pages exist, repeat `get_comments` with `page=2`, `page=3`, … until all comments are fetched.
+
+Fall back to `gh issue view <number> --repo <owner>/<repo> --comments` when the MCP tool is unavailable.
+
+Treat comments as **additive overrides**: process them in chronological order. Later comments can refine, restrict, or supersede guidance in the issue body. Use the combined title + body + comments as the authoritative change description. If the argument also contains a description, prefer the issue content but use the argument as a hint for scope.
+
+#### 0b. Scan for blocking questions
+
+Before writing any code or creating a branch, scan the full thread for open questions. A question is **blocking** if it meets **all three** criteria:
+
+1. **Directed at the implementer** — asks about *how* to implement something (naming, approach, scope, design decision), not general discussion between users
+2. **Unanswered** — no subsequent comment from the question-asker or a repo owner/collaborator (`author_association: OWNER | COLLABORATOR | MEMBER`) resolves it
+3. **Materially affects the implementation** — the answer would change which files are touched, what names are used, or whether the feature is in scope
+
+When in doubt, **proceed** — an unnecessary block is more disruptive than a missed question.
+
+If one or more blocking questions are found:
+
+1. Post a comment on the issue (MCP tool if available, otherwise `gh issue comment <number> --repo <owner>/<repo> --body "..."`):
+
+   > I'm ready to implement this, but I need clarification on the following before I begin:
+   >
+   > 1. **[Quote or paraphrase the question]** — [why this affects the implementation]
+   >
+   > I'll start once these are resolved.
+
+2. **Stop immediately** — do not clone, do not create a branch, do not write any code.
+
+If no blocking questions are found, proceed to step 1.
 
 ### 1. Understand the target repository
 
@@ -87,6 +121,12 @@ Prefer MCP git tools when available — they accept `repo_path` so no `-C` flag 
 
 ```
 mcp__mcp-git__git_create_branch  repo_path=<work-dir>  branch_name=<branch-name>  base_branch=<base-branch>
+```
+
+`git_create_branch` creates the branch but does **not** switch HEAD to it. Always follow it with an explicit checkout via `run_command`:
+
+```bash
+git -C <work-dir> checkout <branch-name>
 ```
 
 Fall back to `run_command` if the MCP tool is absent:
