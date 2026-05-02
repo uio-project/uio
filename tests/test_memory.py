@@ -11,9 +11,11 @@ from click.testing import CliRunner
 from uio.cli.main import main
 from uio.core.memory import (
     build_memory_section,
+    clear_all_memory,
     clear_session_memory,
     estimate_tokens,
     load_memory_files,
+    write_memory_body,
 )
 
 
@@ -131,6 +133,68 @@ def test_clear_session_memory_mixed_scopes(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# write_memory_body (YAML safety)
+# ---------------------------------------------------------------------------
+
+
+def test_write_memory_body_roundtrips_special_chars(tmp_path):
+    """Frontmatter with colon-containing description must roundtrip safely."""
+    path = str(tmp_path / "tricky.memory.md")
+    fm = {"name": "tricky", "description": "Tracks goals: Q3", "scope": "project"}
+    write_memory_body(path, fm, "Body text.")
+    fm2, body2 = load_memory_files(str(tmp_path))[0][1:3]
+    assert fm2["description"] == "Tracks goals: Q3"
+    assert body2 == "Body text."
+
+
+def test_write_memory_body_clears_body(tmp_path):
+    path = str(tmp_path / "s.memory.md")
+    fm = {"name": "s", "description": "d", "scope": "session"}
+    write_memory_body(path, fm, "Initial body.")
+    write_memory_body(path, fm, "")
+    _, _, body = load_memory_files(str(tmp_path))[0]
+    assert body == ""
+
+
+# ---------------------------------------------------------------------------
+# clear_all_memory
+# ---------------------------------------------------------------------------
+
+
+def test_clear_all_memory_clears_all_scopes(tmp_path):
+    _write_memory(tmp_path, "a.memory.md", "a", "project", "Data A.")
+    _write_memory(tmp_path, "b.memory.md", "b", "session", "Data B.")
+    cleared = clear_all_memory(str(tmp_path))
+    assert len(cleared) == 2
+    entries = {fm["name"]: body for _, fm, body in load_memory_files(str(tmp_path))}
+    assert entries["a"] == ""
+    assert entries["b"] == ""
+
+
+def test_clear_all_memory_skips_already_empty(tmp_path):
+    _write_memory(tmp_path, "empty.memory.md", "empty", "project", "")
+    cleared = clear_all_memory(str(tmp_path))
+    assert cleared == []
+
+
+# ---------------------------------------------------------------------------
+# clear_session_memory (return value)
+# ---------------------------------------------------------------------------
+
+
+def test_clear_session_memory_returns_cleared(tmp_path):
+    _write_memory(tmp_path, "s.memory.md", "s", "session", "Data.")
+    cleared = clear_session_memory(str(tmp_path))
+    assert cleared == [("s", "session")]
+
+
+def test_clear_session_memory_returns_empty_when_nothing_to_clear(tmp_path):
+    _write_memory(tmp_path, "p.memory.md", "p", "project", "Data.")
+    cleared = clear_session_memory(str(tmp_path))
+    assert cleared == []
+
+
+# ---------------------------------------------------------------------------
 # estimate_tokens
 # ---------------------------------------------------------------------------
 
@@ -139,8 +203,8 @@ def test_estimate_tokens_basic():
     assert estimate_tokens("a" * 400) == 100
 
 
-def test_estimate_tokens_minimum():
-    assert estimate_tokens("") >= 1
+def test_estimate_tokens_empty():
+    assert estimate_tokens("") == 0
 
 
 # ---------------------------------------------------------------------------

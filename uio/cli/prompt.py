@@ -82,6 +82,7 @@ def prompt_run_cmd(
         large_agent_names=cfg["large_agents"]["names"],
         shell_override=shell,
         routing_chain=cfg["runtime"].get("routing_chain"),
+        memory_dir=cfg["dirs"]["memory"],
     )
 
 

@@ -112,8 +112,9 @@ def init_cmd(examples: bool) -> None:
     agents_dir = Path(cfg["dirs"]["agents"])
     skills_dir = Path(cfg["dirs"]["skills"])
     prompts_dir = Path(cfg["dirs"]["prompts"])
+    memory_dir = Path(cfg["dirs"]["memory"])
 
-    for d in (agents_dir, skills_dir, prompts_dir):
+    for d in (agents_dir, skills_dir, prompts_dir, memory_dir):
         d.mkdir(parents=True, exist_ok=True)
         click.echo(f"  Created directory: {d}/")
 

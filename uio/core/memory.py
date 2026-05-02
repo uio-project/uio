@@ -10,8 +10,6 @@ import yaml
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
 
-VALID_SCOPES = ("project", "session")
-
 
 def _parse_memory_file(path: str) -> tuple[dict, str]:
     """Return (frontmatter_dict, body_text) for a memory file."""
@@ -23,18 +21,13 @@ def _parse_memory_file(path: str) -> tuple[dict, str]:
     return yaml.safe_load(m.group(1)) or {}, m.group(2).strip()
 
 
-def _write_memory_body(path: str, frontmatter: dict, body: str) -> None:
+def write_memory_body(path: str, frontmatter: dict, body: str) -> None:
     """Rewrite a memory file with the given body (preserves frontmatter)."""
-    lines = ["---"]
-    for key, value in frontmatter.items():
-        if isinstance(value, str):
-            lines.append(f"{key}: {value!r}" if "\n" in value else f"{key}: {value}")
-        else:
-            lines.append(f"{key}: {value}")
-    lines.append("---")
+    fm_text = yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True).rstrip()
+    content = f"---\n{fm_text}\n---\n"
     if body:
-        lines.append(body)
-    Path(path).write_text("\n".join(lines) + "\n")
+        content += body + "\n"
+    Path(path).write_text(content)
 
 
 def load_memory_files(memory_dir: str) -> list[tuple[str, dict, str]]:
@@ -67,13 +60,29 @@ def build_memory_section(memory_dir: str) -> str:
     return "## Persistent Memory\n\n" + "\n\n---\n\n".join(parts) + "\n\n"
 
 
-def clear_session_memory(memory_dir: str) -> None:
-    """Truncate the body of all session-scoped memory files to empty."""
+def clear_session_memory(memory_dir: str) -> list[tuple[str, str]]:
+    """Truncate the body of all session-scoped memory files to empty.
+
+    Returns list of (name, scope) for entries that were cleared.
+    """
+    cleared = []
     for path, fm, _body in load_memory_files(memory_dir):
         if fm.get("scope") == "session":
-            _write_memory_body(path, fm, "")
+            write_memory_body(path, fm, "")
+            cleared.append((fm.get("name", Path(path).stem), "session"))
+    return cleared
+
+
+def clear_all_memory(memory_dir: str) -> list[tuple[str, str]]:
+    """Truncate the body of all memory files. Returns list of (name, scope) cleared."""
+    cleared = []
+    for path, fm, body in load_memory_files(memory_dir):
+        if body:
+            write_memory_body(path, fm, "")
+            cleared.append((fm.get("name", Path(path).stem), fm.get("scope", "project")))
+    return cleared
 
 
 def estimate_tokens(text: str) -> int:
     """Rough token estimate: 4 characters per token."""
-    return max(1, len(text) // 4)
+    return len(text) // 4

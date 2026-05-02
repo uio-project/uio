@@ -8,7 +8,12 @@ from pathlib import Path
 import click
 
 from uio.config import load_config
-from uio.core.memory import estimate_tokens, load_memory_files
+from uio.core.memory import (
+    clear_all_memory,
+    clear_session_memory,
+    estimate_tokens,
+    load_memory_files,
+)
 
 
 @click.group("memory", no_args_is_help=True)
@@ -84,24 +89,10 @@ def memory_clear_cmd(session: bool) -> None:
     """
     cfg = load_config()
     memory_dir = cfg["dirs"]["memory"]
-    entries = load_memory_files(memory_dir)
-    if not entries:
-        click.echo(f"  No memory files found in {memory_dir}.")
-        return
-
-    from uio.core.memory import _write_memory_body
-
-    cleared = 0
-    for path, fm, body in entries:
-        scope = fm.get("scope", "project")
-        if session and scope != "session":
-            continue
-        if body:
-            _write_memory_body(path, fm, "")
-            name = fm.get("name", Path(path).stem)
-            click.echo(f"  Cleared: {name} ({scope})")
-            cleared += 1
-    if cleared == 0:
+    cleared = clear_session_memory(memory_dir) if session else clear_all_memory(memory_dir)
+    if not cleared:
         click.echo("  Nothing to clear.")
     else:
-        click.echo(f"\n  {cleared} memory file(s) cleared.")
+        for name, scope in cleared:
+            click.echo(f"  Cleared: {name} ({scope})")
+        click.echo(f"\n  {len(cleared)} memory file(s) cleared.")
