@@ -14,6 +14,7 @@ from uio.cli.chat import chat_cmd
 from uio.cli.config import config_group
 from uio.cli.cost import cost_cmd
 from uio.cli.link import link_cmd
+from uio.cli.mcp import mcp_group
 from uio.cli.prompt import prompt_group
 from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
@@ -82,6 +83,7 @@ main.add_command(cost_cmd, "cost")
 main.add_command(config_group, "config")
 main.add_command(link_cmd, "link")
 main.add_command(registry_group, "registry")
+main.add_command(mcp_group, "mcp")
 
 
 @main.command("init")
@@ -144,15 +146,18 @@ def init_cmd(examples: bool) -> None:
                 else:
                     click.echo(f"  Skipped (exists): {dest}")
 
-    # Add cost ledger to .gitignore if one exists
+    # Add generated files to .gitignore if one exists
     ledger = cfg["runtime"]["cost_ledger"]
     gitignore = Path(".gitignore")
     if gitignore.exists():
         contents = gitignore.read_text()
-        if ledger not in contents:
-            with gitignore.open("a") as f:
+        with gitignore.open("a") as f:
+            if ledger not in contents:
                 f.write(f"\n# uio cost ledger\n{ledger}\n")
-            click.echo(f"  Added '{ledger}' to .gitignore")
+                click.echo(f"  Added '{ledger}' to .gitignore")
+            if ".mcp.json" not in contents:
+                f.write("\n# uio mcp init output (env var refs vary per developer)\n.mcp.json\n")
+                click.echo("  Added '.mcp.json' to .gitignore")
 
     click.echo("\nDone. Run 'uio agent list' to see available agents.")
 
