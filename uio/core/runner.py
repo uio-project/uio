@@ -18,6 +18,7 @@ from uio.core.github_app import (
 )
 from uio.core.ledger import DEFAULT_LEDGER_PATH, estimate_cost_usd, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
+from uio.core.memory import build_memory_section, clear_session_memory
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.core.vcs import build_tool_alias_section
@@ -171,6 +172,7 @@ def run_agent(
     max_iterations_large: int = _DEFAULT_MAX_ITERATIONS_LARGE,
     anthropic_max_tokens: int | None = None,
     routing_chain: list[str] | None = None,
+    memory_dir: str | None = None,
 ) -> None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -214,8 +216,12 @@ def run_agent(
         else ""
     )
 
+    memory_block = build_memory_section(memory_dir) if memory_dir else ""
+    memory_suffix = ("\n\n" + memory_block.rstrip()) if memory_block else ""
     system_prompt = (
-        f"{preamble}{attribution_block}# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
+        f"{preamble}{attribution_block}"
+        f"# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
+        f"{memory_suffix}"
     )
 
     user_message = "Begin your workflow now."
@@ -394,3 +400,5 @@ def run_agent(
     finally:
         for client in mcp_clients.values():
             client.close()
+        if memory_dir:
+            clear_session_memory(memory_dir)
