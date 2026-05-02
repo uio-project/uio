@@ -54,6 +54,8 @@ Example: `ask-docs.prompt.md` answers a focused question about a codebase by app
 | `invokable` frontmatter | No | No | Optional |
 | Typical use | Multi-step workflow | Focused subtask | One-shot query |
 
+Tools (`run_command`, MCP tools) are not definition types — they are capabilities the model invokes at runtime. See the [Glossary](#glossary) for the Tool definition and the skill vs tool distinction.
+
 ---
 
 ## The `.uio/` directory
@@ -104,7 +106,7 @@ The definition file is the single source of truth for behaviour. Moving, editing
 | **Prompts** | `.prompt.md` — single-shot instructions |
 | **Tools** | MCP tools + `run_command` — agent-directed capabilities |
 
-This vocabulary is intentional. "Agentic Stack" is the umbrella term for the agents + skills + prompts + tools model that `uio` provides.
+This vocabulary is intentional. **"Agentic Stack"** is the umbrella term for the agents + skills + prompts + tools model that `uio` provides. See the [Glossary](#glossary) below for precise term definitions.
 
 ---
 
@@ -113,8 +115,8 @@ This vocabulary is intentional. "Agentic Stack" is the umbrella term for the age
 | Term | Definition |
 |---|---|
 | **Agent** | An autonomous decision-maker that runs a multi-turn tool-use loop. Defined in `*.agent.md`. Agents decide when to call tools and how to interpret results. |
-| **Skill** | A focused, composable subtask. Runs the same tool-use loop as an agent internally, but is **user-directed**: you invoke it explicitly with `uio skill run <name>`. Skills are small, reusable building blocks; agents are higher-level workflows that may reference skills by name. |
+| **Skill** | A focused, composable subtask. Runs the same tool-use loop as an agent internally, but is **user-directed**: you invoke it explicitly with `uio skill run <name>`. Skills may also be referenced by name inside agent definition bodies. Skills are small, reusable building blocks; agents are higher-level workflows. |
 | **Prompt** | A single-shot LLM instruction. The definition body is sent once and the response is printed — no tool-use loop. Defined in `*.prompt.md`. |
 | **Tool** | An external capability the **model** invokes mid-loop. Tools are agent-directed: the agent decides when and how to call them. Examples: `run_command` (built-in), MCP tools such as GitHub or filesystem access. This is the key distinction from skills — a tool is called by the model; a skill is called by you. |
-| **Memory** | Persistent context injected into agent runs across sessions. Not yet implemented; tracked in [#161](https://github.com/jomkz/uio/issues/161). |
-| **Guardrails** | Per-definition constraints on cost, tool access, and iteration count. Not yet implemented; tracked in [#160](https://github.com/jomkz/uio/issues/160). |
+| **Memory** | Persistent context injected into agent runs across sessions. Not yet implemented (planned). |
+| **Guardrails** | Per-definition constraints on cost, tool access, and iteration count. Not yet implemented (planned). |
