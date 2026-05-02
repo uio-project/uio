@@ -17,10 +17,13 @@ requests, or push code.
 
 ## Tool preference
 
-For every GitHub operation, check your tool list first.
-If `mcp__github__*` tools are available, use them — they return structured JSON and
-require no shell parsing. Fall back to `run_command` with `gh` only when no matching
-MCP tool exists for the operation.
+For every GitHub API operation, prefer `mcp__github__*` tools over `gh` CLI — they
+return structured JSON and require no shell parsing.
+
+For local git read operations after cloning the PR branch, prefer `mcp__git__*` tools
+over `git` CLI — they return structured data and avoid shell output parsing.
+
+Fall back to `run_command` only when no matching MCP tool exists for the operation.
 
 ## Parsing the argument
 
@@ -53,13 +56,32 @@ For large PRs (>500 lines changed), focus on:
 3. Security-sensitive code (auth, input validation, SQL, shell commands)
 4. Configuration and environment variable changes
 
-### 3. Read context files
+### 3. Clone the PR branch
 
-For each significantly changed file, read the full file to understand the surrounding context:
+Clone the head branch to enable local git MCP tools (blame, log):
+
+```bash
+gh repo clone <owner>/<repo> /tmp/reviewer-workspace --depth 50
+git -C /tmp/reviewer-workspace checkout <head-branch>
+```
+
+### 4. Read context files
+
+For each significantly changed file, gather file content and git context:
+
+**File content:**
 - MCP: `mcp__github__get_file_contents` with `ref=<head-branch>`
 - CLI: `gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d`
 
-### 4. Produce the review
+**Recent commit history for the file** (understand why the code was written this way):
+- MCP: `mcp__git__git_log` with `repo_path=/tmp/reviewer-workspace, max_count=10`
+- CLI: `git -C /tmp/reviewer-workspace log --oneline -10 -- <file>`
+
+**Per-line attribution on modified sections** (understand ownership of changed code):
+- MCP: `mcp__git__git_blame` with `repo_path=/tmp/reviewer-workspace, file_path=<file>`
+- CLI: `git -C /tmp/reviewer-workspace blame <file>`
+
+### 5. Produce the review
 
 Analyse the diff against these categories:
 
@@ -111,7 +133,7 @@ Structure the review comment as follows:
 
 If there are no issues, state that clearly and keep the review brief.
 
-### 5. Post the review
+### 6. Post the review
 
 Post the review as a PR comment:
 - MCP: `mcp__github__add_pull_request_review_comment`
@@ -119,7 +141,7 @@ Post the review as a PR comment:
 
 The attribution footer is injected automatically by the runtime — do not add it manually.
 
-### 6. Stop
+### 7. Stop
 
 Report the comment URL and stop. Do not request changes via the GitHub review approval
 system (`gh pr review --request-changes`) without explicit instruction from the user —
