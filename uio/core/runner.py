@@ -52,7 +52,7 @@ def _is_retryable(exc: Exception) -> bool:
 
 def _count_tokens(text: str) -> int:
     """Rough token estimate: 4 characters per token (matches common LLM rule of thumb)."""
-    return max(1, len(text) // 4)
+    return len(text) // 4
 
 
 def _build_context_section(globs: list[str], project_root: str, max_tokens: int) -> str:
@@ -79,7 +79,8 @@ def _build_context_section(globs: list[str], project_root: str, max_tokens: int)
             if not os.path.isfile(fpath):
                 continue
             try:
-                content = open(fpath, encoding="utf-8", errors="replace").read()
+                with open(fpath, encoding="utf-8", errors="replace") as fh:
+                    content = fh.read()
             except OSError:
                 continue
 
@@ -90,6 +91,8 @@ def _build_context_section(globs: list[str], project_root: str, max_tokens: int)
             if file_tokens <= remaining:
                 sections.append(f"### {rel_path}\n\n{content}")
                 total_tokens += file_tokens
+                if total_tokens >= max_tokens:
+                    cap_reached = True
             else:
                 cutoff = remaining * 4
                 omitted = file_tokens - remaining

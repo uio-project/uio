@@ -9,7 +9,7 @@ from uio.core.runner import _build_context_section, _count_tokens
 
 class TestCountTokens:
     def test_empty_string(self):
-        assert _count_tokens("") == 1  # clamped to minimum 1
+        assert _count_tokens("") == 0
 
     def test_four_chars_is_one_token(self):
         assert _count_tokens("abcd") == 1
@@ -91,6 +91,23 @@ class TestBuildContextSection:
         (sub / "guide.md").write_text("guide content")
         result = _build_context_section(["docs/guide.md"], str(tmp_path), 8000)
         assert os.path.join("docs", "guide.md") in result
+
+    def test_exact_budget_no_spurious_section(self, tmp_path):
+        # First file exactly fills the budget; second file should produce no section at all.
+        # 40 chars = 10 tokens; max_tokens=10 means first file exactly fills budget.
+        (tmp_path / "a.txt").write_text("a" * 40)
+        (tmp_path / "b.txt").write_text("should not appear")
+        result = _build_context_section(["a.txt", "b.txt"], str(tmp_path), max_tokens=10)
+        assert "a" * 40 in result
+        assert "should not appear" not in result
+        assert "[truncated" not in result
+
+    def test_single_pattern_multi_file_cap(self, tmp_path):
+        # Both files match a single glob pattern; cap is hit on the first file.
+        (tmp_path / "a.txt").write_text("z" * 40000)  # ~10000 tokens
+        (tmp_path / "b.txt").write_text("should not appear")
+        result = _build_context_section(["*.txt"], str(tmp_path), max_tokens=100)
+        assert "should not appear" not in result
 
 
 class TestParserAcceptsContextKey:
