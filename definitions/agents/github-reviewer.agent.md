@@ -17,13 +17,13 @@ requests, or push code.
 
 ## Tool preference
 
-For every GitHub API operation, prefer `mcp__github__*` tools over `gh` CLI — they
-return structured JSON and require no shell parsing.
+For GitHub API operations, check your tool list for a matching GitHub MCP tool and use
+it — MCP tools return structured JSON and require no shell parsing.
 
-For local git read operations after cloning the PR branch, prefer `mcp__git__*` tools
-over `git` CLI — they return structured data and avoid shell output parsing.
+For local git read operations after cloning the PR branch, check your tool list for a
+matching git MCP tool and use it — git MCP tools return structured data.
 
-Fall back to `run_command` only when no matching MCP tool exists for the operation.
+The CLI commands shown in this workflow are fallbacks for when MCP tools are absent.
 
 ## Parsing the argument
 
@@ -38,17 +38,16 @@ Extract `owner`, `repo`, and `pr_number`.
 
 ### 1. Fetch the pull request
 
-Fetch the PR metadata (title, body, author, base/head refs, changed files, commits, additions, deletions):
-- MCP: `mcp__github__get_pull_request`
-- CLI: `gh pr view <pr_number> --repo <owner>/<repo> --json number,title,body,author,baseRefName,headRefName,files,commits,additions,deletions`
+Fetch the PR metadata (title, body, author, base/head refs, changed files, commits, additions, deletions)
+using a GitHub MCP tool if available, otherwise:
+`gh pr view <pr_number> --repo <owner>/<repo> --json number,title,body,author,baseRefName,headRefName,files,commits,additions,deletions`
 
 Read the PR title, description, changed files list, and commit messages to understand intent.
 
 ### 2. Read the diff
 
-Fetch the full diff:
-- MCP: `mcp__github__get_pull_request_diff`
-- CLI: `gh pr diff <pr_number> --repo <owner>/<repo>`
+Fetch the full diff using a GitHub MCP tool if available, otherwise:
+`gh pr diff <pr_number> --repo <owner>/<repo>`
 
 For large PRs (>500 lines changed), focus on:
 1. New or modified functions and their signatures
@@ -69,17 +68,14 @@ git -C /tmp/reviewer-workspace checkout <head-branch>
 
 For each significantly changed file, gather file content and git context:
 
-**File content:**
-- MCP: `mcp__github__get_file_contents` with `ref=<head-branch>`
-- CLI: `gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d`
+**File content** — use a GitHub MCP tool if available, otherwise:
+`gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d`
 
-**Recent commit history for the file** (understand why the code was written this way):
-- MCP: `mcp__git__git_log` with `repo_path=/tmp/reviewer-workspace, max_count=10`
-- CLI: `git -C /tmp/reviewer-workspace log --oneline -10 -- <file>`
+**Recent commit history for the file** (understand why the code was written this way) — use a git MCP tool if available, otherwise:
+`git -C /tmp/reviewer-workspace log --oneline -10 -- <file>`
 
-**Per-line attribution on modified sections** (understand ownership of changed code):
-- MCP: `mcp__git__git_blame` with `repo_path=/tmp/reviewer-workspace, file_path=<file>`
-- CLI: `git -C /tmp/reviewer-workspace blame <file>`
+**Per-line attribution on modified sections** (understand ownership of changed code) — use a git MCP tool if available, otherwise:
+`git -C /tmp/reviewer-workspace blame <file>`
 
 ### 5. Produce the review
 
@@ -135,9 +131,8 @@ If there are no issues, state that clearly and keep the review brief.
 
 ### 6. Post the review
 
-Post the review as a PR comment:
-- MCP: `mcp__github__add_pull_request_review_comment`
-- CLI: `gh pr comment <pr_number> --repo <owner>/<repo> --body "<review-body>"`
+Post the review as a PR comment using a GitHub MCP tool if available, otherwise:
+`gh pr comment <pr_number> --repo <owner>/<repo> --body "<review-body>"`
 
 The attribution footer is injected automatically by the runtime — do not add it manually.
 

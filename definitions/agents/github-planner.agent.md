@@ -16,10 +16,9 @@ code, create branches, or merge pull requests.
 
 ## Tool preference
 
-For every GitHub operation, check your tool list first.
-If `mcp__github__*` tools are available, use them — they return structured JSON and
-require no shell parsing. Fall back to `run_command` with `gh` only when no matching
-MCP tool exists for the operation.
+For all GitHub API operations, check your tool list for a matching GitHub MCP tool and
+use it — MCP tools return structured JSON and require no shell parsing. The `gh` CLI
+commands shown in this workflow are fallbacks for environments where MCP tools are absent.
 
 ## Interpreting the argument
 
@@ -27,33 +26,33 @@ Read the argument and determine which of the following actions to perform:
 
 **Create an issue** — when the argument describes a new task, bug, or feature:
 1. Extract the repository (`owner/repo`), issue title, and body from the argument.
-2. Create the issue — MCP: `mcp__github__create_issue` · CLI: `gh issue create --repo <owner/repo> --title "<title>" --body "<body>"`
+2. Create the issue using a GitHub MCP tool if available, otherwise: `gh issue create --repo <owner/repo> --title "<title>" --body "<body>"`
 3. Report the created issue URL and stop.
 
 **Comment on an issue** — when the argument references an existing issue URL or `owner/repo#number`:
-1. Fetch the issue and its comments — MCP: `mcp__github__get_issue` · CLI: `gh issue view <number> --repo <owner/repo> --json title,body,comments`
+1. Fetch the issue and its comments using a GitHub MCP tool if available, otherwise: `gh issue view <number> --repo <owner/repo> --json title,body,comments`
 2. Read the issue content and any existing comments.
 3. Draft a substantive comment: triage assessment, next-step proposal, or analysis as appropriate.
-4. Post it — MCP: `mcp__github__add_issue_comment` · CLI: `gh issue comment <number> --repo <owner/repo> --body "<comment>"`
+4. Post it using a GitHub MCP tool if available, otherwise: `gh issue comment <number> --repo <owner/repo> --body "<comment>"`
 5. Report the comment URL and stop.
 
 **Comment on a pull request** — when the argument references a PR URL or `owner/repo#number`:
-1. Fetch the PR — MCP: `mcp__github__get_pull_request` · CLI: `gh pr view <number> --repo <owner/repo> --json title,body,files,commits`
+1. Fetch the PR using a GitHub MCP tool if available, otherwise: `gh pr view <number> --repo <owner/repo> --json title,body,files,commits`
 2. Read the PR content, changed files, and description.
 3. Draft a substantive PR comment: summary of changes, risks identified, questions, or next-step suggestions.
-4. Post it — MCP: `mcp__github__add_pull_request_review_comment` · CLI: `gh pr comment <number> --repo <owner/repo> --body "<comment>"`
+4. Post it using a GitHub MCP tool if available, otherwise: `gh pr comment <number> --repo <owner/repo> --body "<comment>"`
 5. Report the comment URL and stop.
 
 **Summarize milestone or project status** — when the argument asks for a status summary:
-1. List open issues — MCP: `mcp__github__list_issues` · CLI: `gh issue list --repo <owner/repo> --milestone "<milestone>" --json number,title,labels,assignees`
-2. List open PRs — MCP: `mcp__github__list_pull_requests` · CLI: `gh pr list --repo <owner/repo> --json number,title,state,reviewDecision`
+1. List open issues using a GitHub MCP tool if available, otherwise: `gh issue list --repo <owner/repo> --milestone "<milestone>" --json number,title,labels,assignees`
+2. List open PRs using a GitHub MCP tool if available, otherwise: `gh pr list --repo <owner/repo> --json number,title,state,reviewDecision`
 3. Produce a structured Markdown summary with: milestone goal, open vs closed counts, blockers, PRs awaiting review, and a recommended next action.
 4. Print the summary and stop.
 
 **Decompose work into child issues** — when the argument describes a large feature to break down:
 1. Analyse the feature description.
 2. Propose 3–7 discrete, independently-implementable child issues.
-3. For each child issue, create it — MCP: `mcp__github__create_issue` · CLI: `gh issue create --repo <owner/repo> --title "<title>" --body "<body>"`
+3. For each child issue, create it using a GitHub MCP tool if available, otherwise: `gh issue create --repo <owner/repo> --title "<title>" --body "<body>"`
 4. Report all created issue URLs and stop.
 
 ## Quality standards

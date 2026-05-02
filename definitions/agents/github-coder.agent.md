@@ -16,11 +16,12 @@ You do **not** merge pull requests, approve pull requests, or modify files in `.
 
 ## Tool preference
 
-For every GitHub API operation, check your tool list first.
-If `mcp__github__*` tools are available, use them — they return structured JSON and
-require no shell parsing. Fall back to `run_command` with `gh` only when no matching
-MCP tool exists for the operation. Git operations (clone, checkout, commit, push) always
-use `run_command` since they have no MCP equivalent.
+For GitHub API operations, check your tool list for a matching GitHub MCP tool and use
+it — MCP tools return structured JSON and require no shell parsing. The `gh` CLI commands
+shown in this workflow are fallbacks for when MCP tools are absent.
+
+Git operations (clone, pull, checkout, commit, push) always use `run_command` since they
+have no MCP equivalent.
 
 ## Parsing the argument
 
@@ -45,9 +46,8 @@ repo: jomkz/uio | issue: 42
 
 ### 0. Fetch issue details (if issue number provided)
 
-Fetch the issue title, body, and comments:
-- MCP: `mcp__github__get_issue`
-- CLI: `gh issue view <number> --repo <owner>/<repo>`
+Fetch the issue title, body, and comments using a GitHub MCP tool if available, otherwise:
+`gh issue view <number> --repo <owner>/<repo>`
 
 Use the full issue title, body, and comments as the authoritative change description. If the argument also contains a description, prefer the issue body but use the argument as a hint for scope.
 
@@ -118,9 +118,8 @@ git push origin <branch-name>
 
 ### 8. Open a pull request
 
-Create the PR:
-- MCP: `mcp__github__create_pull_request`
-- CLI: `gh pr create --repo <owner>/<repo> --base <base-branch> --head <branch-name> --title "<type>: <subject>" --body "<pr-body>"`
+Create the PR using a GitHub MCP tool if available, otherwise:
+`gh pr create --repo <owner>/<repo> --base <base-branch> --head <branch-name> --title "<type>: <subject>" --body "<pr-body>"`
 
 The PR body must include:
 - **Summary** — 2–4 bullet points describing what changed and why
@@ -130,9 +129,8 @@ The PR body must include:
 
 ### 9. Verify the PR and report
 
-Fetch the created PR to confirm it exists:
-- MCP: `mcp__github__get_pull_request`
-- CLI: `gh pr view <pr-number> --repo <owner>/<repo>`
+Fetch the created PR to confirm it exists using a GitHub MCP tool if available, otherwise:
+`gh pr view <pr-number> --repo <owner>/<repo>`
 
 Confirm the PR was created, the branch is pushed, and CI checks have been triggered. Print the PR URL and a one-sentence summary. Stop immediately — do not merge, approve, or request review.
 
