@@ -3,7 +3,12 @@
 import textwrap
 
 
-from uio.schema.parser import check_identity_env, parse_definition_file, validate_definition
+from uio.schema.parser import (
+    check_identity_env,
+    check_skill_references,
+    parse_definition_file,
+    validate_definition,
+)
 
 
 def test_standard_frontmatter(tmp_path):
@@ -249,3 +254,89 @@ def test_check_identity_env_prefers_vcs_identity_over_github_identity(tmp_path, 
     warnings = check_identity_env(str(f), fm)
     assert len(warnings) == 1
     assert "vcs-identity" in warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# check_skill_references
+# ---------------------------------------------------------------------------
+
+
+def test_check_skill_references_no_skills_dir(tmp_path):
+    """Returns no warnings when skills directory does not exist."""
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nRun /missing-skill to do the thing.")
+    warnings = check_skill_references(
+        str(f), "Run /missing-skill to do the thing.", str(tmp_path / "nonexistent")
+    )
+    assert warnings == []
+
+
+def test_check_skill_references_empty_skills_dir(tmp_path):
+    """Returns no warnings when the skills directory exists but is empty."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    warnings = check_skill_references("agent.agent.md", "Run /missing-skill here.", str(skills_dir))
+    assert warnings == []
+
+
+def test_check_skill_references_known_skill_no_warning(tmp_path):
+    """No warning when the referenced skill exists on disk."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    (skills_dir / "my-skill.skill.md").write_text(
+        "---\nname: my-skill\ndescription: D.\n---\nBody."
+    )
+    warnings = check_skill_references("agent.agent.md", "Run /my-skill with args.", str(skills_dir))
+    assert warnings == []
+
+
+def test_check_skill_references_unknown_skill_warns(tmp_path):
+    """Warning when a standalone /skill-name token is not found in the skills directory."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    (skills_dir / "real-skill.skill.md").write_text(
+        "---\nname: real-skill\ndescription: D.\n---\nBody."
+    )
+    warnings = check_skill_references(
+        "agent.agent.md", "Run /ghost-skill to do the thing.", str(skills_dir)
+    )
+    assert len(warnings) == 1
+    assert "ghost-skill" in warnings[0]
+
+
+def test_check_skill_references_ignores_url_path_segments(tmp_path):
+    """Path segments inside URLs should not produce warnings."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    (skills_dir / "real-skill.skill.md").write_text(
+        "---\nname: real-skill\ndescription: D.\n---\nBody."
+    )
+    body = "See https://github.com/jomkz/uio/contents/foo for details."
+    warnings = check_skill_references("agent.agent.md", body, str(skills_dir))
+    assert warnings == []
+
+
+def test_check_skill_references_ignores_deep_paths(tmp_path):
+    """Filesystem paths like /tmp/foo should not match because /foo is preceded by /."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    (skills_dir / "real-skill.skill.md").write_text(
+        "---\nname: real-skill\ndescription: D.\n---\nBody."
+    )
+    body = "Clone to /tmp/uio-coder-workspace and run /real-skill after."
+    warnings = check_skill_references("agent.agent.md", body, str(skills_dir))
+    # /tmp/uio-coder-workspace: /tmp is followed by /, so no match; /uio-coder-workspace is preceded by /
+    # /real-skill: known skill, no warning
+    assert warnings == []
+
+
+def test_check_skill_references_ignores_numeric_segments(tmp_path):
+    """/42, /123 etc. start with digits and must not be matched."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    (skills_dir / "real-skill.skill.md").write_text(
+        "---\nname: real-skill\ndescription: D.\n---\nBody."
+    )
+    body = "See issue /42 and PR /123 for context."
+    warnings = check_skill_references("agent.agent.md", body, str(skills_dir))
+    assert warnings == []
