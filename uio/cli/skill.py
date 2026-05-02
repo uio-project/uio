@@ -9,7 +9,7 @@ import click
 
 from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
-from uio.core.runner import run_agent
+from uio.core.runner import GuardrailError, run_agent
 from uio.core.tools import SHELL_CHOICES
 from uio.schema.parser import parse_definition_file
 
@@ -75,22 +75,26 @@ def skill_run_cmd(
     cfg = load_config()
     skills_dir = cfg["dirs"]["skills"]
     definition_path = f"{skills_dir}/{skill_name}.skill.md"
-    run_agent(
-        skill_name,
-        arg,
-        provider=provider or cfg["runtime"].get("default_provider"),
-        model=model,
-        complexity=complexity,
-        base_url=base_url,
-        timeout=timeout or cfg["runtime"]["timeout"],
-        no_mcp=no_mcp,
-        mcp_cfg=cfg["mcp"],
-        definition_path=definition_path,
-        ledger_path=cfg["runtime"]["cost_ledger"],
-        large_agent_names=cfg["large_agents"]["names"],
-        shell_override=shell,
-        routing_chain=cfg["runtime"].get("routing_chain"),
-    )
+    try:
+        run_agent(
+            skill_name,
+            arg,
+            provider=provider or cfg["runtime"].get("default_provider"),
+            model=model,
+            complexity=complexity,
+            base_url=base_url,
+            timeout=timeout or cfg["runtime"]["timeout"],
+            no_mcp=no_mcp,
+            mcp_cfg=cfg["mcp"],
+            definition_path=definition_path,
+            ledger_path=cfg["runtime"]["cost_ledger"],
+            large_agent_names=cfg["large_agents"]["names"],
+            shell_override=shell,
+            routing_chain=cfg["runtime"].get("routing_chain"),
+        )
+    except GuardrailError as exc:
+        click.echo(f"Error: guardrail violated — {exc}", err=True)
+        raise SystemExit(1)
 
 
 @skill_group.command("list")

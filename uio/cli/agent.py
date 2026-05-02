@@ -10,7 +10,7 @@ import click
 from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
 from uio.core.routing import infer_complexity
-from uio.core.runner import run_agent
+from uio.core.runner import GuardrailError, run_agent
 from uio.core.tools import SHELL_CHOICES
 from uio.schema.parser import parse_definition_file
 
@@ -91,26 +91,30 @@ def agent_run_cmd(
     cfg = load_config()
     agents_dir = cfg["dirs"]["agents"]
     definition_path = f"{agents_dir}/{agent_name}.agent.md"
-    run_agent(
-        agent_name,
-        arg,
-        provider=provider or cfg["runtime"].get("default_provider"),
-        model=model,
-        complexity=complexity,
-        base_url=base_url,
-        timeout=timeout or cfg["runtime"]["timeout"],
-        no_mcp=no_mcp,
-        mcp_cfg=cfg["mcp"],
-        mcp_plugins=cfg.get("mcp_plugins", []),
-        definition_path=definition_path,
-        ledger_path=cfg["runtime"]["cost_ledger"],
-        large_agent_names=cfg["large_agents"]["names"],
-        shell_override=shell,
-        max_iterations=cfg["runtime"]["max_iterations"],
-        max_iterations_large=cfg["runtime"]["max_iterations_large"],
-        anthropic_max_tokens=cfg["runtime"]["anthropic_max_tokens"],
-        routing_chain=cfg["runtime"].get("routing_chain"),
-    )
+    try:
+        run_agent(
+            agent_name,
+            arg,
+            provider=provider or cfg["runtime"].get("default_provider"),
+            model=model,
+            complexity=complexity,
+            base_url=base_url,
+            timeout=timeout or cfg["runtime"]["timeout"],
+            no_mcp=no_mcp,
+            mcp_cfg=cfg["mcp"],
+            mcp_plugins=cfg.get("mcp_plugins", []),
+            definition_path=definition_path,
+            ledger_path=cfg["runtime"]["cost_ledger"],
+            large_agent_names=cfg["large_agents"]["names"],
+            shell_override=shell,
+            max_iterations=cfg["runtime"]["max_iterations"],
+            max_iterations_large=cfg["runtime"]["max_iterations_large"],
+            anthropic_max_tokens=cfg["runtime"]["anthropic_max_tokens"],
+            routing_chain=cfg["runtime"].get("routing_chain"),
+        )
+    except GuardrailError as exc:
+        click.echo(f"Error: guardrail violated — {exc}", err=True)
+        raise SystemExit(1)
 
 
 @agent_group.command("list")

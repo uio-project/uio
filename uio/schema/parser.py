@@ -47,6 +47,7 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
         "argument-hint",
         "invokable",
         "max_tokens",
+        "guardrails",
         "github-identity",  # deprecated alias for vcs-identity
         "vcs-identity",
         "vcs-provider",
@@ -54,6 +55,11 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     for key in frontmatter:
         if key not in known:
             errors.append(f"{path}: unrecognised frontmatter key '{key}'")
+
+    # guardrails block validation
+    guardrails = frontmatter.get("guardrails")
+    if guardrails is not None and not isinstance(guardrails, dict):
+        errors.append(f"{path}: 'guardrails' must be a mapping, got {type(guardrails).__name__}")
 
     # vcs-identity validation
     vcs_identity = frontmatter.get("vcs-identity")
