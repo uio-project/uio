@@ -86,6 +86,14 @@ def test_select_model_small_openai():
     assert select_model("openai", "small", None) == PROVIDER_SMALL_MODELS["openai"]
 
 
+def test_select_model_large_anthropic():
+    assert select_model("anthropic", "large", None) == PROVIDER_DEFAULTS["anthropic"]
+
+
+def test_select_model_small_anthropic():
+    assert select_model("anthropic", "small", None) == PROVIDER_SMALL_MODELS["anthropic"]
+
+
 def test_select_model_large_ollama():
     assert select_model("ollama", "large", None) == PROVIDER_DEFAULTS["ollama"]
 
@@ -162,6 +170,7 @@ def test_provider_chain_small_complexity_includes_ollama(monkeypatch):
 
 def test_provider_chain_full_when_all_keys_present(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
     monkeypatch.setenv("OPENAI_API_KEY", "o-key")
     chain = select_provider_chain(None)
     assert chain == ROUTING_CHAIN
@@ -169,9 +178,39 @@ def test_provider_chain_full_when_all_keys_present(monkeypatch):
 
 def test_provider_chain_respects_routing_order(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
     monkeypatch.setenv("OPENAI_API_KEY", "o-key")
     chain = select_provider_chain(None)
-    assert chain.index("gemini") < chain.index("openai") < chain.index("ollama")
+    assert (
+        chain.index("gemini")
+        < chain.index("anthropic")
+        < chain.index("openai")
+        < chain.index("ollama")
+    )
+
+
+def test_provider_chain_auto_includes_anthropic_when_key_present(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None)
+    assert "anthropic" in chain
+
+
+def test_provider_chain_auto_skips_anthropic_when_key_missing(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None)
+    assert "anthropic" not in chain
+
+
+def test_provider_chain_anthropic_only_when_only_anthropic_key(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None)
+    assert chain[0] == "anthropic"
 
 
 # ── estimate_cost_usd ──────────────────────────────────────────────────────────
@@ -199,6 +238,16 @@ def test_cost_estimate_zero_tokens():
 def test_cost_estimate_unknown_model_falls_back_to_provider():
     cost = estimate_cost_usd("ollama", "some-unknown-model", 500_000, 500_000)
     assert cost == 0.0
+
+
+def test_cost_estimate_anthropic_sonnet():
+    cost = estimate_cost_usd("anthropic", "claude-sonnet-4-6", 1_000_000, 1_000_000)
+    assert abs(cost - 18.00) < 1e-9
+
+
+def test_cost_estimate_anthropic_haiku():
+    cost = estimate_cost_usd("anthropic", "claude-haiku-4-5-20251001", 1_000_000, 1_000_000)
+    assert abs(cost - 4.80) < 1e-9
 
 
 # ── TokenUsage / LLMResponse ───────────────────────────────────────────────────

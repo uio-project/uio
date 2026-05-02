@@ -1,4 +1,4 @@
-"""Tests for GeminiClient and OpenAIClient append_turn message formatting.
+"""Tests for GeminiClient, OpenAIClient, and AnthropicClient message formatting.
 
 Instances are created via __new__ to skip __init__ (which requires API keys).
 Only append_turn and build_history are under test — pure message formatting.
@@ -7,7 +7,14 @@ Only append_turn and build_history are under test — pure message formatting.
 import json
 
 
-from uio.core.clients import GeminiClient, LLMResponse, OpenAIClient, _sanitize_schema_for_gemini
+from uio.core.clients import (
+    AnthropicClient,
+    GeminiClient,
+    LLMResponse,
+    OpenAIClient,
+    _sanitize_schema_for_gemini,
+    _to_anthropic_tool,
+)
 from uio.core.tools import ToolCall
 
 
@@ -191,3 +198,96 @@ def test_sanitize_strips_inside_anyof():
 def test_sanitize_passthrough_clean_schema():
     params = {"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]}
     assert _sanitize_schema_for_gemini(params) == params
+
+
+# ── _to_anthropic_tool ────────────────────────────────────────────────────────
+
+
+def test_to_anthropic_tool_converts_schema():
+    tool = {
+        "name": "run_command",
+        "description": "Execute a shell command.",
+        "parameters": {"type": "object", "properties": {"command": {"type": "string"}}},
+    }
+    result = _to_anthropic_tool(tool)
+    assert result["name"] == "run_command"
+    assert result["description"] == "Execute a shell command."
+    assert result["input_schema"] == tool["parameters"]
+    assert "parameters" not in result
+
+
+# ── AnthropicClient ───────────────────────────────────────────────────────────
+
+
+def anthropic_client() -> AnthropicClient:
+    return AnthropicClient.__new__(AnthropicClient)
+
+
+def test_anthropic_build_history():
+    client = anthropic_client()
+    history = client.build_history("hello")
+    assert history == [{"role": "user", "content": "hello"}]
+
+
+def test_anthropic_text_only_appends_assistant_turn():
+    client = anthropic_client()
+    history = [{"role": "user", "content": "begin"}]
+    client.append_turn(history, LLMResponse(text="Done.", tool_calls=[]), [])
+    assert len(history) == 2
+    assert history[1] == {"role": "assistant", "content": [{"type": "text", "text": "Done."}]}
+
+
+def test_anthropic_no_extra_user_turn_when_no_tools():
+    client = anthropic_client()
+    history = [{"role": "user", "content": "begin"}]
+    client.append_turn(history, LLMResponse(text="Done.", tool_calls=[]), [])
+    assert len(history) == 2
+
+
+def test_anthropic_tool_call_in_assistant_content():
+    client = anthropic_client()
+    history = [{"role": "user", "content": "begin"}]
+    call = tc(call_id="toolu_01")
+    client.append_turn(history, LLMResponse(text=None, tool_calls=[call]), [(call, "output\n")])
+
+    assert len(history) == 3
+    asst = history[1]
+    assert asst["role"] == "assistant"
+    assert {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "run_command",
+        "input": {"command": "echo hi"},
+    } in asst["content"]
+
+    user_turn = history[2]
+    assert user_turn["role"] == "user"
+    assert user_turn["content"] == [
+        {"type": "tool_result", "tool_use_id": "toolu_01", "content": "output\n"}
+    ]
+
+
+def test_anthropic_multiple_tool_results_in_one_user_turn():
+    client = anthropic_client()
+    history = [{"role": "user", "content": "begin"}]
+    c1 = tc("echo a", "toolu_01")
+    c2 = tc("echo b", "toolu_02")
+    client.append_turn(
+        history,
+        LLMResponse(text=None, tool_calls=[c1, c2]),
+        [(c1, "a\n"), (c2, "b\n")],
+    )
+    assert len(history) == 3
+    assert len(history[2]["content"]) == 2
+    assert history[2]["content"][0]["tool_use_id"] == "toolu_01"
+    assert history[2]["content"][1]["tool_use_id"] == "toolu_02"
+
+
+def test_anthropic_text_and_tool_call_both_in_assistant_content():
+    client = anthropic_client()
+    history = [{"role": "user", "content": "begin"}]
+    call = tc(call_id="toolu_01")
+    client.append_turn(history, LLMResponse(text="Running...", tool_calls=[call]), [(call, "out")])
+    content = history[1]["content"]
+    assert {"type": "text", "text": "Running..."} in content
+    assert any(b.get("type") == "tool_use" for b in content)
