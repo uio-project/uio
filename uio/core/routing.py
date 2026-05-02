@@ -6,7 +6,7 @@ import os
 
 from uio.core.clients import PROVIDER_DEFAULTS, PROVIDER_SMALL_MODELS
 
-ROUTING_CHAIN = ["gemini", "anthropic", "openai", "ollama"]
+ROUTING_CHAIN = ["ollama", "openai", "gemini", "anthropic"]
 
 PROVIDER_KEY_ENV: dict[str, str | None] = {
     "gemini": "GEMINI_API_KEY",
@@ -69,5 +69,5 @@ def select_provider_chain(provider_override: str | None, complexity: str = "smal
     # For small complexity, always fall back to Ollama if nothing else is available.
     # For large complexity, Ollama is excluded — an empty list tells the runner to exit cleanly.
     if not available and complexity != "large":
-        return [ROUTING_CHAIN[-1]]
+        return ["ollama"]
     return available

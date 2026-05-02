@@ -9,10 +9,10 @@ uio supports three built-in providers and any OpenAI-compatible endpoint. This p
 When no `--provider` flag is given, uio tries providers in this order:
 
 ```
-Gemini  →  Anthropic  →  OpenAI  →  Ollama
+Ollama  →  OpenAI  →  Gemini  →  Anthropic
 ```
 
-A provider is included in the chain if its required API key is present in the environment. Ollama has no key requirement and is always the final fallback (as long as the Ollama process is running).
+A provider is included in the chain if its required API key is present in the environment. Ollama has no key requirement and is always tried first (as long as the Ollama process is running). Paid providers follow in ascending cost order.
 
 The first provider in the chain that initialises successfully is used. To see which provider would be selected for the current environment:
 
