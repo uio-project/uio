@@ -17,6 +17,7 @@ _DEFAULTS: dict = {
         "agents": ".uio/agents",
         "skills": ".uio/skills",
         "prompts": ".uio/prompts",
+        "workflows": ".uio/workflows",
         "memory": ".uio/memory",
     },
     "runtime": {
@@ -38,10 +39,11 @@ _DEFAULTS: dict = {
 
 _STARTER_TOML = """\
 [dirs]
-agents  = ".uio/agents"
-skills  = ".uio/skills"
-prompts = ".uio/prompts"
-memory  = ".uio/memory"
+agents    = ".uio/agents"
+skills    = ".uio/skills"
+prompts   = ".uio/prompts"
+workflows = ".uio/workflows"
+memory    = ".uio/memory"
 
 [runtime]
 # default_provider = "gemini"
