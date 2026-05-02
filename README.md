@@ -1,14 +1,17 @@
 # uio
 
-`uio` is a lightweight, provider-agnostic framework for defining and running AI agents, skills, and prompts. Definitions live as markdown files with YAML frontmatter. The `uio` CLI discovers and executes them against any supported LLM provider. The [origin story](docs/16-about.md) covers how and why.
+`uio` is a lightweight, provider-agnostic framework for building the **Agentic Stack** — agents, skills, prompts, and tools — as plain markdown files with YAML frontmatter. The `uio` CLI discovers and executes them against any supported LLM provider. The [origin story](docs/16-about.md) covers how and why.
 
 ## Concepts
 
 | Concept | What it is |
 |---|---|
-| **Agent** | A multi-turn agentic loop that can execute shell commands and call MCP tools |
-| **Skill** | A reusable module invoked by agents to perform a focused, composable task |
-| **Prompt** | A single-shot LLM instruction for one well-defined workflow |
+| **Agent** | A multi-turn tool-use loop that can execute shell commands and call MCP tools; defined in `*.agent.md` |
+| **Skill** | A focused, composable subtask — same loop as an agent, but user-directed via `uio skill run`; defined in `*.skill.md` |
+| **Prompt** | A single-shot LLM instruction with no tool loop; defined in `*.prompt.md` |
+| **Tool** | An external capability the model invokes mid-loop (MCP tools, `run_command`) — agent-directed, not user-directed |
+
+See the [Glossary](docs/02-concepts.md#glossary) for precise definitions of all terms, including the skill vs tool distinction.
 
 ## Documentation
 

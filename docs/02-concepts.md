@@ -90,3 +90,31 @@ Every `uio agent run` / `uio skill run` / `uio prompt run` invocation:
 8. Appends a cost entry to `uio_cost.jsonl`
 
 The definition file is the single source of truth for behaviour. Moving, editing, or deleting it immediately affects the next run.
+
+---
+
+## The Agentic Stack
+
+`uio` implements the **Agentic Stack** pattern — a layered model for composable AI automation:
+
+| Layer | uio primitive |
+|---|---|
+| **Agents** | `.agent.md` — autonomous decision-makers |
+| **Skills** | `.skill.md` — composable, user-directed subtasks |
+| **Prompts** | `.prompt.md` — single-shot instructions |
+| **Tools** | MCP tools + `run_command` — agent-directed capabilities |
+
+This vocabulary is intentional. "Agentic Stack" is the umbrella term for the agents + skills + prompts + tools model that `uio` provides.
+
+---
+
+## Glossary
+
+| Term | Definition |
+|---|---|
+| **Agent** | An autonomous decision-maker that runs a multi-turn tool-use loop. Defined in `*.agent.md`. Agents decide when to call tools and how to interpret results. |
+| **Skill** | A focused, composable subtask. Runs the same tool-use loop as an agent internally, but is **user-directed**: you invoke it explicitly with `uio skill run <name>`. Skills are small, reusable building blocks; agents are higher-level workflows that may reference skills by name. |
+| **Prompt** | A single-shot LLM instruction. The definition body is sent once and the response is printed — no tool-use loop. Defined in `*.prompt.md`. |
+| **Tool** | An external capability the **model** invokes mid-loop. Tools are agent-directed: the agent decides when and how to call them. Examples: `run_command` (built-in), MCP tools such as GitHub or filesystem access. This is the key distinction from skills — a tool is called by the model; a skill is called by you. |
+| **Memory** | Persistent context injected into agent runs across sessions. Not yet implemented; tracked in [#161](https://github.com/jomkz/uio/issues/161). |
+| **Guardrails** | Per-definition constraints on cost, tool access, and iteration count. Not yet implemented; tracked in [#160](https://github.com/jomkz/uio/issues/160). |
