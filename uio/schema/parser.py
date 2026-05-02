@@ -47,6 +47,7 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
         "argument-hint",
         "invokable",
         "max_tokens",
+        "guardrails",
         "github-identity",  # deprecated alias for vcs-identity
         "vcs-identity",
         "vcs-provider",

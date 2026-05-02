@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 import os
 import sys
 import time
@@ -15,12 +16,17 @@ from uio.core.github_app import (
     env_vars_present,
     get_token_for_identity,
 )
-from uio.core.ledger import DEFAULT_LEDGER_PATH, write_cost_ledger
+from uio.core.ledger import DEFAULT_LEDGER_PATH, estimate_cost_usd, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.core.vcs import build_tool_alias_section
 from uio.schema.parser import parse_definition_file
+
+
+class GuardrailError(Exception):
+    """Raised when a per-definition guardrail limit is exceeded."""
+
 
 _DEFAULT_MAX_ITERATIONS = 10
 _DEFAULT_MAX_ITERATIONS_LARGE = 25
@@ -220,7 +226,16 @@ def run_agent(
     provider_chain = select_provider_chain(provider, resolved_complexity, routing_chain)
     # Frontmatter max_tokens overrides the project-level anthropic_max_tokens setting.
     resolved_max_tokens: int | None = frontmatter.get("max_tokens") or anthropic_max_tokens
-    cap = max_iterations_large if resolved_complexity == "large" else max_iterations
+
+    guardrails = frontmatter.get("guardrails") or {}
+    guardrail_max_cost: float | None = guardrails.get("max_cost_usd")
+    guardrail_max_turns: int | None = guardrails.get("max_turns")
+    guardrail_deny_tools: list[str] = guardrails.get("deny_tools") or []
+
+    # max_turns from frontmatter takes precedence over the global cap.
+    cap = guardrail_max_turns or (
+        max_iterations_large if resolved_complexity == "large" else max_iterations
+    )
 
     try:
         last_error: Exception | None = None
@@ -285,6 +300,19 @@ def run_agent(
                         total_prompt += response.usage.prompt_tokens
                         total_completion += response.usage.completion_tokens
 
+                    if guardrail_max_cost is not None:
+                        running_cost = estimate_cost_usd(
+                            candidate_provider,
+                            resolved_model,
+                            total_prompt,
+                            total_completion,
+                        )
+                        if running_cost > guardrail_max_cost:
+                            raise GuardrailError(
+                                f"max_cost_usd {guardrail_max_cost} exceeded"
+                                f" (running cost ${running_cost:.6f})"
+                            )
+
                     if response.text:
                         print(response.text)
 
@@ -300,18 +328,31 @@ def run_agent(
                         )
                         return
 
-                    tool_results = [
-                        (
-                            tc,
-                            execute_tool(
-                                tc,
-                                mcp_clients=mcp_clients,
-                                timeout=timeout,
-                                shell_override=shell_override,
-                            ),
+                    tool_results = []
+                    for tc in response.tool_calls:
+                        denied = next(
+                            (p for p in guardrail_deny_tools if fnmatch.fnmatch(tc.name, p)),
+                            None,
                         )
-                        for tc in response.tool_calls
-                    ]
+                        if denied:
+                            print(
+                                f"  [guardrail] tool '{tc.name}' denied by deny_tools: {denied!r}"
+                            )
+                            tool_results.append(
+                                (tc, f"[denied by guardrail deny_tools: {denied!r}]")
+                            )
+                        else:
+                            tool_results.append(
+                                (
+                                    tc,
+                                    execute_tool(
+                                        tc,
+                                        mcp_clients=mcp_clients,
+                                        timeout=timeout,
+                                        shell_override=shell_override,
+                                    ),
+                                )
+                            )
                     client.append_turn(history, response, tool_results)
 
                 print(f"\n⚠️  Reached iteration cap ({cap}). Stopping.")
@@ -329,6 +370,8 @@ def run_agent(
                 )
                 return
 
+            except GuardrailError:
+                raise
             except Exception as e:
                 print(
                     f"  [router] {candidate_provider} failed mid-run: {e}. Trying next...",

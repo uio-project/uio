@@ -3,6 +3,11 @@ name: mcp-smoke-test
 description: Probe all configured MCP servers and report which ones are reachable and functional.
 complexity: small
 argument-hint: "[server-name ...]"
+guardrails:
+  max_cost_usd: 0.10
+  max_turns: 5
+  deny_tools:
+    - "run_command"
 ---
 
 # Agent: mcp-smoke-test
