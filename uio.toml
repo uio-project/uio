@@ -1,7 +1,7 @@
 [dirs]
 agents  = "definitions/agents"
-skills  = ".uio/skills"
-prompts = ".uio/prompts"
+skills  = "definitions/skills"
+prompts = "definitions/prompts"
 
 [runtime]
 cost_ledger          = "uio_cost.jsonl"
