@@ -340,3 +340,15 @@ def test_check_skill_references_ignores_numeric_segments(tmp_path):
     body = "See issue /42 and PR /123 for context."
     warnings = check_skill_references("agent.agent.md", body, str(skills_dir))
     assert warnings == []
+
+
+def test_validate_no_vcs_identity_does_not_import_github_app(tmp_path):
+    """validate_definition on a definition with no vcs-identity must not load github_app."""
+    import sys
+
+    sys.modules.pop("uio.core.github_app", None)
+    f = tmp_path / "test.agent.md"
+    f.write_text("---\nname: test\ndescription: test\n---\n# Agent: test\n")
+    fm, _ = parse_definition_file(str(f))
+    validate_definition(str(f), fm)
+    assert "uio.core.github_app" not in sys.modules
