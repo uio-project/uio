@@ -5,6 +5,7 @@ Only append_turn and build_history are under test — pure message formatting.
 """
 
 import json
+from types import SimpleNamespace
 
 
 from uio.core.clients import (
@@ -12,7 +13,9 @@ from uio.core.clients import (
     GeminiClient,
     LLMResponse,
     OpenAIClient,
+    _ANTHROPIC_DEFAULT_MAX_TOKENS,
     _sanitize_schema_for_gemini,
+    _serialize_anthropic_block,
     _to_anthropic_tool,
 )
 from uio.core.tools import ToolCall
@@ -291,3 +294,81 @@ def test_anthropic_text_and_tool_call_both_in_assistant_content():
     content = history[1]["content"]
     assert {"type": "text", "text": "Running..."} in content
     assert any(b.get("type") == "tool_use" for b in content)
+
+
+def test_anthropic_append_turn_uses_raw_content_when_present():
+    client = anthropic_client()
+    # Simulate raw content stored after chat() with a thinking block
+    client._last_raw_content = [
+        {"type": "thinking", "thinking": "my reasoning", "signature": "sig_abc"},
+        {"type": "text", "text": "Done."},
+    ]
+    history = [{"role": "user", "content": "begin"}]
+    client.append_turn(history, LLMResponse(text="Done.", tool_calls=[]), [])
+    content = history[1]["content"]
+    assert content == [
+        {"type": "thinking", "thinking": "my reasoning", "signature": "sig_abc"},
+        {"type": "text", "text": "Done."},
+    ]
+
+
+def test_anthropic_append_turn_without_raw_content_falls_back_to_response():
+    client = anthropic_client()
+    # No _last_raw_content set (e.g. bypassed __init__ via __new__)
+    history = [{"role": "user", "content": "begin"}]
+    client.append_turn(history, LLMResponse(text="Done.", tool_calls=[]), [])
+    assert history[1]["content"] == [{"type": "text", "text": "Done."}]
+
+
+# ── _serialize_anthropic_block ────────────────────────────────────────────────
+
+
+def _block(type_: str, **kwargs):
+    return SimpleNamespace(type=type_, **kwargs)
+
+
+def test_serialize_text_block():
+    block = _block("text", text="hello")
+    assert _serialize_anthropic_block(block) == {"type": "text", "text": "hello"}
+
+
+def test_serialize_tool_use_block():
+    block = _block("tool_use", id="toolu_01", name="run_command", input={"command": "ls"})
+    result = _serialize_anthropic_block(block)
+    assert result == {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "run_command",
+        "input": {"command": "ls"},
+    }
+
+
+def test_serialize_thinking_block():
+    block = _block("thinking", thinking="I think...", signature="sig_xyz")
+    result = _serialize_anthropic_block(block)
+    assert result == {"type": "thinking", "thinking": "I think...", "signature": "sig_xyz"}
+
+
+def test_serialize_redacted_thinking_block():
+    block = _block("redacted_thinking", data="<redacted>")
+    assert _serialize_anthropic_block(block) == {"type": "redacted_thinking", "data": "<redacted>"}
+
+
+def test_serialize_unknown_block_type():
+    block = _block("future_type")
+    assert _serialize_anthropic_block(block) == {"type": "future_type"}
+
+
+# ── AnthropicClient max_tokens / complexity ───────────────────────────────────
+
+
+def test_anthropic_default_max_tokens():
+    assert _ANTHROPIC_DEFAULT_MAX_TOKENS == 16000
+
+
+def test_anthropic_client_stores_complexity_and_max_tokens():
+    client = AnthropicClient.__new__(AnthropicClient)
+    client._complexity = "large"
+    client._max_tokens = 32000
+    assert client._complexity == "large"
+    assert client._max_tokens == 32000

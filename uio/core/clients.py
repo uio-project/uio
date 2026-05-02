@@ -244,26 +244,57 @@ def _to_anthropic_tool(tool: dict) -> dict:
     }
 
 
+_ANTHROPIC_DEFAULT_MAX_TOKENS = 16000
+
+
+def _serialize_anthropic_block(block) -> dict:
+    """Convert an Anthropic SDK content block to a plain dict for history storage."""
+    if block.type == "text":
+        return {"type": "text", "text": block.text}
+    if block.type == "tool_use":
+        return {"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}
+    if block.type == "thinking":
+        return {"type": "thinking", "thinking": block.thinking, "signature": block.signature}
+    if block.type == "redacted_thinking":
+        return {"type": "redacted_thinking", "data": block.data}
+    return {"type": block.type}
+
+
 class AnthropicClient(LLMClient):
-    def __init__(self, model: str | None = None, tools: list[dict] | None = None) -> None:
+    def __init__(
+        self,
+        model: str | None = None,
+        tools: list[dict] | None = None,
+        complexity: str | None = None,
+        max_tokens: int | None = None,
+    ) -> None:
         import anthropic
 
         self._client = anthropic.Anthropic()
         self._model = model or os.environ.get("LLM_MODEL") or PROVIDER_DEFAULTS["anthropic"]
         schemas = tools if tools is not None else [TOOL_SCHEMA]
         self._tools = [_to_anthropic_tool(t) for t in schemas]
+        self._complexity = complexity or "small"
+        self._max_tokens = max_tokens or _ANTHROPIC_DEFAULT_MAX_TOKENS
+        self._last_raw_content: list[dict] = []
 
     def build_history(self, user_text: str) -> list:
         return [{"role": "user", "content": user_text}]
 
     def chat(self, system: str, history: list) -> LLMResponse:
+        kwargs: dict = {}
+        if self._complexity == "large":
+            budget = min(10000, max(1024, self._max_tokens - 4096))
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
         resp = self._client.messages.create(
             model=self._model,
-            max_tokens=8192,
+            max_tokens=self._max_tokens,
             system=system,
             tools=self._tools,
             messages=history,
+            **kwargs,
         )
+        self._last_raw_content = [_serialize_anthropic_block(b) for b in resp.content]
         text = next((b.text for b in resp.content if b.type == "text"), None)
         calls = [
             ToolCall(name=b.name, args=b.input, call_id=b.id)
@@ -284,13 +315,19 @@ class AnthropicClient(LLMClient):
         response: LLMResponse,
         tool_results: list[tuple[ToolCall, str]],
     ) -> None:
-        content: list[dict] = []
-        if response.text:
-            content.append({"type": "text", "text": response.text})
-        for tc in response.tool_calls:
-            content.append(
-                {"type": "tool_use", "id": tc.call_id, "name": tc.name, "input": tc.args}
-            )
+        # When thinking blocks are present they must be round-tripped as-is.
+        # Use stored raw content if available; otherwise build from response fields.
+        raw = getattr(self, "_last_raw_content", None)
+        if raw:
+            content = list(raw)
+        else:
+            content = []
+            if response.text:
+                content.append({"type": "text", "text": response.text})
+            for tc in response.tool_calls:
+                content.append(
+                    {"type": "tool_use", "id": tc.call_id, "name": tc.name, "input": tc.args}
+                )
         history.append({"role": "assistant", "content": content})
         if tool_results:
             history.append(
@@ -344,11 +381,15 @@ def make_client(
     model: str | None = None,
     tools: list[dict] | None = None,
     base_url: str | None = None,
+    complexity: str | None = None,
+    max_tokens: int | None = None,
 ) -> LLMClient:
     if provider == "gemini":
         return GeminiClient(model=model, tools=tools)
     if provider == "anthropic":
-        return AnthropicClient(model=model, tools=tools)
+        return AnthropicClient(
+            model=model, tools=tools, complexity=complexity, max_tokens=max_tokens
+        )
     if provider == "openai":
         return OpenAIClient(model=model, tools=tools, base_url=base_url)
     if provider == "ollama":

@@ -82,6 +82,33 @@ Gemini is the recommended starting point — the small tier (`gemini-2.5-flash-l
 
 > **Note:** The LiteLLM proxy workaround for Claude (previously documented below) is no longer needed. Use `--provider anthropic` or set `ANTHROPIC_API_KEY` directly.
 
+### Extended thinking
+
+When `complexity: large` is set (in frontmatter or via `--complexity large`), uio automatically enables Anthropic's extended thinking. The model reasons internally before producing its response, which improves accuracy on multi-step tasks at the cost of additional tokens.
+
+The thinking budget is derived automatically from `max_tokens` (see below) and cannot be set independently.
+
+### max_tokens
+
+Anthropic requires an explicit `max_tokens` value. The default is `16000`, which provides ~10 000 tokens of thinking budget and ~6 000 tokens of output for large-complexity runs.
+
+Override project-wide in `uio.toml`:
+
+```toml
+[runtime]
+anthropic_max_tokens = 32000
+```
+
+Override per-agent in frontmatter:
+
+```yaml
+---
+name: my-agent
+complexity: large
+max_tokens: 8192
+---
+```
+
 ---
 
 ## OpenAI
