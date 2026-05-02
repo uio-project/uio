@@ -18,7 +18,17 @@ from uio.cli.registry import registry_group
 from uio.cli.skill import skill_group
 from uio.config import load_config
 from uio.examples import EXAMPLES
-from uio.schema.parser import check_identity_env, parse_definition_file, validate_definition
+from uio.schema.parser import (
+    check_heading_format,
+    check_identity_env,
+    check_minimal_body,
+    check_skill_interface_sections,
+    check_skill_references,
+    check_stopping_criteria,
+    check_thinking_complexity,
+    parse_definition_file,
+    validate_definition,
+)
 
 _EXAMPLE_AGENT = """\
 ---
@@ -146,20 +156,31 @@ def init_cmd(examples: bool) -> None:
 
 
 @main.command("validate")
-def validate_cmd() -> None:
+@click.option(
+    "--strict",
+    is_flag=True,
+    default=False,
+    help="Enable opt-in checks (e.g. stopping-criteria detection).",
+)
+def validate_cmd(strict: bool) -> None:
     """Parse all definition files and check required frontmatter fields.
 
     Exits non-zero if any errors are found.
+
+    Pass --strict to enable additional opt-in checks such as stopping-criteria
+    detection.
 
     Example:
 
     \b
       uio validate
+      uio validate --strict
     """
     cfg = load_config()
+    skills_dir = cfg["dirs"]["skills"]
     patterns = [
         (cfg["dirs"]["agents"], "*.agent.md"),
-        (cfg["dirs"]["skills"], "*.skill.md"),
+        (skills_dir, "*.skill.md"),
         (cfg["dirs"]["prompts"], "*.prompt.md"),
     ]
 
@@ -171,12 +192,19 @@ def validate_cmd() -> None:
         for path in sorted(glob(f"{directory}/{pattern}")):
             total += 1
             try:
-                fm, _ = parse_definition_file(path)
+                fm, body = parse_definition_file(path)
             except Exception as e:
                 errors.append(f"{path}: could not parse: {e}")
                 continue
             errors.extend(validate_definition(path, fm))
             warnings.extend(check_identity_env(path, fm))
+            warnings.extend(check_heading_format(path, fm, body))
+            warnings.extend(check_skill_references(path, body, skills_dir))
+            warnings.extend(check_thinking_complexity(path, fm))
+            warnings.extend(check_skill_interface_sections(path, body))
+            warnings.extend(check_minimal_body(path, body))
+            if strict:
+                warnings.extend(check_stopping_criteria(path, body))
 
     if total == 0:
         click.echo("  No definition files found.")

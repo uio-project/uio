@@ -118,7 +118,7 @@ class GeminiClient(LLMClient):
         )
         text_parts: list[str] = []
         calls: list[ToolCall] = []
-        for part in (resp.candidates[0].content.parts or []):
+        for part in resp.candidates[0].content.parts or []:
             if hasattr(part, "text") and part.text:
                 text_parts.append(part.text)
             if hasattr(part, "function_call") and part.function_call:
