@@ -47,11 +47,16 @@ def select_model(provider: str, complexity: str, model_override: str | None) -> 
     return PROVIDER_DEFAULTS.get(provider, "")
 
 
-def select_provider_chain(provider_override: str | None, complexity: str = "small") -> list[str]:
+def select_provider_chain(
+    provider_override: str | None,
+    complexity: str = "small",
+    routing_chain: list[str] | None = None,
+) -> list[str]:
     """Return ordered providers to try.
 
     If --provider is set, returns that single provider. Otherwise returns all
-    providers in ROUTING_CHAIN that have their required API key available.
+    providers in the active chain that have their required API key available.
+    The active chain is ``routing_chain`` when provided, else ``ROUTING_CHAIN``.
 
     Ollama is excluded from auto-routing for large-complexity runs because
     local models are unlikely to reliably execute multi-step tool-call chains.
@@ -59,11 +64,14 @@ def select_provider_chain(provider_override: str | None, complexity: str = "smal
     """
     if provider_override:
         return [provider_override]
+    chain = routing_chain if routing_chain is not None else ROUTING_CHAIN
     available = []
-    for p in ROUTING_CHAIN:
+    for p in chain:
         if p == "ollama" and complexity == "large":
             continue
-        key_env = PROVIDER_KEY_ENV.get(p)
+        if p not in PROVIDER_KEY_ENV:
+            continue
+        key_env = PROVIDER_KEY_ENV[p]
         if key_env is None or os.environ.get(key_env):
             available.append(p)
     # For small complexity, always fall back to Ollama if nothing else is available.
