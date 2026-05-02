@@ -233,8 +233,10 @@ def run_agent(
     guardrail_deny_tools: list[str] = guardrails.get("deny_tools") or []
 
     # max_turns from frontmatter takes precedence over the global cap.
-    cap = guardrail_max_turns or (
-        max_iterations_large if resolved_complexity == "large" else max_iterations
+    cap = (
+        guardrail_max_turns
+        if guardrail_max_turns is not None
+        else (max_iterations_large if resolved_complexity == "large" else max_iterations)
     )
 
     try:
@@ -300,19 +302,6 @@ def run_agent(
                         total_prompt += response.usage.prompt_tokens
                         total_completion += response.usage.completion_tokens
 
-                    if guardrail_max_cost is not None:
-                        running_cost = estimate_cost_usd(
-                            candidate_provider,
-                            resolved_model,
-                            total_prompt,
-                            total_completion,
-                        )
-                        if running_cost > guardrail_max_cost:
-                            raise GuardrailError(
-                                f"max_cost_usd {guardrail_max_cost} exceeded"
-                                f" (running cost ${running_cost:.6f})"
-                            )
-
                     if response.text:
                         print(response.text)
 
@@ -327,6 +316,27 @@ def run_agent(
                             ledger_path,
                         )
                         return
+
+                    if guardrail_max_cost is not None:
+                        running_cost = estimate_cost_usd(
+                            candidate_provider,
+                            resolved_model,
+                            total_prompt,
+                            total_completion,
+                        )
+                        if running_cost > guardrail_max_cost:
+                            write_cost_ledger(
+                                agent_name,
+                                candidate_provider,
+                                resolved_model,
+                                total_prompt,
+                                total_completion,
+                                ledger_path,
+                            )
+                            raise GuardrailError(
+                                f"max_cost_usd {guardrail_max_cost} exceeded"
+                                f" (running cost ${running_cost:.6f})"
+                            )
 
                     tool_results = []
                     for tc in response.tool_calls:

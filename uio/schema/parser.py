@@ -56,6 +56,11 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
         if key not in known:
             errors.append(f"{path}: unrecognised frontmatter key '{key}'")
 
+    # guardrails block validation
+    guardrails = frontmatter.get("guardrails")
+    if guardrails is not None and not isinstance(guardrails, dict):
+        errors.append(f"{path}: 'guardrails' must be a mapping, got {type(guardrails).__name__}")
+
     # vcs-identity validation
     vcs_identity = frontmatter.get("vcs-identity")
     if vcs_identity is not None:

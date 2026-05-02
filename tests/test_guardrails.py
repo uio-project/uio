@@ -81,24 +81,20 @@ class TestMaxTurns:
 
 class TestMaxCostUsd:
     def test_max_cost_exceeded_raises_guardrail_error(self, tmp_path):
-        """When estimated cost exceeds max_cost_usd, GuardrailError is raised."""
+        """When estimated cost exceeds max_cost_usd after a tool-calling turn, GuardrailError is raised."""
         fm = "guardrails:\n  max_cost_usd: 0.000001\n"
+        tc = ToolCall(name="run_command", args={"command": "echo x"}, call_id="t1")
         client = MagicMock()
         client.build_history.return_value = [{"role": "user", "content": "begin"}]
-        client.chat.return_value = LLMResponse(text="Done.", tool_calls=[])
-        # Return non-zero token usage so the cost estimate is positive.
-        from uio.core.clients import TokenUsage
-
-        client.chat.return_value = LLMResponse(
-            text="Done.",
-            tool_calls=[],
-            usage=TokenUsage(prompt_tokens=10000, completion_tokens=5000),
-        )
+        # Tool-calling response so the cost check fires (it only runs after tool calls).
+        client.chat.return_value = LLMResponse(text=None, tool_calls=[tc])
         client.usage = None
+        client.append_turn.return_value = None
 
         with (
             patch("uio.core.runner.make_client", return_value=client),
             patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+            patch("uio.core.runner.execute_tool", return_value="ok"),
             patch(
                 "uio.core.runner.estimate_cost_usd",
                 return_value=0.05,  # always over the 0.000001 limit
@@ -108,16 +104,48 @@ class TestMaxCostUsd:
                 run_agent(**_make_run_args(tmp_path, fm))
 
     def test_no_guardrail_when_cost_under_limit(self, tmp_path):
-        """No error when running cost is below max_cost_usd."""
+        """No GuardrailError when running cost stays below max_cost_usd."""
         fm = "guardrails:\n  max_cost_usd: 100.0\n"
-        client = _terminal_client()
+        tc = ToolCall(name="run_command", args={"command": "echo x"}, call_id="t1")
+        client = MagicMock()
+        client.build_history.return_value = [{"role": "user", "content": "begin"}]
+        # One tool call then terminal — exercises the cost check path without triggering it.
+        client.chat.side_effect = [
+            LLMResponse(text=None, tool_calls=[tc]),
+            LLMResponse(text="Done.", tool_calls=[]),
+        ]
+        client.usage = None
+        client.append_turn.return_value = None
 
         with (
             patch("uio.core.runner.make_client", return_value=client),
             patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+            patch("uio.core.runner.execute_tool", return_value="ok"),
             patch("uio.core.runner.estimate_cost_usd", return_value=0.001),
         ):
             run_agent(**_make_run_args(tmp_path, fm))  # should not raise
+
+    def test_cost_ledger_written_on_guardrail_abort(self, tmp_path):
+        """write_cost_ledger is called before GuardrailError is raised."""
+        fm = "guardrails:\n  max_cost_usd: 0.000001\n"
+        tc = ToolCall(name="run_command", args={"command": "echo x"}, call_id="t1")
+        client = MagicMock()
+        client.build_history.return_value = [{"role": "user", "content": "begin"}]
+        client.chat.return_value = LLMResponse(text=None, tool_calls=[tc])
+        client.usage = None
+        client.append_turn.return_value = None
+
+        with (
+            patch("uio.core.runner.make_client", return_value=client),
+            patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+            patch("uio.core.runner.execute_tool", return_value="ok"),
+            patch("uio.core.runner.estimate_cost_usd", return_value=0.05),
+            patch("uio.core.runner.write_cost_ledger") as mock_ledger,
+        ):
+            with pytest.raises(GuardrailError):
+                run_agent(**_make_run_args(tmp_path, fm))
+
+        mock_ledger.assert_called_once()
 
 
 class TestDenyTools:
@@ -203,12 +231,51 @@ class TestGuardrailErrorPropagation:
     def test_guardrail_error_not_swallowed_by_provider_loop(self, tmp_path):
         """GuardrailError propagates out of run_agent, not swallowed by the provider loop."""
         fm = "guardrails:\n  max_cost_usd: 0.000001\n"
-        client = _terminal_client()
+        tc = ToolCall(name="run_command", args={"command": "echo x"}, call_id="t1")
+        client = MagicMock()
+        client.build_history.return_value = [{"role": "user", "content": "begin"}]
+        client.chat.return_value = LLMResponse(text=None, tool_calls=[tc])
+        client.usage = None
+        client.append_turn.return_value = None
 
         with (
             patch("uio.core.runner.make_client", return_value=client),
             patch("uio.core.runner.select_provider_chain", return_value=["gemini", "openai"]),
+            patch("uio.core.runner.execute_tool", return_value="ok"),
             patch("uio.core.runner.estimate_cost_usd", return_value=1.0),
         ):
             with pytest.raises(GuardrailError):
                 run_agent(**_make_run_args(tmp_path, fm))
+
+
+class TestSkillRunGuardrailError:
+    def test_skill_run_exits_nonzero_on_guardrail_error(self, tmp_path):
+        """uio skill run catches GuardrailError and calls SystemExit(1)."""
+        from click.testing import CliRunner
+
+        from uio.cli.skill import skill_group
+
+        defn = tmp_path / "probe.skill.md"
+        defn.write_text(
+            "---\nname: probe\ndescription: test\nguardrails:\n  max_cost_usd: 0.000001\n---\nDo the task.\n"
+        )
+        tc = ToolCall(name="run_command", args={"command": "echo x"}, call_id="t1")
+        client = MagicMock()
+        client.build_history.return_value = [{"role": "user", "content": "begin"}]
+        client.chat.return_value = LLMResponse(text=None, tool_calls=[tc])
+        client.usage = None
+        client.append_turn.return_value = None
+
+        runner = CliRunner()
+        with (
+            patch("uio.cli.skill.run_agent") as mock_run,
+        ):
+            mock_run.side_effect = GuardrailError(
+                "max_cost_usd 0.000001 exceeded (running cost $0.050000)"
+            )
+            result = runner.invoke(skill_group, ["run", "probe"])
+
+        assert result.exit_code == 1
+        assert "guardrail violated" in (
+            result.output + (result.stderr if hasattr(result, "stderr") else "")
+        )
