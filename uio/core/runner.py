@@ -164,6 +164,7 @@ def run_agent(
     max_iterations: int = _DEFAULT_MAX_ITERATIONS,
     max_iterations_large: int = _DEFAULT_MAX_ITERATIONS_LARGE,
     anthropic_max_tokens: int | None = None,
+    routing_chain: list[str] | None = None,
 ) -> None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -216,7 +217,7 @@ def run_agent(
         user_message = f"Begin your workflow now. Argument: {arg}"
 
     resolved_complexity = infer_complexity(agent_name, frontmatter, complexity, large_agent_names)
-    provider_chain = select_provider_chain(provider, resolved_complexity)
+    provider_chain = select_provider_chain(provider, resolved_complexity, routing_chain)
     # Frontmatter max_tokens overrides the project-level anthropic_max_tokens setting.
     resolved_max_tokens: int | None = frontmatter.get("max_tokens") or anthropic_max_tokens
     cap = max_iterations_large if resolved_complexity == "large" else max_iterations
