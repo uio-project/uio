@@ -226,3 +226,9 @@ __marimo__/
 
 # Agent clone workspaces (created by github-coder and similar agents)
 .tmp/
+
+# npm packages pre-bundled for the Docker build by the release workflow.
+# Only the .gitkeep placeholder is committed; package contents are generated.
+mcp-vendor/node_modules/*
+!mcp-vendor/node_modules/.gitkeep
+mcp-vendor/package*.json

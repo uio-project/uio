@@ -200,6 +200,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Pre-bundle npm MCP packages
+        run: |
+          npm install --prefix mcp-vendor \
+            @modelcontextprotocol/server-filesystem \
+            @modelcontextprotocol/server-sequential-thinking
+
       - name: Wait for uio-ai to appear on PyPI
         run: |
           version="${{ needs.build.outputs.version }}"
