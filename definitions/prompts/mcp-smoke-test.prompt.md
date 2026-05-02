@@ -4,6 +4,6 @@ description: Probe all configured MCP servers and report which ones are reachabl
 argument-hint: "[server-name ...]"
 ---
 
-Read `definitions/agents/mcp-smoke-test.agent.md` and execute the workflow with this argument:
+Use the mcp-smoke-test agent to probe all configured MCP servers described in the argument.
 
 $ARGUMENTS

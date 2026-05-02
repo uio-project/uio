@@ -4,6 +4,6 @@ description: Review a pull request and post structured review comments using the
 argument-hint: "<pr-url-or-owner/repo#number>"
 ---
 
-Read `definitions/agents/reviewer.agent.md` and execute the workflow with this argument:
+Use the reviewer agent to review the pull request described in the argument.
 
 $ARGUMENTS

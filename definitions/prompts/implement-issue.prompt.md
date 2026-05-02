@@ -4,6 +4,6 @@ description: Implement a GitHub issue by creating a branch, applying code change
 argument-hint: "<issue-number> [| repo: <owner>/<repo>] [| branch: <name>] [| base: <branch>]"
 ---
 
-Read `definitions/agents/coder.agent.md` and execute the workflow with this argument:
+Use the coder agent to implement the issue described in the argument.
 
 $ARGUMENTS
