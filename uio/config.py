@@ -20,6 +20,7 @@ _DEFAULTS: dict = {
     },
     "runtime": {
         "default_provider": None,
+        "routing_chain": None,
         "cost_ledger": "uio_cost.jsonl",
         "timeout": 300,
         "max_iterations": 10,
@@ -41,6 +42,7 @@ prompts = ".uio/prompts"
 
 [runtime]
 # default_provider = "gemini"
+# routing_chain = ["ollama", "openai", "gemini", "anthropic"]
 cost_ledger          = "uio_cost.jsonl"
 timeout              = 300
 max_iterations       = 10   # small agents (summarise, comment, query)

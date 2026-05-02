@@ -27,7 +27,10 @@ def config_show_cmd() -> None:
       uio config show
     """
     cfg = load_config()
-    chain = select_provider_chain(cfg["runtime"].get("default_provider"))
+    chain = select_provider_chain(
+        cfg["runtime"].get("default_provider"),
+        routing_chain=cfg["runtime"].get("routing_chain"),
+    )
 
     click.echo("Provider routing chain:\n")
     all_providers = ["gemini", "anthropic", "openai", "ollama"]

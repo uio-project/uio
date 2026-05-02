@@ -81,6 +81,7 @@ def prompt_run_cmd(
         ledger_path=cfg["runtime"]["cost_ledger"],
         large_agent_names=cfg["large_agents"]["names"],
         shell_override=shell,
+        routing_chain=cfg["runtime"].get("routing_chain"),
     )
 
 

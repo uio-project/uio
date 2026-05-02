@@ -215,6 +215,51 @@ def test_provider_chain_anthropic_only_when_only_anthropic_key(monkeypatch):
     assert chain.index("ollama") < chain.index("anthropic")
 
 
+def test_provider_chain_custom_routing_chain_respected(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "o-key")
+    chain = select_provider_chain(None, routing_chain=["anthropic", "openai"])
+    assert chain == ["anthropic", "openai"]
+
+
+def test_provider_chain_custom_chain_filters_missing_keys(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None, routing_chain=["anthropic", "openai"])
+    assert chain == ["anthropic"]
+    assert "openai" not in chain
+
+
+def test_provider_chain_custom_chain_unknown_provider_skipped(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
+    chain = select_provider_chain(None, routing_chain=["anthropic", "unknown-provider"])
+    assert chain == ["anthropic"]
+    assert "unknown-provider" not in chain
+
+
+def test_provider_chain_none_routing_chain_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "o-key")
+    chain_default = select_provider_chain(None, routing_chain=None)
+    chain_explicit = select_provider_chain(None)
+    assert chain_default == chain_explicit == ROUTING_CHAIN
+
+
+def test_provider_chain_custom_chain_ollama_included_for_large(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    chain = select_provider_chain(None, complexity="large", routing_chain=["ollama", "gemini"])
+    assert "ollama" not in chain
+
+
+def test_provider_chain_custom_chain_preserves_order(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "o-key")
+    chain = select_provider_chain(None, routing_chain=["gemini", "openai", "ollama"])
+    assert chain.index("gemini") < chain.index("openai") < chain.index("ollama")
+
+
 # ── estimate_cost_usd ──────────────────────────────────────────────────────────
 
 
