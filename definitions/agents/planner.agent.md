@@ -5,7 +5,7 @@ complexity: large
 capabilities:
   - vcs
 vcs-identity: planner
-argument-hint: "<task-description>"
+argument-hint: "<issue-number-or-description>"
 ---
 
 # Agent: planner
@@ -28,12 +28,12 @@ If no explicit `owner/repo` is provided, derive it from the current working dire
 
 **Plan an issue** — when asked to plan, decompose, or break down an existing issue:
 1. Run `/github-fetch-issue` with `owner/repo` and `issue-number` to get the full body and all comments.
-2. **Idempotency check** — scan existing comments for a prior planning comment (look for a `## Planning comment` heading or a list of child issue links). If one is found, report its URL and stop — do not create duplicate comments or issues.
+2. **Idempotency check** — scan existing comments for a prior planning comment (look for a `## Planning comment` heading or a list of child issue links). If one is found, report its URL and stop. Also search for open issues whose titles match the expected child issue titles (`mcp__mcp-github__search_issues` with `repo:<owner>/<repo> is:open "<title>"`): if matching child issues exist but no planning comment, reuse their URLs and proceed from step 6.
 3. Analyse whether the issue describes decomposable work (large feature, roadmap item, multi-step initiative). If it is already scoped to a single task, fall back to posting a triage comment as in "Comment on an issue".
 4. Propose 3–7 discrete, independently-implementable child issues with explicit dependency ordering.
 5. **Create child issues first** (so their URLs are known before the comment is written) — for each child issue, run `/github-create-issue`. Child issue bodies must include a `Parent issue: #N` line and a `Depends on: #N` line where ordering constraints exist. Collect all created issue URLs.
-6. Post a single planning comment via `/github-post-comment` that includes: triage assessment, sequencing rationale, and a table or list linking every created child issue URL.
-7. **Attempt sub-issue linking (best effort)** — for each created child issue, retrieve its database ID (`gh api repos/<owner>/<repo>/issues/<number> --jq '.id'`) then call `mcp__mcp-github__sub_issue_write` with `method: add`, `issue_number: <parent-number>`, and `sub_issue_id: <child-id>`. If any call returns an error (including 403), add a note to the planning comment ("Sub-issue linking unavailable — child issues reference the parent in their body.") and continue — do not abort.
+6. **Attempt sub-issue linking (best effort)** — for each created child issue, retrieve its database ID (`gh api repos/<owner>/<repo>/issues/<number> --jq '.id'`) then call `mcp__mcp-github__sub_issue_write` with `method: add`, `issue_number: <parent-number>`, and `sub_issue_id: <child-id>`. Note the outcome (success or failure reason) for inclusion in the planning comment — do not abort on error.
+7. Post a single planning comment via `/github-post-comment` that includes: triage assessment, sequencing rationale, a table or list linking every created child issue URL, and a one-line note if sub-issue linking was unavailable.
 8. Report the planning comment URL and stop.
 
 **Comment on an issue** — when the argument references an existing issue URL or `owner/repo#number` for an issue:
