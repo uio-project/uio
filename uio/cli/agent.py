@@ -111,6 +111,7 @@ def agent_run_cmd(
             max_iterations_large=cfg["runtime"]["max_iterations_large"],
             anthropic_max_tokens=cfg["runtime"]["anthropic_max_tokens"],
             routing_chain=cfg["runtime"].get("routing_chain"),
+            memory_dir=cfg["dirs"]["memory"],
         )
     except GuardrailError as exc:
         click.echo(f"Error: guardrail violated — {exc}", err=True)

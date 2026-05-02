@@ -17,6 +17,7 @@ _DEFAULTS: dict = {
         "agents": ".uio/agents",
         "skills": ".uio/skills",
         "prompts": ".uio/prompts",
+        "memory": ".uio/memory",
     },
     "runtime": {
         "default_provider": None,
@@ -39,6 +40,7 @@ _STARTER_TOML = """\
 agents  = ".uio/agents"
 skills  = ".uio/skills"
 prompts = ".uio/prompts"
+memory  = ".uio/memory"
 
 [runtime]
 # default_provider = "gemini"
