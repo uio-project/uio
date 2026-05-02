@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
+import glob as _glob
 import os
 import sys
 import time
@@ -47,6 +48,61 @@ _RETRY_BACKOFF = [5, 15, 30]  # seconds — enough for Gemini high-demand 503s t
 def _is_retryable(exc: Exception) -> bool:
     msg = str(exc)
     return any(s in msg for s in _RETRYABLE_SUBSTRINGS)
+
+
+def _count_tokens(text: str) -> int:
+    """Rough token estimate: 4 characters per token (matches common LLM rule of thumb)."""
+    return max(1, len(text) // 4)
+
+
+def _build_context_section(globs: list[str], project_root: str, max_tokens: int) -> str:
+    """Resolve file globs and return a ## Context block for the system prompt.
+
+    Files that match no globs are silently skipped.  Once the running token total
+    reaches *max_tokens* the current file is truncated with a marker and no further
+    files are read.  Returns an empty string when nothing matches.
+    """
+    if not globs:
+        return ""
+
+    sections: list[str] = []
+    total_tokens = 0
+    cap_reached = False
+
+    for pattern in globs:
+        if cap_reached:
+            break
+        matched = sorted(_glob.glob(os.path.join(project_root, pattern), recursive=True))
+        for fpath in matched:
+            if cap_reached:
+                break
+            if not os.path.isfile(fpath):
+                continue
+            try:
+                content = open(fpath, encoding="utf-8", errors="replace").read()
+            except OSError:
+                continue
+
+            file_tokens = _count_tokens(content)
+            rel_path = os.path.relpath(fpath, project_root)
+            remaining = max_tokens - total_tokens
+
+            if file_tokens <= remaining:
+                sections.append(f"### {rel_path}\n\n{content}")
+                total_tokens += file_tokens
+            else:
+                cutoff = remaining * 4
+                omitted = file_tokens - remaining
+                sections.append(
+                    f"### {rel_path}\n\n{content[:cutoff]}\n[truncated — {omitted} tokens omitted]"
+                )
+                cap_reached = True
+
+    if not sections:
+        return ""
+
+    body = "\n\n---\n\n".join(sections)
+    return f"## Context\n\n{body}\n\n"
 
 
 def _inject_vcs_identity(frontmatter: dict) -> str | None:
@@ -173,6 +229,7 @@ def run_agent(
     anthropic_max_tokens: int | None = None,
     routing_chain: list[str] | None = None,
     memory_dir: str | None = None,
+    context_max_tokens: int = 8000,
 ) -> None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -218,8 +275,15 @@ def run_agent(
 
     memory_block = build_memory_section(memory_dir) if memory_dir else ""
     memory_suffix = ("\n\n" + memory_block.rstrip()) if memory_block else ""
+
+    context_globs = frontmatter.get("context") or []
+    if isinstance(context_globs, str):
+        context_globs = [context_globs]
+    context_block = _build_context_section(context_globs, os.getcwd(), context_max_tokens)
+
     system_prompt = (
         f"{preamble}{attribution_block}"
+        f"{context_block}"
         f"# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
         f"{memory_suffix}"
     )
