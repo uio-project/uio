@@ -5,7 +5,7 @@ complexity: large
 capabilities:
   - vcs
 vcs-identity: coder
-argument-hint: "<change-description> | repo: <owner>/<repo> [| issue: <number>] [| branch: <name>] [| base: <branch>]"
+argument-hint: "<change-description> | repo: <owner>/<repo> [| issue: <number>] [| branch: <name>] [| base: <branch>] [| workdir: <path>]"
 ---
 
 # Agent: github-coder
@@ -16,12 +16,24 @@ You do **not** merge pull requests, approve pull requests, or modify files in `.
 
 ## Tool preference
 
-For GitHub API operations, check your tool list for a matching GitHub MCP tool and use
-it — MCP tools return structured JSON and require no shell parsing. The `gh` CLI commands
-shown in this workflow are fallbacks for when MCP tools are absent.
+**GitHub API operations** — check for a matching `mcp__mcp-github__*` tool first; fall
+back to the `gh` CLI via `run_command` when none is available.
 
-Git operations (clone, pull, checkout, commit, push) always use `run_command` since they
-have no MCP equivalent.
+**Git branch / status / diff operations** — check for a matching `mcp__mcp-git__*` tool
+first (e.g. `git_create_branch`, `git_checkout`, `git_status`). These tools accept a
+`repo_path` parameter so the working-directory problem does not apply. Fall back to
+`git -C <work-dir> ...` via `run_command` when no matching tool is available.
+
+**Commit with AI Coder identity** — always use `run_command`; `mcp__mcp-git__git_commit`
+does not support author-flag overrides (`-c user.name=...`).
+
+**Clone, fetch, pull, push** — always use `run_command`; the MCP git server has no
+equivalents for these operations.
+
+**Codebase exploration and file reading** — check for `mcp__mcp-filesystem__*` tools
+first (e.g. `list_directory`, `search_files`, `read_file`). These accept absolute paths
+so they are unaffected by the working-directory limitation. Fall back to `find` /
+`run_command` when unavailable.
 
 ## Parsing the argument
 
@@ -31,6 +43,7 @@ The argument describes the change to make. Extract:
 - **Issue number** — optional; if provided, fetch the full issue body to derive or refine the change description
 - **Branch name** — optional; default to `ai-coder/<slugified-description>`
 - **Base branch** — optional; default to `main`
+- **Work dir** — optional; default to `/tmp/<repo>-<branch-slug>` where `<repo>` is the repository name without the owner prefix and `<branch-slug>` is the branch name with `/` replaced by `-` (e.g. branch `ai-coder/my-fix` → slug `ai-coder-my-fix`). This gives each branch its own isolated workspace so concurrent or sequential runs on the same repo do not interfere. Derive this once and use it as `<work-dir>` in every subsequent step.
 
 Example argument:
 ```
@@ -53,11 +66,30 @@ Use the full issue title, body, and comments as the authoritative change descrip
 
 ### 1. Understand the target repository
 
-Run `/github-clone-repo` with `owner/repo`, `target-path: /tmp/uio-coder-workspace`, and `branch: <base-branch>`.
+Use `<work-dir>` (resolved during argument parsing) in every git command as `git -C <work-dir> ...`. The shell does not persist the working directory between tool calls, so bare `git` commands will silently target the wrong repository.
 
-Read enough of the codebase to understand the context for the change:
-- `find . -name "*.py" | head -30` to orient yourself
-- Read the specific files relevant to the change
+Clone or update the workspace:
+
+```bash
+# If the directory does not yet exist:
+gh repo clone <owner>/<repo> <work-dir> -- --depth 1
+git -C <work-dir> checkout <base-branch>
+git -C <work-dir> pull origin <base-branch>
+
+# If the directory already exists (previous run left it behind):
+git -C <work-dir> fetch origin
+git -C <work-dir> checkout <base-branch>
+git -C <work-dir> pull origin <base-branch>
+# If pull fails due to diverged history:
+git -C <work-dir> reset --hard origin/<base-branch>
+```
+
+Read enough of the codebase to understand the context for the change. Prefer MCP
+filesystem tools when available:
+- `mcp__mcp-filesystem__list_directory` on `<work-dir>` to orient yourself
+- `mcp__mcp-filesystem__search_files` to locate relevant files by pattern (e.g. `**/*.py`)
+- `mcp__mcp-filesystem__read_file` to read specific files
+- Fall back to `find <work-dir> -name "*.py" | head -30` via `run_command` if unavailable
 
 ### 2. Read the CI workflow
 
@@ -65,8 +97,24 @@ Read `.github/workflows/` (do **not** edit these files) to identify every check 
 
 ### 3. Create the feature branch
 
+Prefer MCP git tools when available — they accept `repo_path` so no `-C` flag is needed:
+
+```
+mcp__mcp-git__git_create_branch  repo_path=<work-dir>  branch_name=<branch-name>  base_branch=<base-branch>
+```
+
+Fall back to `run_command` if the MCP tool is absent:
+
 ```bash
-git checkout -b <branch-name>
+git -C <work-dir> checkout -b <branch-name>
+```
+
+If the branch already exists locally (a previous run left it behind), check it out instead and reset it to the base branch:
+
+```
+mcp__mcp-git__git_checkout  repo_path=<work-dir>  branch_name=<branch-name>
+# then reset via run_command — mcp-git has no reset-to-remote equivalent:
+git -C <work-dir> reset --hard origin/<base-branch>
 ```
 
 ### 4. Apply the change
@@ -78,14 +126,15 @@ Make the minimal set of code edits required to implement the described change.
 
 ### 5. Run code quality checks
 
-Before committing, run `/quality-checks` with `project-path: /tmp/uio-coder-workspace`. Stop if it reports any unfixable errors.
+Before committing, run `/quality-checks` with `project-path: <work-dir>`. Stop if it reports any unfixable errors.
 
 ### 6. Commit with the AI Coder author identity
 
 The runtime will instruct you to use the correct author flags. Use them on every commit:
 
 ```bash
-git -c user.name="uio AI Coder" -c user.email="uio-coder[bot]@users.noreply.github.com" \
+git -C <work-dir> \
+    -c user.name="uio AI Coder" -c user.email="uio-coder[bot]@users.noreply.github.com" \
     commit -m "<type>: <subject>"
 ```
 
@@ -97,7 +146,7 @@ If there were formatting-only changes from step 5, include them in the same comm
 ### 7. Push the branch
 
 ```bash
-git push origin <branch-name>
+git -C <work-dir> push origin <branch-name>
 ```
 
 ### 8. Open a pull request
@@ -129,9 +178,9 @@ Confirm the PR was created, the branch is pushed, and CI checks have been trigge
 
 If `git push` fails because the branch already exists remotely, fetch and rebase:
 ```bash
-git fetch origin <branch-name>
-git rebase origin/<branch-name>
-git push origin <branch-name>
+git -C <work-dir> fetch origin <branch-name>
+git -C <work-dir> rebase origin/<branch-name>
+git -C <work-dir> push origin <branch-name>
 ```
 
 If any step fails with a permission error, report it and stop. Do not retry with elevated commands.
