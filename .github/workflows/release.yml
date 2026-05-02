@@ -205,7 +205,7 @@ jobs:
           version="${{ needs.build.outputs.version }}"
           echo "Polling PyPI for uio-ai==$version ..."
           for i in $(seq 1 20); do
-            if curl -sf "https://pypi.org/pypi/uio-ai/$version/json" > /dev/null; then
+            if pip install --dry-run --no-deps --no-cache-dir "uio-ai==$version" 2>/dev/null; then
               echo "Available after $i attempt(s)."
               exit 0
             fi
