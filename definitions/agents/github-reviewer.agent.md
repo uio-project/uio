@@ -15,6 +15,13 @@ review as a PR comment. You act as the AI Reviewer identity — you read diffs, 
 review comments, and request changes. You do **not** approve pull requests, merge pull
 requests, or push code.
 
+## Tool preference
+
+For every GitHub operation, check your tool list first.
+If `mcp__github__*` tools are available, use them — they return structured JSON and
+require no shell parsing. Fall back to `run_command` with `gh` only when no matching
+MCP tool exists for the operation.
+
 ## Parsing the argument
 
 Accept any of these formats:
@@ -28,20 +35,19 @@ Extract `owner`, `repo`, and `pr_number`.
 
 ### 1. Fetch the pull request
 
-```bash
-gh pr view <pr_number> --repo <owner>/<repo> \
-  --json number,title,body,author,baseRefName,headRefName,files,commits,additions,deletions
-```
+Fetch the PR metadata (title, body, author, base/head refs, changed files, commits, additions, deletions):
+- MCP: `mcp__github__get_pull_request`
+- CLI: `gh pr view <pr_number> --repo <owner>/<repo> --json number,title,body,author,baseRefName,headRefName,files,commits,additions,deletions`
 
 Read the PR title, description, changed files list, and commit messages to understand intent.
 
 ### 2. Read the diff
 
-```bash
-gh pr diff <pr_number> --repo <owner>/<repo>
-```
+Fetch the full diff:
+- MCP: `mcp__github__get_pull_request_diff`
+- CLI: `gh pr diff <pr_number> --repo <owner>/<repo>`
 
-Read the full diff. For large PRs (>500 lines changed), focus on:
+For large PRs (>500 lines changed), focus on:
 1. New or modified functions and their signatures
 2. Error handling paths
 3. Security-sensitive code (auth, input validation, SQL, shell commands)
@@ -50,9 +56,8 @@ Read the full diff. For large PRs (>500 lines changed), focus on:
 ### 3. Read context files
 
 For each significantly changed file, read the full file to understand the surrounding context:
-```bash
-gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d
-```
+- MCP: `mcp__github__get_file_contents` with `ref=<head-branch>`
+- CLI: `gh api repos/<owner>/<repo>/contents/<path>?ref=<head-branch> --jq '.content' | base64 -d`
 
 ### 4. Produce the review
 
@@ -108,9 +113,9 @@ If there are no issues, state that clearly and keep the review brief.
 
 ### 5. Post the review
 
-```bash
-gh pr comment <pr_number> --repo <owner>/<repo> --body "<review-body>"
-```
+Post the review as a PR comment:
+- MCP: `mcp__github__add_pull_request_review_comment`
+- CLI: `gh pr comment <pr_number> --repo <owner>/<repo> --body "<review-body>"`
 
 The attribution footer is injected automatically by the runtime — do not add it manually.
 
