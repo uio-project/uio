@@ -53,12 +53,7 @@ Use the full issue title, body, and comments as the authoritative change descrip
 
 ### 1. Understand the target repository
 
-```bash
-gh repo clone <owner>/<repo> /tmp/uio-coder-workspace --depth 1
-cd /tmp/uio-coder-workspace
-git checkout <base-branch>
-git pull origin <base-branch>
-```
+Run `/github-clone-repo` with `owner/repo`, `target-path: /tmp/uio-coder-workspace`, and `branch: <base-branch>`.
 
 Read enough of the codebase to understand the context for the change:
 - `find . -name "*.py" | head -30` to orient yourself
@@ -83,18 +78,7 @@ Make the minimal set of code edits required to implement the described change.
 
 ### 5. Run code quality checks
 
-Before committing, detect and run every quality tool the project uses:
-
-```bash
-# Detect the formatter/linter from pyproject.toml, Makefile, or .pre-commit-config.yaml
-# then run against the ENTIRE project (not just changed files) to match CI exactly, e.g.:
-ruff format .
-ruff check --fix .
-# or: black . && flake8
-# or: pre-commit run --all-files
-```
-
-Running against the whole project (not just changed files) catches pre-existing issues on the branch that CI will also flag.
+Before committing, run `/quality-checks` with `project-path: /tmp/uio-coder-workspace`. Stop if it reports any unfixable errors.
 
 ### 6. Commit with the AI Coder author identity
 

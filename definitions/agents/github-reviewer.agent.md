@@ -57,12 +57,7 @@ For large PRs (>500 lines changed), focus on:
 
 ### 3. Clone the PR branch
 
-Clone the head branch to enable local git MCP tools (blame, log):
-
-```bash
-gh repo clone <owner>/<repo> /tmp/reviewer-workspace --depth 50
-git -C /tmp/reviewer-workspace checkout <head-branch>
-```
+Run `/github-clone-repo` with `owner/repo`, `target-path: /tmp/reviewer-workspace`, and `branch: <head-branch>`. This enables local git MCP tools (blame, log) in subsequent steps.
 
 ### 4. Read context files
 
