@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import sys
 
+from uio import __version__
+
 
 class MCPClient:
     """Minimal MCP stdio client for a single server process."""
@@ -61,7 +63,7 @@ class MCPClient:
             {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {},
-                "clientInfo": {"name": "uio", "version": "0.1.0"},
+                "clientInfo": {"name": "uio", "version": __version__},
             },
         )
         self._notify("initialized", {})

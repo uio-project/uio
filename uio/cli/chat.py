@@ -8,11 +8,17 @@ import json
 import click
 
 from uio.config import load_config
-from uio.core.clients import GeminiClient, LLMClient, LLMResponse, OpenAIClient, TokenUsage
+from uio.core.clients import (
+    GeminiClient,
+    LLMClient,
+    LLMResponse,
+    make_client,
+    OpenAIClient,
+    TokenUsage,
+)
 from uio.core.ledger import estimate_cost_usd, write_cost_ledger
 from uio.core.routing import select_model, select_provider_chain
 from uio.core.tools import TOOL_SCHEMA, ToolCall, execute_tool
-from uio.core.clients import make_client
 
 _DEFAULT_SYSTEM = """\
 You are a helpful AI assistant. Answer questions, help with code and debugging,
