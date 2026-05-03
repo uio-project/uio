@@ -1,4 +1,4 @@
-"""Tests for uio/core/github_app.py.
+"""Tests for uio/providers/github/app.py.
 
 All tests use a locally generated RSA key pair — no real GitHub credentials needed.
 The HTTP exchange is exercised via monkeypatching urllib.request.urlopen.
@@ -310,3 +310,13 @@ def test_invalid_github_identity_role_exits(monkeypatch):
     with pytest.raises(SystemExit) as exc_info:
         _inject_vcs_identity({"github-identity": "wizard"})
     assert exc_info.value.code != 0
+
+
+def test_unsupported_vcs_provider_exits():
+    """A vcs-provider other than 'github' must hard-fail with a clear message."""
+    from uio.core.runner import _inject_vcs_identity
+
+    with pytest.raises(SystemExit) as exc_info:
+        _inject_vcs_identity({"vcs-identity": "coder", "vcs-provider": "gitlab"})
+    assert exc_info.value.code != 0
+    assert "gitlab" in str(exc_info.value.code)

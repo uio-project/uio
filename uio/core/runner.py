@@ -109,8 +109,8 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
     Reads ``vcs-identity`` first; falls back to the deprecated ``github-identity``
     field with a warning.  When neither field is set this is a no-op.
 
-    Only GitHub App authentication is implemented in this phase.  GitLab and
-    other providers return early after emitting an informational message.
+    Only GitHub App authentication is implemented. Any other ``vcs-provider``
+    value is rejected with a hard error.
 
     When a GitHub identity IS declared, App credentials are mandatory — no
     fallback to GITHUB_PERSONAL_ACCESS_TOKEN is permitted.
@@ -131,8 +131,9 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
     provider = frontmatter.get("vcs-provider", "github")
 
     if provider != "github":
-        raise NotImplementedError(
-            f"vcs-provider '{provider}' is not supported — only 'github' is implemented"
+        sys.exit(
+            f"Error: vcs-provider '{provider}' is not supported — only 'github' is implemented.\n"
+            f"  See docs/providers/ for the list of supported providers."
         )
 
     if role not in KNOWN_ROLES:

@@ -25,8 +25,6 @@ from typing import Final
 
 import jwt
 
-from uio.core.identities import KNOWN_ROLES as KNOWN_ROLES  # re-export for back-compat
-
 # GitHub issues JWTs that expire at most 10 minutes from now.
 # Use 9 minutes to leave a safe margin.
 _JWT_LIFETIME_SECONDS: Final = 540
