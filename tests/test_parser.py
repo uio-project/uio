@@ -346,9 +346,9 @@ def test_validate_no_vcs_identity_does_not_import_github_app(tmp_path):
     """validate_definition on a definition with no vcs-identity must not load github_app."""
     import sys
 
-    sys.modules.pop("uio.core.github_app", None)
+    sys.modules.pop("uio.providers.github.app", None)
     f = tmp_path / "test.agent.md"
     f.write_text("---\nname: test\ndescription: test\n---\n# Agent: test\n")
     fm, _ = parse_definition_file(str(f))
     validate_definition(str(f), fm)
-    assert "uio.core.github_app" not in sys.modules
+    assert "uio.providers.github.app" not in sys.modules

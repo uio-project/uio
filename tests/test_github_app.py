@@ -1,4 +1,4 @@
-"""Tests for uio/core/github_app.py.
+"""Tests for uio/providers/github/app.py.
 
 All tests use a locally generated RSA key pair — no real GitHub credentials needed.
 The HTTP exchange is exercised via monkeypatching urllib.request.urlopen.
@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from uio.core.github_app import (
+from uio.providers.github.app import (
     GitHubAppClient,
     GitHubAppError,
     _parse_iso8601,
@@ -148,7 +148,7 @@ def test_get_installation_token_refreshes_when_near_expiry(
 ) -> None:
     c = GitHubAppClient(app_id="1", private_key_pem=rsa_private_key_pem, installation_id="2")
     # Seed an almost-expired cache entry (expires in 30 s — within the 60 s buffer).
-    from uio.core.github_app import _CachedToken
+    from uio.providers.github.app import _CachedToken
 
     c._cache = _CachedToken(token="ghs_old", expires_at=time.time() + 30)
 
@@ -310,3 +310,13 @@ def test_invalid_github_identity_role_exits(monkeypatch):
     with pytest.raises(SystemExit) as exc_info:
         _inject_vcs_identity({"github-identity": "wizard"})
     assert exc_info.value.code != 0
+
+
+def test_unsupported_vcs_provider_exits():
+    """A vcs-provider other than 'github' must hard-fail with a clear message."""
+    from uio.core.runner import _inject_vcs_identity
+
+    with pytest.raises(SystemExit) as exc_info:
+        _inject_vcs_identity({"vcs-identity": "coder", "vcs-provider": "gitlab"})
+    assert exc_info.value.code != 0
+    assert "gitlab" in str(exc_info.value.code)

@@ -88,10 +88,10 @@ def _exchange_token(role: str) -> tuple[str, str, dict[str, str]]:
     # Import here so the script can report env var problems before the import path is hit.
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
     try:
-        from uio.core.github_app import GitHubAppClient
+        from uio.providers.github.app import GitHubAppClient
     except ImportError:
         _die(
-            "Could not import uio.core.github_app — run from the repo root or install the package."
+            "Could not import uio.providers.github.app — run from the repo root or install the package."
         )
 
     client = GitHubAppClient.from_env(role)
