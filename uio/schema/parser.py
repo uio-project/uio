@@ -100,7 +100,7 @@ def check_identity_env(path: str, frontmatter: dict) -> list[str]:
         # Non-GitHub providers use different env vars; skip this check for now.
         return []
 
-    from uio.core.github_app import env_vars_present
+    from uio.providers.github.app import env_vars_present
 
     if not env_vars_present(identity):
         role_upper = identity.upper()

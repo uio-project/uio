@@ -11,11 +11,6 @@ import time
 from uio import __version__
 from uio.core.attribution import build_attribution_instructions
 from uio.core.clients import make_client, probe_tool_calling
-from uio.core.github_app import (
-    GitHubAppError,
-    env_vars_present,
-    get_token_for_identity,
-)
 from uio.core.identities import KNOWN_ROLES
 from uio.core.ledger import DEFAULT_LEDGER_PATH, estimate_cost_usd, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
@@ -136,13 +131,20 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
     provider = frontmatter.get("vcs-provider", "github")
 
     if provider != "github":
-        print(f"  [vcs-identity] provider '{provider}' — credential injection not yet implemented")
-        return role
+        raise NotImplementedError(
+            f"vcs-provider '{provider}' is not supported — only 'github' is implemented"
+        )
 
     if role not in KNOWN_ROLES:
         sys.exit(
             f"Error: unsupported vcs-identity value '{role}' — must be one of {sorted(KNOWN_ROLES)}"
         )
+
+    from uio.providers.github.app import (
+        GitHubAppError,
+        env_vars_present,
+        get_token_for_identity,
+    )
 
     if not env_vars_present(role):
         role_upper = role.upper()

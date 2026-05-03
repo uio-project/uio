@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from uio.core.github_app import (
+from uio.providers.github.app import (
     GitHubAppClient,
     GitHubAppError,
     _parse_iso8601,
@@ -148,7 +148,7 @@ def test_get_installation_token_refreshes_when_near_expiry(
 ) -> None:
     c = GitHubAppClient(app_id="1", private_key_pem=rsa_private_key_pem, installation_id="2")
     # Seed an almost-expired cache entry (expires in 30 s — within the 60 s buffer).
-    from uio.core.github_app import _CachedToken
+    from uio.providers.github.app import _CachedToken
 
     c._cache = _CachedToken(token="ghs_old", expires_at=time.time() + 30)
 
