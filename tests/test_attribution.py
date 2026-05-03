@@ -141,3 +141,19 @@ def test_build_attribution_instructions_github_default_unchanged():
     block = build_attribution_instructions("coder", "github-coder", "0.1.0")
     assert "mcp__github__" in block
     assert "GitHub App" in block
+
+
+def test_render_pr_footer_gitlab_uses_merge_request():
+    footer = render_pr_footer("coder", vcs_provider="gitlab")
+    assert "merge request" in footer
+    assert "pull request" not in footer
+
+
+def test_render_pr_footer_github_default_uses_pull_request():
+    footer = render_pr_footer("coder")
+    assert "pull request" in footer
+
+
+def test_build_attribution_instructions_gitlab_no_pull_request_language():
+    block = build_attribution_instructions("coder", "gitlab-coder", vcs_provider="gitlab")
+    assert "pull request" not in block

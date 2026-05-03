@@ -63,7 +63,27 @@ clarification and stop. Otherwise proceed.
 ### 1. Clone and explore the repository
 
 Clone the repository and read enough of the codebase to understand the context for
-the change. Run `/gitlab-fetch-mr` if a linked open MR already exists.
+the change.
+
+If an issue number was provided, search for a linked open MR before cloning:
+
+```
+mcp__gitlab__list_merge_requests  project=<project>  state=opened  search="Closes #<issue>"
+```
+
+Fall back to the `glab` CLI:
+
+```bash
+glab mr list --repo <project> --state opened --output json \
+  | jq '[.[] | select(.description | ascii_downcase | contains("closes #<issue>"))]'
+```
+
+**If exactly one open MR is found**, fetch its comments using `/gitlab-fetch-mr`, collect
+unresolved review suggestions, and treat them as the primary implementation target. Override
+the branch name with the MR's source branch; push to that branch to update the existing MR
+automatically rather than opening a new one.
+
+**If no open MR is found**, proceed with a fresh branch.
 
 ### 2. Read the CI configuration
 
