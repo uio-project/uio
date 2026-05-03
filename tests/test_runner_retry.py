@@ -152,3 +152,29 @@ class TestVcsAliasPreamble:
         """An agent with neither capabilities nor vcs-identity should not get the alias table."""
         system = self._run_and_capture_system(tmp_path)
         assert "VCS Tool Aliases" not in system
+
+    def test_vcs_identity_still_injects_alias_table(self, tmp_path):
+        """vcs-identity path continues to inject the alias table (regression guard)."""
+        from uio.core.clients import LLMResponse
+        from uio.core.runner import run_agent
+
+        terminal = LLMResponse(text="Done.", tool_calls=[])
+        captured: dict[str, str] = {}
+
+        mock_client = MagicMock()
+        mock_client.build_history.return_value = [{"role": "user", "content": "begin"}]
+
+        def chat_capture(**kwargs):
+            captured["system"] = kwargs.get("system", "")
+            return terminal
+
+        mock_client.chat.side_effect = chat_capture
+
+        with (
+            patch("uio.core.runner.make_client", return_value=mock_client),
+            patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+            patch("uio.core.runner._inject_vcs_identity", return_value="coder"),
+        ):
+            run_agent(**self._make_run_args(tmp_path))
+
+        assert "VCS Tool Aliases" in captured.get("system", "")

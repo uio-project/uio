@@ -267,8 +267,11 @@ def run_agent(
         del mcp_clients[name]
 
     # Inject the alias table when vcs-identity is set OR when capabilities includes "vcs".
+    _caps = frontmatter.get("capabilities") or []
+    if isinstance(_caps, str):
+        _caps = [_caps]
     vcs_provider: str | None = None
-    if role in KNOWN_ROLES or "vcs" in (frontmatter.get("capabilities") or []):
+    if role in KNOWN_ROLES or "vcs" in _caps:
         vcs_provider = frontmatter.get("vcs-provider", "github")
 
     preamble = _build_preamble(bool(mcp_clients), shell_override, vcs_provider)
