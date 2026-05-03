@@ -45,7 +45,11 @@ def _raw_url(repo_url: str, ref: str, path: str) -> str:
 
 
 def _auth_headers() -> dict[str, str]:
-    token = os.environ.get("GITHUB_TOKEN")
+    token = (
+        os.environ.get("GH_TOKEN")
+        or os.environ.get("GITHUB_TOKEN")
+        or os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+    )
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 

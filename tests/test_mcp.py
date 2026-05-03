@@ -5,7 +5,9 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from click.testing import CliRunner
 
+from uio.cli.main import main
 from uio.core.mcp import MCPClient, _default_github_mcp_command, make_mcp_client, make_mcp_clients
 
 
@@ -442,3 +444,81 @@ class TestMCPClientCallTool:
         with patch.object(client, "_rpc", return_value=payload):
             result = client.call_tool("mcp__github__search_repositories", {"query": "uio"})
         assert result == "found 1 repo"
+
+
+class TestMcpPluginsForwardedToCli:
+    """Confirm mcp_plugins from uio.toml reaches run_agent via skill run and prompt run."""
+
+    def _make_cfg(self, plugins: list) -> dict:
+        return {
+            "dirs": {
+                "skills": ".uio/skills",
+                "prompts": ".uio/prompts",
+                "agents": ".uio/agents",
+                "memory": ".uio/memory",
+            },
+            "runtime": {
+                "timeout": 60,
+                "cost_ledger": ".uio/cost.log",
+                "context_max_tokens": 100000,
+                "default_provider": None,
+                "routing_chain": None,
+            },
+            "mcp": {},
+            "mcp_plugins": plugins,
+            "large_agents": {"names": []},
+        }
+
+    def test_skill_run_forwards_mcp_plugins(self):
+        plugins = [{"name": "linear", "type": "tracker", "command": "npx linear-mcp"}]
+        cfg = self._make_cfg(plugins)
+
+        runner = CliRunner()
+        with (
+            patch("uio.cli.skill.load_config", return_value=cfg),
+            patch("uio.cli.skill.run_agent") as mock_run,
+        ):
+            result = runner.invoke(
+                main,
+                ["skill", "run", "test-skill"],
+                catch_exceptions=False,
+            )
+
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+        _, kwargs = mock_run.call_args
+        assert kwargs["mcp_plugins"] == plugins
+
+    def test_prompt_run_forwards_mcp_plugins(self):
+        plugins = [{"name": "linear", "type": "tracker", "command": "npx linear-mcp"}]
+        cfg = self._make_cfg(plugins)
+
+        runner = CliRunner()
+        with (
+            patch("uio.cli.prompt.load_config", return_value=cfg),
+            patch("uio.cli.prompt.run_agent") as mock_run,
+        ):
+            result = runner.invoke(
+                main,
+                ["prompt", "run", "test-prompt"],
+                catch_exceptions=False,
+            )
+
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+        _, kwargs = mock_run.call_args
+        assert kwargs["mcp_plugins"] == plugins
+
+    def test_skill_run_empty_plugins_still_forwarded(self):
+        cfg = self._make_cfg([])
+
+        runner = CliRunner()
+        with (
+            patch("uio.cli.skill.load_config", return_value=cfg),
+            patch("uio.cli.skill.run_agent") as mock_run,
+        ):
+            runner.invoke(main, ["skill", "run", "some-skill"], catch_exceptions=False)
+
+        mock_run.assert_called_once()
+        _, kwargs = mock_run.call_args
+        assert kwargs["mcp_plugins"] == []
