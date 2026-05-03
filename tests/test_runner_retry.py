@@ -102,3 +102,53 @@ class TestChatRetry:
         # chat was called once on gemini (no retry), then succeeded on openai
         assert mock_client.chat.call_count == 1
         assert second_client.chat.call_count == 1
+
+
+class TestVcsAliasPreamble:
+    """Verify that the VCS alias table is injected based on capabilities, not only vcs-identity."""
+
+    def _make_run_args(self, tmp_path, frontmatter_extra: str = ""):
+        defn = tmp_path / "test.agent.md"
+        defn.write_text(f"---\nname: test-agent\n{frontmatter_extra}---\nDo the task.\n")
+        return {
+            "agent_name": "test-agent",
+            "definition_path": str(defn),
+            "no_mcp": True,
+            "ledger_path": str(tmp_path / "ledger.jsonl"),
+        }
+
+    def _run_and_capture_system(self, tmp_path, frontmatter_extra: str = "") -> str:
+        from uio.core.clients import LLMResponse
+        from uio.core.runner import run_agent
+
+        terminal = LLMResponse(text="Done.", tool_calls=[])
+        captured: dict[str, str] = {}
+
+        mock_client = MagicMock()
+        mock_client.build_history.return_value = [{"role": "user", "content": "begin"}]
+
+        def chat_capture(**kwargs):
+            captured["system"] = kwargs.get("system", "")
+            return terminal
+
+        mock_client.chat.side_effect = chat_capture
+        mock_client.usage = None
+
+        with (
+            patch("uio.core.runner.make_client", return_value=mock_client),
+            patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+        ):
+            run_agent(**self._make_run_args(tmp_path, frontmatter_extra))
+
+        return captured.get("system", "")
+
+    def test_capabilities_vcs_injects_alias_table(self, tmp_path):
+        """capabilities: [vcs] without vcs-identity should include the VCS alias table."""
+        system = self._run_and_capture_system(tmp_path, "capabilities: [vcs]\n")
+        assert "VCS Tool Aliases" in system
+        assert "vcs__list_issues" in system
+
+    def test_no_vcs_capability_omits_alias_table(self, tmp_path):
+        """An agent with neither capabilities nor vcs-identity should not get the alias table."""
+        system = self._run_and_capture_system(tmp_path)
+        assert "VCS Tool Aliases" not in system
