@@ -446,39 +446,6 @@ class TestMCPClientCallTool:
         assert result == "found 1 repo"
 
 
-_TOML_WITH_PLUGINS = """\
-[runtime]
-timeout = 60
-
-[[mcp.plugins]]
-name = "linear"
-type = "tracker"
-command = "npx linear-mcp"
-env_keys = ["LINEAR_API_KEY"]
-"""
-
-_SKILL_DEF = """\
----
-name: test-skill
-description: A test skill.
----
-
-## Steps
-
-Do something.
-"""
-
-_PROMPT_DEF = """\
----
-name: test-prompt
-description: A test prompt.
-argument-hint: "[arg]"
----
-
-Do something.
-"""
-
-
 class TestMcpPluginsForwardedToCli:
     """Confirm mcp_plugins from uio.toml reaches run_agent via skill run and prompt run."""
 
@@ -502,13 +469,9 @@ class TestMcpPluginsForwardedToCli:
             "large_agents": {"names": []},
         }
 
-    def test_skill_run_forwards_mcp_plugins(self, tmp_path):
+    def test_skill_run_forwards_mcp_plugins(self):
         plugins = [{"name": "linear", "type": "tracker", "command": "npx linear-mcp"}]
         cfg = self._make_cfg(plugins)
-
-        skill_dir = tmp_path / ".uio" / "skills"
-        skill_dir.mkdir(parents=True)
-        (skill_dir / "test-skill.skill.md").write_text(_SKILL_DEF)
 
         runner = CliRunner()
         with (
@@ -526,13 +489,9 @@ class TestMcpPluginsForwardedToCli:
         _, kwargs = mock_run.call_args
         assert kwargs["mcp_plugins"] == plugins
 
-    def test_prompt_run_forwards_mcp_plugins(self, tmp_path):
+    def test_prompt_run_forwards_mcp_plugins(self):
         plugins = [{"name": "linear", "type": "tracker", "command": "npx linear-mcp"}]
         cfg = self._make_cfg(plugins)
-
-        prompt_dir = tmp_path / ".uio" / "prompts"
-        prompt_dir.mkdir(parents=True)
-        (prompt_dir / "test-prompt.prompt.md").write_text(_PROMPT_DEF)
 
         runner = CliRunner()
         with (

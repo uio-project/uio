@@ -9,7 +9,7 @@ import click
 
 from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
-from uio.core.runner import run_agent
+from uio.core.runner import GuardrailError, run_agent
 from uio.core.tools import SHELL_CHOICES
 
 _PROMPT_TEMPLATE = textwrap.dedent("""\
@@ -68,24 +68,28 @@ def prompt_run_cmd(
     cfg = load_config()
     prompts_dir = cfg["dirs"]["prompts"]
     definition_path = f"{prompts_dir}/{prompt_name}.prompt.md"
-    run_agent(
-        prompt_name,
-        arg,
-        provider=provider or cfg["runtime"].get("default_provider"),
-        model=model,
-        base_url=base_url,
-        timeout=timeout or cfg["runtime"]["timeout"],
-        no_mcp=no_mcp,
-        mcp_cfg=cfg["mcp"],
-        mcp_plugins=cfg["mcp_plugins"],
-        definition_path=definition_path,
-        ledger_path=cfg["runtime"]["cost_ledger"],
-        large_agent_names=cfg["large_agents"]["names"],
-        shell_override=shell,
-        routing_chain=cfg["runtime"].get("routing_chain"),
-        memory_dir=cfg["dirs"]["memory"],
-        context_max_tokens=cfg["runtime"]["context_max_tokens"],
-    )
+    try:
+        run_agent(
+            prompt_name,
+            arg,
+            provider=provider or cfg["runtime"].get("default_provider"),
+            model=model,
+            base_url=base_url,
+            timeout=timeout or cfg["runtime"]["timeout"],
+            no_mcp=no_mcp,
+            mcp_cfg=cfg["mcp"],
+            mcp_plugins=cfg["mcp_plugins"],
+            definition_path=definition_path,
+            ledger_path=cfg["runtime"]["cost_ledger"],
+            large_agent_names=cfg["large_agents"]["names"],
+            shell_override=shell,
+            routing_chain=cfg["runtime"].get("routing_chain"),
+            memory_dir=cfg["dirs"]["memory"],
+            context_max_tokens=cfg["runtime"]["context_max_tokens"],
+        )
+    except GuardrailError as exc:
+        click.echo(f"Error: guardrail violated — {exc}", err=True)
+        raise SystemExit(1)
 
 
 @prompt_group.command("list")
