@@ -83,3 +83,61 @@ def test_build_attribution_instructions_all_roles_valid():
         block = build_attribution_instructions(role, "test-agent")
         assert len(block) > 100
         assert IDENTITY_DISPLAY_NAMES[role] in block
+
+
+# --- GitLab provider tests ---
+
+
+def test_render_commit_author_gitlab_email():
+    author = render_commit_author("coder", vcs_provider="gitlab")
+    assert author["name"] == "uio AI Coder"
+    assert "gitlab.com" in author["email"]
+    assert "github.com" not in author["email"]
+
+
+def test_render_commit_author_gitlab_all_roles():
+    for role in ("planner", "coder", "reviewer"):
+        author = render_commit_author(role, vcs_provider="gitlab")
+        assert "gitlab.com" in author["email"]
+
+
+def test_render_commit_author_github_default():
+    author = render_commit_author("coder")
+    assert "github.com" in author["email"]
+
+
+def test_render_commit_author_returns_copy_gitlab():
+    a = render_commit_author("coder", vcs_provider="gitlab")
+    b = render_commit_author("coder", vcs_provider="gitlab")
+    a["email"] = "tampered"
+    assert b["email"] != "tampered"
+
+
+def test_build_attribution_instructions_gitlab_tool_references():
+    block = build_attribution_instructions("coder", "gitlab-coder", "0.1.0", vcs_provider="gitlab")
+    assert "mcp__gitlab__" in block
+    assert "mcp__github__" not in block
+
+
+def test_build_attribution_instructions_gitlab_mr_terminology():
+    block = build_attribution_instructions("planner", "gitlab-planner", vcs_provider="gitlab")
+    assert "Merge request" in block or "MR" in block
+    assert "Pull request" not in block
+
+
+def test_build_attribution_instructions_gitlab_identity_label():
+    block = build_attribution_instructions("reviewer", "gitlab-reviewer", vcs_provider="gitlab")
+    assert "GitLab" in block
+    assert "GitHub App" not in block
+
+
+def test_build_attribution_instructions_gitlab_coder_commit_email():
+    block = build_attribution_instructions("coder", "gitlab-coder", vcs_provider="gitlab")
+    # The commit author email in the coder commit section must reference gitlab.com.
+    assert "uio-coder[bot]@users.noreply.gitlab.com" in block
+
+
+def test_build_attribution_instructions_github_default_unchanged():
+    block = build_attribution_instructions("coder", "github-coder", "0.1.0")
+    assert "mcp__github__" in block
+    assert "GitHub App" in block

@@ -274,7 +274,9 @@ def run_agent(
     preamble = _build_preamble(bool(mcp_clients), shell_override, vcs_provider)
 
     attribution_block = (
-        build_attribution_instructions(role, frontmatter.get("name", agent_name), __version__)
+        build_attribution_instructions(
+            role, frontmatter.get("name", agent_name), __version__, vcs_provider or "github"
+        )
         if role in KNOWN_ROLES
         else ""
     )
