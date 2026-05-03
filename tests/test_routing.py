@@ -260,6 +260,13 @@ def test_provider_chain_custom_chain_preserves_order(monkeypatch):
     assert chain.index("gemini") < chain.index("openai") < chain.index("ollama")
 
 
+def test_provider_chain_no_ollama_fallback_when_chain_excludes_ollama(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    chain = select_provider_chain(None, routing_chain=["gemini", "openai"])
+    assert chain == []
+
+
 # ── estimate_cost_usd ──────────────────────────────────────────────────────────
 
 
