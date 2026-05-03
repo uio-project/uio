@@ -411,9 +411,6 @@ def chat_cmd(
             )
             total_prompt += ep
             total_completion += ec
-            if response.usage:
-                total_prompt += response.usage.prompt_tokens
-                total_completion += response.usage.completion_tokens
 
         history.append(_assistant_turn(client, response.text or ""))
         click.echo()

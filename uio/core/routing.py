@@ -74,8 +74,8 @@ def select_provider_chain(
         key_env = PROVIDER_KEY_ENV[p]
         if key_env is None or os.environ.get(key_env):
             available.append(p)
-    # For small complexity, always fall back to Ollama if nothing else is available.
+    # For small complexity, fall back to Ollama only when it is in the active chain.
     # For large complexity, Ollama is excluded — an empty list tells the runner to exit cleanly.
-    if not available and complexity != "large":
+    if not available and complexity != "large" and "ollama" in chain:
         return ["ollama"]
     return available
