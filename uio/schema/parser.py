@@ -8,6 +8,7 @@ import re
 import yaml
 
 from uio.core.identities import KNOWN_ROLES
+from uio.core.vcs import KNOWN_CAPABILITY_TYPES
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
 
@@ -23,14 +24,19 @@ _STOPPING_PHRASES = re.compile(
 )
 
 
-def parse_definition_file(path: str) -> tuple[dict, str]:
-    """Return (frontmatter_dict, body_text) for a definition file."""
+def parse_frontmatter_raw(path: str) -> tuple[dict, str]:
+    """Return (frontmatter_dict, body_text) for any YAML-frontmatter file."""
     with open(path) as f:
         raw = f.read()
     m = _FRONTMATTER_RE.match(raw)
     if not m:
         return {}, raw.strip()
     return yaml.safe_load(m.group(1)) or {}, m.group(2).strip()
+
+
+def parse_definition_file(path: str) -> tuple[dict, str]:
+    """Return (frontmatter_dict, body_text) for a definition file."""
+    return parse_frontmatter_raw(path)
 
 
 def validate_definition(path: str, frontmatter: dict) -> list[str]:
@@ -63,6 +69,17 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     guardrails = frontmatter.get("guardrails")
     if guardrails is not None and not isinstance(guardrails, dict):
         errors.append(f"{path}: 'guardrails' must be a mapping, got {type(guardrails).__name__}")
+
+    # capabilities validation
+    capabilities = frontmatter.get("capabilities") or []
+    if isinstance(capabilities, str):
+        capabilities = [capabilities]
+    for cap in capabilities:
+        if cap not in KNOWN_CAPABILITY_TYPES:
+            errors.append(
+                f"{path}: unknown capability '{cap}'"
+                f" — must be one of {sorted(KNOWN_CAPABILITY_TYPES)}"
+            )
 
     # vcs-identity validation
     vcs_identity = frontmatter.get("vcs-identity")

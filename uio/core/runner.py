@@ -14,7 +14,7 @@ from uio.core.clients import make_client, probe_tool_calling
 from uio.core.identities import KNOWN_ROLES
 from uio.core.ledger import DEFAULT_LEDGER_PATH, estimate_cost_usd, write_cost_ledger
 from uio.core.mcp import make_mcp_clients
-from uio.core.memory import build_memory_section, clear_session_memory
+from uio.core.memory import build_memory_section, clear_session_memory, estimate_tokens
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
 from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
 from uio.core.vcs import build_tool_alias_section
@@ -43,11 +43,6 @@ _RETRY_BACKOFF = [5, 15, 30]  # seconds — enough for Gemini high-demand 503s t
 def _is_retryable(exc: Exception) -> bool:
     msg = str(exc)
     return any(s in msg for s in _RETRYABLE_SUBSTRINGS)
-
-
-def _count_tokens(text: str) -> int:
-    """Rough token estimate: 4 characters per token (matches common LLM rule of thumb)."""
-    return len(text) // 4
 
 
 def _build_context_section(globs: list[str], project_root: str, max_tokens: int) -> str:
@@ -79,7 +74,7 @@ def _build_context_section(globs: list[str], project_root: str, max_tokens: int)
             except OSError:
                 continue
 
-            file_tokens = _count_tokens(content)
+            file_tokens = estimate_tokens(content)
             rel_path = os.path.relpath(fpath, project_root)
             remaining = max_tokens - total_tokens
 
