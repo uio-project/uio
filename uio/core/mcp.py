@@ -11,6 +11,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from uio import __version__
@@ -223,11 +224,17 @@ def make_mcp_clients(
     # Cheap filtering (empty name/command, missing env vars, duplicates) happens
     # here so we never submit invalid work to the thread pool.
     seen: set[str] = set()
-    tasks: list[tuple[str, object]] = []  # (name, callable | plugin_meta)
+    tasks: list[tuple[str, Callable[[], MCPClient | None]]] = []
 
     # Backwards compat: auto-start GitHub when token is set and not in config
     if "github" not in mcp_cfg:
-        seen.add("github")
+        token_available = bool(
+            os.environ.get("GH_TOKEN")
+            or os.environ.get("GITHUB_TOKEN")
+            or os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+        )
+        if token_available:
+            seen.add("github")
         tasks.append(("github", make_mcp_client))
 
     for name, server_cfg in mcp_cfg.items():
@@ -277,7 +284,7 @@ def make_mcp_clients(
         return {}
 
     clients: dict[str, MCPClient] = {}
-    with ThreadPoolExecutor(max_workers=len(tasks)) as pool:
+    with ThreadPoolExecutor() as pool:
         future_to_name = {pool.submit(fn): name for name, fn in tasks}
         for future in as_completed(future_to_name):
             name = future_to_name[future]
