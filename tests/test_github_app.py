@@ -326,6 +326,7 @@ def test_successful_injection_sets_app_identity_flag(monkeypatch):
     from uio.core.runner import _inject_vcs_identity
 
     monkeypatch.delenv("_UIO_APP_IDENTITY_ACTIVE", raising=False)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
 
     with (
         patch("uio.providers.github.app.env_vars_present", return_value=True),
