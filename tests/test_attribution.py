@@ -157,3 +157,21 @@ def test_render_pr_footer_github_default_uses_pull_request():
 def test_build_attribution_instructions_gitlab_no_pull_request_language():
     block = build_attribution_instructions("coder", "gitlab-coder", vcs_provider="gitlab")
     assert "pull request" not in block
+
+
+# --- Unknown role fallback tests (issue #206) ---
+
+
+def test_render_comment_footer_unknown_role_no_exception():
+    footer = render_comment_footer("future-role", "test-agent", "1.0.0")
+    assert "future-role" in footer
+
+
+def test_render_pr_footer_unknown_role_no_exception():
+    footer = render_pr_footer("future-role")
+    assert "future-role" in footer
+
+
+def test_build_attribution_instructions_unknown_role_no_exception():
+    block = build_attribution_instructions("future-role", "test-agent", "1.0.0")
+    assert "future-role" in block
