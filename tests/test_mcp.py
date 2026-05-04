@@ -43,7 +43,7 @@ class TestDefaultGithubMcpCommand:
 
 class TestMakeMcpClientTokenPriority:
     def test_gh_token_wins_over_pat(self, monkeypatch):
-        """GH_TOKEN (App identity) takes priority over GITHUB_PERSONAL_ACCESS_TOKEN."""
+        """GH_TOKEN takes priority over GITHUB_PERSONAL_ACCESS_TOKEN."""
         monkeypatch.setenv("GH_TOKEN", "app-token")
         monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "pat-token")
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
@@ -113,6 +113,42 @@ class TestMakeMcpClientTokenPriority:
 
         assert result is not None
         assert captured_command == ["/usr/bin/github-mcp-server", "stdio"]
+
+    def test_gh_token_without_app_identity_flag_uses_personal_message(self, monkeypatch, capsys):
+        """GH_TOKEN set independently (non-App PAT) does not trigger App identity detection."""
+        monkeypatch.setenv("GH_TOKEN", "some-personal-pat")
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("_UIO_APP_IDENTITY_ACTIVE", raising=False)
+
+        def fake_mcp_cls(command, server_name, env=None, **kwargs):
+            return MagicMock()
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_cls):
+            result = make_mcp_client()
+
+        assert result is not None
+        captured = capsys.readouterr()
+        assert "personal token" in captured.out
+        assert "App identity" not in captured.out
+
+    def test_app_identity_flag_triggers_app_identity_message(self, monkeypatch, capsys):
+        """_UIO_APP_IDENTITY_ACTIVE=1 correctly triggers the App identity log message."""
+        monkeypatch.setenv("GH_TOKEN", "ghs_app_token")
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.setenv("_UIO_APP_IDENTITY_ACTIVE", "1")
+
+        def fake_mcp_cls(command, server_name, env=None, **kwargs):
+            return MagicMock()
+
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_cls):
+            result = make_mcp_client()
+
+        assert result is not None
+        captured = capsys.readouterr()
+        assert "App identity" in captured.out
+        assert "personal token" not in captured.out
 
     def test_server_failure_warns_and_returns_none(self, monkeypatch, capsys):
         """When the MCP server process fails to start, a warning is printed and None returned."""

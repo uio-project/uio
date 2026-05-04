@@ -134,6 +134,7 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
             )
             role = legacy
     if not role:
+        os.environ.pop("_UIO_APP_IDENTITY_ACTIVE", None)
         return None
 
     provider = frontmatter.get("vcs-provider", "github")
@@ -169,6 +170,7 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
     try:
         token = get_token_for_identity(role)
         os.environ["GH_TOKEN"] = token
+        os.environ["_UIO_APP_IDENTITY_ACTIVE"] = "1"
         print(f"  [vcs-identity] authenticated as '{role}' GitHub App identity")
     except GitHubAppError as exc:
         raise IdentityError(
