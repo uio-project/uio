@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from uio.cli.chat import _inner_tool_loop, chat_cmd
+from uio.cli.chat import _inner_tool_loop, _stream_anthropic, chat_cmd
 from uio.core.clients import LLMResponse, TokenUsage
 from uio.core.tools import ToolCall
 
@@ -154,3 +154,40 @@ def test_chat_cmd_accumulation_no_double_count():
     # Must be initial (10/5) + loop ep/ec (20/8) = 30/13, not 50/21 (double-counted)
     assert captured.get("prompt") == 30
     assert captured.get("completion") == 13
+
+
+def test_stream_anthropic_streams_text_updates_raw_content_and_returns_response():
+    """_stream_anthropic echoes text chunks and returns a populated LLMResponse."""
+    from uio.core.clients import AnthropicClient
+
+    with patch("anthropic.Anthropic"):
+        client = AnthropicClient(model="claude-test", tools=[])
+
+    fake_text_block = MagicMock()
+    fake_text_block.type = "text"
+    fake_text_block.text = "Hello, world!"
+
+    fake_usage = MagicMock()
+    fake_usage.input_tokens = 12
+    fake_usage.output_tokens = 7
+
+    fake_msg = MagicMock()
+    fake_msg.content = [fake_text_block]
+    fake_msg.usage = fake_usage
+
+    stream_ctx = MagicMock()
+    stream_ctx.__enter__ = MagicMock(return_value=stream_ctx)
+    stream_ctx.__exit__ = MagicMock(return_value=False)
+    stream_ctx.text_stream = ["Hello, ", "world!"]
+    stream_ctx.get_final_message = MagicMock(return_value=fake_msg)
+    client._client.messages.stream = MagicMock(return_value=stream_ctx)
+
+    with patch("uio.cli.chat.click") as mock_click:
+        result = _stream_anthropic(client, "system", [{"role": "user", "content": "hi"}])
+
+    assert result.text == "Hello, world!"
+    assert result.tool_calls == []
+    assert result.usage == TokenUsage(prompt_tokens=12, completion_tokens=7)
+    mock_click.echo.assert_any_call("Hello, ", nl=False)
+    mock_click.echo.assert_any_call("world!", nl=False)
+    assert client._last_raw_content == [{"type": "text", "text": "Hello, world!"}]
