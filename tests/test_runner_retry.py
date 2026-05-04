@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from unittest.mock import MagicMock, patch
 
 from uio.core.runner import _is_retryable
@@ -178,3 +179,39 @@ class TestVcsAliasPreamble:
             run_agent(**self._make_run_args(tmp_path))
 
         assert "VCS Tool Aliases" in captured.get("system", "")
+
+
+class TestRunAgentExceptions:
+    """Verify that run_agent raises typed exceptions instead of calling sys.exit."""
+
+    def test_missing_definition_raises_value_error(self, tmp_path):
+        """run_agent raises ValueError when the definition file does not exist."""
+        from uio.core.runner import run_agent
+
+        missing = str(tmp_path / "nonexistent.agent.md")
+        with pytest.raises(ValueError, match="definition not found"):
+            run_agent(
+                "nonexistent",
+                definition_path=missing,
+                no_mcp=True,
+                ledger_path=str(tmp_path / "ledger.jsonl"),
+            )
+
+    def test_exhausted_providers_raises_provider_exhausted_error(self, tmp_path):
+        """run_agent raises ProviderExhaustedError when every provider in the chain fails."""
+        from uio.core.runner import ProviderExhaustedError, run_agent
+
+        defn = tmp_path / "test.agent.md"
+        defn.write_text("---\nname: test-agent\n---\nDo the task.\n")
+
+        with (
+            patch("uio.core.runner.make_client", side_effect=RuntimeError("connection refused")),
+            patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+        ):
+            with pytest.raises(ProviderExhaustedError, match="all providers exhausted"):
+                run_agent(
+                    "test-agent",
+                    definition_path=str(defn),
+                    no_mcp=True,
+                    ledger_path=str(tmp_path / "ledger.jsonl"),
+                )

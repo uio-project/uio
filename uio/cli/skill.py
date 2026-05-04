@@ -9,7 +9,7 @@ import click
 
 from uio.cli._helpers import list_definitions, print_definition_table
 from uio.config import load_config
-from uio.core.runner import GuardrailError, run_agent
+from uio.core.runner import GuardrailError, IdentityError, ProviderExhaustedError, run_agent
 from uio.core.tools import SHELL_CHOICES
 from uio.schema.parser import parse_definition_file
 
@@ -97,6 +97,9 @@ def skill_run_cmd(
         )
     except GuardrailError as exc:
         click.echo(f"Error: guardrail violated — {exc}", err=True)
+        raise SystemExit(1)
+    except (IdentityError, ValueError, ProviderExhaustedError) as exc:
+        click.echo(str(exc), err=True)
         raise SystemExit(1)
 
 

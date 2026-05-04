@@ -74,7 +74,7 @@ def run_workflow(
     no_mcp: bool = False,
     shell: str | None = None,
 ) -> None:
-    from uio.core.runner import GuardrailError, run_agent
+    from uio.core.runner import GuardrailError, IdentityError, ProviderExhaustedError, run_agent
 
     workflows_dir = cfg["dirs"]["workflows"]
     path = f"{workflows_dir}/{workflow_name}.workflow.md"
@@ -143,9 +143,9 @@ def run_workflow(
         except GuardrailError as exc:
             print(f"\n❌ Workflow halted at step '{step.name}': guardrail — {exc}", file=sys.stderr)
             sys.exit(1)
-        except SystemExit as exc:
+        except (IdentityError, ValueError, ProviderExhaustedError) as exc:
             print(f"\n❌ Workflow halted at step '{step.name}': {exc}", file=sys.stderr)
-            raise
+            sys.exit(1)
 
         if step.output is not None:
             if result is not None:

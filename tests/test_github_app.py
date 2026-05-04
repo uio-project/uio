@@ -248,14 +248,13 @@ def test_parse_iso8601_invalid_returns_fallback() -> None:
 
 
 def test_invalid_role_exits(tmp_path, monkeypatch):
-    """An unsupported vcs-identity value must produce a hard error at startup."""
+    """An unsupported vcs-identity value must raise IdentityError at startup."""
     import pytest
-    from uio.core.runner import _inject_vcs_identity
+    from uio.core.runner import IdentityError, _inject_vcs_identity
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(IdentityError) as exc_info:
         _inject_vcs_identity({"vcs-identity": "supervillain"})
-    assert exc_info.value.code != 0
-    assert "supervillain" in str(exc_info.value.code)
+    assert "supervillain" in str(exc_info.value)
 
 
 def test_no_identity_is_noop(monkeypatch):
@@ -269,8 +268,8 @@ def test_no_identity_is_noop(monkeypatch):
 
 
 def test_missing_env_vars_exits(monkeypatch):
-    """When vcs-identity is set but env vars are absent, the runner must hard-fail."""
-    from uio.core.runner import _inject_vcs_identity
+    """When vcs-identity is set but env vars are absent, IdentityError is raised."""
+    from uio.core.runner import IdentityError, _inject_vcs_identity
 
     for var in (
         "GITHUB_APP_CODER_ID",
@@ -278,15 +277,14 @@ def test_missing_env_vars_exits(monkeypatch):
         "GITHUB_APP_CODER_PRIVATE_KEY",
     ):
         monkeypatch.delenv(var, raising=False)
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(IdentityError) as exc_info:
         _inject_vcs_identity({"vcs-identity": "coder"})
-    assert exc_info.value.code != 0
-    assert "GITHUB_APP_CODER_" in str(exc_info.value.code)
+    assert "GITHUB_APP_CODER_" in str(exc_info.value)
 
 
 def test_deprecated_github_identity_still_works(monkeypatch, capsys):
     """Legacy github-identity field is accepted with a deprecation warning."""
-    from uio.core.runner import _inject_vcs_identity
+    from uio.core.runner import IdentityError, _inject_vcs_identity
 
     for var in (
         "GITHUB_APP_PLANNER_ID",
@@ -296,27 +294,26 @@ def test_deprecated_github_identity_still_works(monkeypatch, capsys):
         monkeypatch.delenv(var, raising=False)
     import pytest
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(IdentityError):
         _inject_vcs_identity({"github-identity": "planner"})
     captured = capsys.readouterr()
     assert "deprecated" in captured.err
 
 
 def test_invalid_github_identity_role_exits(monkeypatch):
-    """An unsupported github-identity value (legacy field) also hard-fails."""
-    from uio.core.runner import _inject_vcs_identity
+    """An unsupported github-identity value (legacy field) raises IdentityError."""
+    from uio.core.runner import IdentityError, _inject_vcs_identity
     import pytest
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(IdentityError) as exc_info:
         _inject_vcs_identity({"github-identity": "wizard"})
-    assert exc_info.value.code != 0
+    assert "wizard" in str(exc_info.value)
 
 
 def test_unsupported_vcs_provider_exits():
-    """A vcs-provider other than 'github' must hard-fail with a clear message."""
-    from uio.core.runner import _inject_vcs_identity
+    """A vcs-provider other than 'github' must raise IdentityError with a clear message."""
+    from uio.core.runner import IdentityError, _inject_vcs_identity
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(IdentityError) as exc_info:
         _inject_vcs_identity({"vcs-identity": "coder", "vcs-provider": "gitlab"})
-    assert exc_info.value.code != 0
-    assert "gitlab" in str(exc_info.value.code)
+    assert "gitlab" in str(exc_info.value)
