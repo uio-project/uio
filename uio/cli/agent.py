@@ -154,7 +154,7 @@ def agent_inspect_cmd(agent_name: str) -> None:
     click.echo(f"  Name:        {fm.get('name', agent_name)}")
     click.echo(f"  Description: {fm.get('description', '—')}")
     click.echo(
-        f"  Complexity:  {infer_complexity(agent_name, fm, None, load_config()['large_agents']['names'])}"
+        f"  Complexity:  {infer_complexity(agent_name, fm, None, cfg['large_agents']['names'])}"
     )
     if fm.get("tools"):
         click.echo(f"  Tools:       {', '.join(fm['tools'])}")
