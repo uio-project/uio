@@ -9,9 +9,11 @@ import click
 
 from uio.config import load_config
 from uio.core.clients import (
+    AnthropicClient,
     GeminiClient,
     LLMClient,
     LLMResponse,
+    serialize_anthropic_block,
     make_client,
     OpenAIClient,
     TokenUsage,
@@ -42,6 +44,10 @@ def _is_openai_compat(client: LLMClient) -> bool:
 
 def _is_gemini(client: LLMClient) -> bool:
     return isinstance(client, GeminiClient)
+
+
+def _is_anthropic(client: LLMClient) -> bool:
+    return isinstance(client, AnthropicClient)
 
 
 def _user_turn(client: LLMClient, text: str) -> dict:
@@ -153,12 +159,54 @@ def _stream_gemini(client: LLMClient, system: str, history: list) -> LLMResponse
     return LLMResponse(text="".join(text_chunks) or None, tool_calls=calls, usage=usage)
 
 
+def _stream_anthropic(client: LLMClient, system: str, history: list) -> LLMResponse:
+    assert isinstance(client, AnthropicClient)
+    text_chunks: list[str] = []
+    usage: TokenUsage | None = None
+
+    stream_kwargs: dict = {}
+    if client._complexity == "large":
+        budget = min(10000, max(1024, client._max_tokens - 4096))
+        stream_kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
+
+    with client._client.messages.stream(
+        model=client._model,
+        max_tokens=client._max_tokens,
+        system=system,
+        tools=client._tools,
+        messages=history,
+        **stream_kwargs,
+    ) as stream:
+        for text in stream.text_stream:
+            click.echo(text, nl=False)
+            text_chunks.append(text)
+        msg = stream.get_final_message()
+
+    if text_chunks:
+        click.echo()
+
+    client._last_raw_content = [serialize_anthropic_block(b) for b in msg.content]
+    calls = [
+        ToolCall(name=b.name, args=b.input, call_id=b.id)
+        for b in msg.content
+        if b.type == "tool_use"
+    ]
+    if msg.usage:
+        usage = TokenUsage(
+            prompt_tokens=msg.usage.input_tokens,
+            completion_tokens=msg.usage.output_tokens,
+        )
+    return LLMResponse(text="".join(text_chunks) or None, tool_calls=calls, usage=usage)
+
+
 def _stream_turn(client: LLMClient, system: str, history: list) -> LLMResponse:
     try:
         if _is_openai_compat(client):
             return _stream_openai(client, system, history)
         if _is_gemini(client):
             return _stream_gemini(client, system, history)
+        if _is_anthropic(client):
+            return _stream_anthropic(client, system, history)
     except Exception as e:
         click.echo(f"\n  [stream error, retrying without streaming: {e}]", err=True)
     response = client.chat(system=system, history=history)

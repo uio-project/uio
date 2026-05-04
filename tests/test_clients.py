@@ -15,7 +15,7 @@ from uio.core.clients import (
     OpenAIClient,
     _ANTHROPIC_DEFAULT_MAX_TOKENS,
     _sanitize_schema_for_gemini,
-    _serialize_anthropic_block,
+    serialize_anthropic_block,
     _to_anthropic_tool,
 )
 from uio.core.tools import ToolCall
@@ -320,7 +320,7 @@ def test_anthropic_append_turn_without_raw_content_falls_back_to_response():
     assert history[1]["content"] == [{"type": "text", "text": "Done."}]
 
 
-# ── _serialize_anthropic_block ────────────────────────────────────────────────
+# ── serialize_anthropic_block ─────────────────────────────────────────────────
 
 
 def _block(type_: str, **kwargs):
@@ -329,12 +329,12 @@ def _block(type_: str, **kwargs):
 
 def test_serialize_text_block():
     block = _block("text", text="hello")
-    assert _serialize_anthropic_block(block) == {"type": "text", "text": "hello"}
+    assert serialize_anthropic_block(block) == {"type": "text", "text": "hello"}
 
 
 def test_serialize_tool_use_block():
     block = _block("tool_use", id="toolu_01", name="run_command", input={"command": "ls"})
-    result = _serialize_anthropic_block(block)
+    result = serialize_anthropic_block(block)
     assert result == {
         "type": "tool_use",
         "id": "toolu_01",
@@ -345,18 +345,18 @@ def test_serialize_tool_use_block():
 
 def test_serialize_thinking_block():
     block = _block("thinking", thinking="I think...", signature="sig_xyz")
-    result = _serialize_anthropic_block(block)
+    result = serialize_anthropic_block(block)
     assert result == {"type": "thinking", "thinking": "I think...", "signature": "sig_xyz"}
 
 
 def test_serialize_redacted_thinking_block():
     block = _block("redacted_thinking", data="<redacted>")
-    assert _serialize_anthropic_block(block) == {"type": "redacted_thinking", "data": "<redacted>"}
+    assert serialize_anthropic_block(block) == {"type": "redacted_thinking", "data": "<redacted>"}
 
 
 def test_serialize_unknown_block_type():
     block = _block("future_type")
-    assert _serialize_anthropic_block(block) == {"type": "future_type"}
+    assert serialize_anthropic_block(block) == {"type": "future_type"}
 
 
 # ── AnthropicClient max_tokens / complexity ───────────────────────────────────
