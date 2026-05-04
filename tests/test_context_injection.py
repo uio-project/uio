@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import os
 
-from uio.core.runner import _build_context_section, _count_tokens
+from uio.core.memory import estimate_tokens
+from uio.core.runner import _build_context_section
 
 
 class TestCountTokens:
     def test_empty_string(self):
-        assert _count_tokens("") == 0
+        assert estimate_tokens("") == 0
 
     def test_four_chars_is_one_token(self):
-        assert _count_tokens("abcd") == 1
+        assert estimate_tokens("abcd") == 1
 
     def test_longer_text(self):
-        assert _count_tokens("a" * 400) == 100
+        assert estimate_tokens("a" * 400) == 100
 
 
 class TestBuildContextSection:

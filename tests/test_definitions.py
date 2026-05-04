@@ -74,3 +74,13 @@ def test_definition_complexity_is_valid(path):
     complexity = fm.get("complexity")
     if complexity is not None:
         assert complexity in {"large", "small"}, f"{path.name}: invalid complexity '{complexity}'"
+
+
+@pytest.mark.parametrize("path", _all_agent_files(), ids=lambda p: p.name)
+def test_definition_capabilities_are_known(path, tmp_path):
+    dest = tmp_path / path.name
+    dest.write_text(path.read_text())
+    fm, _ = parse_definition_file(str(dest))
+    errors = validate_definition(str(dest), fm)
+    capability_errors = [e for e in errors if "capability" in e]
+    assert capability_errors == [], f"{path.name}: unknown capabilities: {capability_errors}"

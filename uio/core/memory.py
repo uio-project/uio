@@ -2,23 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from glob import glob
 from pathlib import Path
 
 import yaml
 
-_FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
-
-
-def _parse_memory_file(path: str) -> tuple[dict, str]:
-    """Return (frontmatter_dict, body_text) for a memory file."""
-    with open(path) as f:
-        raw = f.read()
-    m = _FRONTMATTER_RE.match(raw)
-    if not m:
-        return {}, raw.strip()
-    return yaml.safe_load(m.group(1)) or {}, m.group(2).strip()
+from uio.schema.parser import parse_definition_file
 
 
 def write_memory_body(path: str, frontmatter: dict, body: str) -> None:
@@ -36,7 +25,7 @@ def load_memory_files(memory_dir: str) -> list[tuple[str, dict, str]]:
     results = []
     for path in sorted(glob(pattern)):
         try:
-            fm, body = _parse_memory_file(path)
+            fm, body = parse_definition_file(path)
         except Exception:
             continue
         results.append((path, fm, body))

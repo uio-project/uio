@@ -342,6 +342,24 @@ def test_check_skill_references_ignores_numeric_segments(tmp_path):
     assert warnings == []
 
 
+def test_validate_unknown_capability_warns(tmp_path):
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\ncapabilities:\n  - vcs\n  - notareal\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert any("notareal" in e for e in errors)
+
+
+def test_validate_known_capabilities_accepted(tmp_path):
+    f = tmp_path / "agent.agent.md"
+    f.write_text(
+        "---\nname: A\ndescription: D.\ncapabilities:\n  - vcs\n  - git\n  - ci\n---\nBody."
+    )
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert not any("capability" in e for e in errors)
+
+
 def test_validate_no_vcs_identity_does_not_import_github_app(tmp_path):
     """validate_definition on a definition with no vcs-identity must not load github_app."""
     import sys
