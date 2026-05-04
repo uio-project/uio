@@ -254,6 +254,37 @@ class TestMakeMcpClients:
         assert "Warning" in captured.err
         assert "broken" in captured.err
 
+    def test_concurrent_failure_isolation(self, monkeypatch, capsys):
+        """One server raising during concurrent startup does not prevent others from starting."""
+        monkeypatch.delenv("GITHUB_PERSONAL_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+
+        good_client_a = _make_mock_client("alpha")
+        good_client_b = _make_mock_client("beta")
+
+        def fake_mcp_client(command, server_name, **kwargs):
+            if server_name == "broken":
+                raise RuntimeError("startup exploded")
+            return {"alpha": good_client_a, "beta": good_client_b}[server_name]
+
+        mcp_cfg = {
+            "alpha": {"command": "npx alpha-server"},
+            "broken": {"command": "npx broken-server"},
+            "beta": {"command": "npx beta-server"},
+        }
+        with patch("uio.core.mcp.MCPClient", side_effect=fake_mcp_client):
+            result = make_mcp_clients(mcp_cfg)
+
+        assert "alpha" in result
+        assert result["alpha"] is good_client_a
+        assert "beta" in result
+        assert result["beta"] is good_client_b
+        assert "broken" not in result
+        captured = capsys.readouterr()
+        assert "Warning" in captured.err
+        assert "broken" in captured.err
+
     def test_duplicate_server_name_first_wins(self, monkeypatch):
         """Programmatically constructed dicts with duplicate names: first entry wins."""
         monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "tok")

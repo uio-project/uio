@@ -11,6 +11,8 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from uio import __version__
 
@@ -213,37 +215,50 @@ def make_mcp_clients(
     entry must have ``name`` and ``command`` fields.  If ``env_keys`` is set,
     all listed environment variables must be present — missing ones cause the
     plugin to be skipped with a warning rather than a hard failure.
+
+    All servers are started concurrently via ThreadPoolExecutor so that total
+    startup time is bounded by the slowest server rather than the sum of all.
+    Failures in one server do not prevent others from starting.
     """
-    clients: dict[str, MCPClient] = {}
+    # Build the list of (name, starter_callable) pairs to launch concurrently.
+    # Cheap filtering (empty name/command, missing env vars, duplicates) happens
+    # here so we never submit invalid work to the thread pool.
+    seen: set[str] = set()
+    tasks: list[tuple[str, Callable[[], MCPClient | None]]] = []
 
     # Backwards compat: auto-start GitHub when token is set and not in config
     if "github" not in mcp_cfg:
-        github_client = make_mcp_client()
-        if github_client:
-            clients["github"] = github_client
+        token_available = bool(
+            os.environ.get("GH_TOKEN")
+            or os.environ.get("GITHUB_TOKEN")
+            or os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+        )
+        if token_available:
+            seen.add("github")
+        tasks.append(("github", make_mcp_client))
 
     for name, server_cfg in mcp_cfg.items():
-        if name in clients:
-            # Already running (github auto-start) or duplicate key — skip.
+        if name in seen:
+            # Duplicate key — skip.
             continue
+        seen.add(name)
         raw_cmd = server_cfg.get("command", "").replace("{cwd}", os.getcwd())
         if not raw_cmd:
             continue
-        try:
-            clients[name] = MCPClient(shlex.split(raw_cmd), server_name=name)
-        except Exception as e:
-            print(f"  [mcp] Warning: could not start '{name}' MCP server: {e}", file=sys.stderr)
+        cmd = shlex.split(raw_cmd)
+        tasks.append((name, lambda c=cmd, n=name: MCPClient(c, server_name=n)))
 
     for plugin in plugins or []:
         name = plugin.get("name", "")
         if not name:
             continue
-        if name in clients:
+        if name in seen:
             print(
                 f"  [mcp] Plugin '{name}' skipped — a server with that name is already running.",
                 file=sys.stderr,
             )
             continue
+        seen.add(name)
         env_keys = plugin.get("env_keys", [])
         missing = [k for k in env_keys if not os.environ.get(k)]
         if missing:
@@ -256,10 +271,37 @@ def make_mcp_clients(
         raw_cmd = plugin.get("command", "").replace("{cwd}", os.getcwd())
         if not raw_cmd:
             continue
-        try:
-            clients[name] = MCPClient(shlex.split(raw_cmd), server_name=name)
-            print(f"  [mcp] plugin '{name}' started (type={plugin.get('type', '?')})")
-        except Exception as e:
-            print(f"  [mcp] Warning: could not start plugin '{name}': {e}", file=sys.stderr)
+        cmd = shlex.split(raw_cmd)
+        plugin_type = plugin.get("type", "?")
+        tasks.append(
+            (
+                name,
+                lambda c=cmd, n=name, pt=plugin_type: _start_plugin(c, n, pt),
+            )
+        )
+
+    if not tasks:
+        return {}
+
+    clients: dict[str, MCPClient] = {}
+    with ThreadPoolExecutor() as pool:
+        future_to_name = {pool.submit(fn): name for name, fn in tasks}
+        for future in as_completed(future_to_name):
+            name = future_to_name[future]
+            try:
+                client = future.result()
+                if client is not None:
+                    clients[name] = client
+            except Exception as e:
+                print(
+                    f"  [mcp] Warning: could not start '{name}' MCP server: {e}",
+                    file=sys.stderr,
+                )
 
     return clients
+
+
+def _start_plugin(cmd: list[str], name: str, plugin_type: str) -> "MCPClient":
+    client = MCPClient(cmd, server_name=name)
+    print(f"  [mcp] plugin '{name}' started (type={plugin_type})")
+    return client
