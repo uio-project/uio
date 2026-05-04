@@ -330,6 +330,7 @@ def run_agent(
         else (max_iterations_large if resolved_complexity == "large" else max_iterations)
     )
 
+    _clean_exit = False
     try:
         last_error: Exception | None = None
         for candidate_provider in provider_chain:
@@ -406,6 +407,7 @@ def run_agent(
                             total_completion,
                             ledger_path,
                         )
+                        _clean_exit = True
                         return response.text or ""
 
                     if guardrail_max_cost is not None:
@@ -469,6 +471,7 @@ def run_agent(
                     total_completion,
                     ledger_path,
                 )
+                _clean_exit = True
                 return None
 
             except GuardrailError:
@@ -485,5 +488,5 @@ def run_agent(
     finally:
         for client in mcp_clients.values():
             client.close()
-        if memory_dir:
+        if memory_dir and _clean_exit:
             clear_session_memory(memory_dir)
