@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import queue
 from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
 
 from uio.cli.main import main
-from uio.core.mcp import MCPClient, _default_github_mcp_command, make_mcp_client, make_mcp_clients
+from uio.core.mcp import (
+    MCPClient,
+    MCPTimeoutError,
+    _default_github_mcp_command,
+    make_mcp_client,
+    make_mcp_clients,
+)
 
 
 class TestDefaultGithubMcpCommand:
@@ -444,6 +451,57 @@ class TestMCPClientCallTool:
         with patch.object(client, "_rpc", return_value=payload):
             result = client.call_tool("mcp__github__search_repositories", {"query": "uio"})
         assert result == "found 1 repo"
+
+
+class TestMCPClientRpcTimeout:
+    """Unit tests for _rpc timeout behaviour (threading.Thread + queue.Queue path)."""
+
+    def _make_client(self, server_name: str = "stall-server", timeout: float = 0.05) -> MCPClient:
+        client = MCPClient.__new__(MCPClient)
+        client.server_name = server_name
+        client._id = 0
+        client._timeout = timeout
+        client._queue = queue.Queue()
+        client._proc = MagicMock()
+        return client
+
+    def test_rpc_raises_mcp_timeout_error_when_server_never_responds(self):
+        """_rpc raises MCPTimeoutError if the queue stays empty past the deadline."""
+        client = self._make_client()
+        with pytest.raises(MCPTimeoutError, match="stall-server"):
+            client._rpc("tools/list", {})
+
+    def test_rpc_timeout_error_is_runtime_error_subclass(self):
+        """MCPTimeoutError is a RuntimeError so existing callers that catch RuntimeError still work."""
+        assert issubclass(MCPTimeoutError, RuntimeError)
+
+    def test_rpc_timeout_message_contains_method_name(self):
+        """Timeout message includes the method name so the user can identify the stalled call."""
+        client = self._make_client()
+        with pytest.raises(MCPTimeoutError, match="tools/call"):
+            client._rpc("tools/call", {"name": "slow_tool", "arguments": {}})
+
+    def test_rpc_succeeds_when_response_arrives_before_deadline(self):
+        """_rpc returns the result dict when a matching response is put into the queue."""
+        client = self._make_client(timeout=5.0)
+        response = {"jsonrpc": "2.0", "id": 1, "result": {"tools": []}}
+        client._queue.put(f"{__import__('json').dumps(response)}\n")
+        result = client._rpc("tools/list", {})
+        assert result == {"tools": []}
+
+    def test_rpc_raises_on_eof_sentinel(self):
+        """_rpc raises RuntimeError (not MCPTimeoutError) when the reader thread signals EOF."""
+        client = self._make_client(timeout=5.0)
+        client._queue.put(None)
+        with pytest.raises(RuntimeError, match="closed connection"):
+            client._rpc("tools/list", {})
+
+    def test_rpc_timeout_prints_mcp_warning_to_stderr(self, capsys):
+        """Timeout prints a [mcp] warning to stderr before raising so it is visible in all log paths."""
+        client = self._make_client()
+        with pytest.raises(MCPTimeoutError):
+            client._rpc("tools/list", {})
+        assert "[mcp]" in capsys.readouterr().err
 
 
 class TestMcpPluginsForwardedToCli:

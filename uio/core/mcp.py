@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import shlex
 import shutil
 import subprocess
 import sys
+import threading
+import time
 
 from uio import __version__
+
+_DEFAULT_RPC_TIMEOUT = 60.0
+
+
+class MCPTimeoutError(RuntimeError):
+    """Raised when an MCP server does not respond within the configured timeout."""
 
 
 class MCPClient:
@@ -20,8 +29,10 @@ class MCPClient:
         command: list[str],
         server_name: str = "github",
         env: dict | None = None,
+        timeout: float = _DEFAULT_RPC_TIMEOUT,
     ) -> None:
         self.server_name = server_name
+        self._timeout = timeout
         self._id = 0
         self._proc = subprocess.Popen(
             command,
@@ -31,20 +42,45 @@ class MCPClient:
             text=True,
             env=env if env is not None else os.environ.copy(),
         )
+        self._queue: queue.Queue[str | None] = queue.Queue()
+        self._reader = threading.Thread(target=self._read_stdout, daemon=True)
+        self._reader.start()
         self._initialize()
+
+    def _read_stdout(self) -> None:
+        try:
+            for line in self._proc.stdout:
+                self._queue.put(line)
+        finally:
+            self._queue.put(None)
 
     def _next_id(self) -> int:
         self._id += 1
         return self._id
+
+    def _timeout_error(self, method: str) -> MCPTimeoutError:
+        msg = (
+            f"[mcp] '{self.server_name}' timed out after {self._timeout}s "
+            f"waiting for response to '{method}'"
+        )
+        print(f"  {msg}", file=sys.stderr)
+        return MCPTimeoutError(msg)
 
     def _rpc(self, method: str, params: dict) -> dict:
         req_id = self._next_id()
         msg = {"jsonrpc": "2.0", "id": req_id, "method": method, "params": params}
         self._proc.stdin.write(json.dumps(msg) + "\n")
         self._proc.stdin.flush()
+        deadline = time.monotonic() + self._timeout
         while True:
-            line = self._proc.stdout.readline()
-            if not line:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise self._timeout_error(method)
+            try:
+                line = self._queue.get(timeout=remaining)
+            except queue.Empty:
+                raise self._timeout_error(method)
+            if line is None:
                 raise RuntimeError("MCP server closed connection unexpectedly")
             data = json.loads(line)
             if data.get("id") == req_id:
