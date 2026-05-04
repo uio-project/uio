@@ -247,7 +247,7 @@ def _to_anthropic_tool(tool: dict) -> dict:
 _ANTHROPIC_DEFAULT_MAX_TOKENS = 16000
 
 
-def _serialize_anthropic_block(block) -> dict:
+def serialize_anthropic_block(block) -> dict:
     """Convert an Anthropic SDK content block to a plain dict for history storage."""
     if block.type == "text":
         return {"type": "text", "text": block.text}
@@ -294,7 +294,7 @@ class AnthropicClient(LLMClient):
             messages=history,
             **kwargs,
         )
-        self._last_raw_content = [_serialize_anthropic_block(b) for b in resp.content]
+        self._last_raw_content = [serialize_anthropic_block(b) for b in resp.content]
         text = next((b.text for b in resp.content if b.type == "text"), None)
         calls = [
             ToolCall(name=b.name, args=b.input, call_id=b.id)

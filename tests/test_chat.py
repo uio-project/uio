@@ -191,3 +191,50 @@ def test_stream_anthropic_streams_text_updates_raw_content_and_returns_response(
     mock_click.echo.assert_any_call("Hello, ", nl=False)
     mock_click.echo.assert_any_call("world!", nl=False)
     assert client._last_raw_content == [{"type": "text", "text": "Hello, world!"}]
+
+
+def test_stream_anthropic_tool_use_block_builds_calls_and_raw_content():
+    """_stream_anthropic correctly extracts tool_use blocks from the final message."""
+    from uio.core.clients import AnthropicClient
+
+    with patch("anthropic.Anthropic"):
+        client = AnthropicClient(model="claude-test", tools=[])
+
+    fake_tool_block = MagicMock()
+    fake_tool_block.type = "tool_use"
+    fake_tool_block.id = "call-123"
+    fake_tool_block.name = "run_command"
+    fake_tool_block.input = {"command": "echo hi"}
+
+    fake_usage = MagicMock()
+    fake_usage.input_tokens = 8
+    fake_usage.output_tokens = 3
+
+    fake_msg = MagicMock()
+    fake_msg.content = [fake_tool_block]
+    fake_msg.usage = fake_usage
+
+    stream_ctx = MagicMock()
+    stream_ctx.__enter__ = MagicMock(return_value=stream_ctx)
+    stream_ctx.__exit__ = MagicMock(return_value=False)
+    stream_ctx.text_stream = []
+    stream_ctx.get_final_message = MagicMock(return_value=fake_msg)
+    client._client.messages.stream = MagicMock(return_value=stream_ctx)
+
+    with patch("uio.cli.chat.click"):
+        result = _stream_anthropic(client, "system", [{"role": "user", "content": "hi"}])
+
+    assert result.text is None
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0] == ToolCall(
+        name="run_command", args={"command": "echo hi"}, call_id="call-123"
+    )
+    assert result.usage == TokenUsage(prompt_tokens=8, completion_tokens=3)
+    assert client._last_raw_content == [
+        {
+            "type": "tool_use",
+            "id": "call-123",
+            "name": "run_command",
+            "input": {"command": "echo hi"},
+        }
+    ]

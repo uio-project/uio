@@ -13,7 +13,7 @@ from uio.core.clients import (
     GeminiClient,
     LLMClient,
     LLMResponse,
-    _serialize_anthropic_block,
+    serialize_anthropic_block,
     make_client,
     OpenAIClient,
     TokenUsage,
@@ -164,12 +164,18 @@ def _stream_anthropic(client: LLMClient, system: str, history: list) -> LLMRespo
     text_chunks: list[str] = []
     usage: TokenUsage | None = None
 
+    stream_kwargs: dict = {}
+    if client._complexity == "large":
+        budget = min(10000, max(1024, client._max_tokens - 4096))
+        stream_kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
+
     with client._client.messages.stream(
         model=client._model,
         max_tokens=client._max_tokens,
         system=system,
         tools=client._tools,
         messages=history,
+        **stream_kwargs,
     ) as stream:
         for text in stream.text_stream:
             click.echo(text, nl=False)
@@ -179,7 +185,7 @@ def _stream_anthropic(client: LLMClient, system: str, history: list) -> LLMRespo
     if text_chunks:
         click.echo()
 
-    client._last_raw_content = [_serialize_anthropic_block(b) for b in msg.content]
+    client._last_raw_content = [serialize_anthropic_block(b) for b in msg.content]
     calls = [
         ToolCall(name=b.name, args=b.input, call_id=b.id)
         for b in msg.content
