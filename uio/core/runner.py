@@ -25,6 +25,14 @@ class GuardrailError(Exception):
     """Raised when a per-definition guardrail limit is exceeded."""
 
 
+class IdentityError(Exception):
+    """Raised when VCS identity configuration or authentication fails."""
+
+
+class ProviderExhaustedError(Exception):
+    """Raised when all configured LLM providers have been tried and failed."""
+
+
 _DEFAULT_MAX_ITERATIONS = 10
 _DEFAULT_MAX_ITERATIONS_LARGE = 25
 
@@ -126,13 +134,13 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
     provider = frontmatter.get("vcs-provider", "github")
 
     if provider != "github":
-        sys.exit(
+        raise IdentityError(
             f"Error: vcs-provider '{provider}' is not supported — only 'github' is implemented.\n"
             f"  See docs/providers/ for the list of supported providers."
         )
 
     if role not in KNOWN_ROLES:
-        sys.exit(
+        raise IdentityError(
             f"Error: unsupported vcs-identity value '{role}' — must be one of {sorted(KNOWN_ROLES)}"
         )
 
@@ -146,7 +154,7 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
         role_upper = role.upper()
         prefix = f"GITHUB_APP_{role_upper}_"
         missing = ", ".join(f"{prefix}{s}" for s in ("ID", "INSTALLATION_ID", "PRIVATE_KEY"))
-        sys.exit(
+        raise IdentityError(
             f"Error: 'vcs-identity: {role}' requires App credentials but env vars are not set.\n"
             f"  Missing: {missing}\n"
             f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents.\n"
@@ -158,10 +166,10 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
         os.environ["GH_TOKEN"] = token
         print(f"  [vcs-identity] authenticated as '{role}' GitHub App identity")
     except GitHubAppError as exc:
-        sys.exit(
+        raise IdentityError(
             f"Error: could not obtain GitHub App token for identity '{role}': {exc}\n"
             f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents."
-        )
+        ) from exc
     return role
 
 
@@ -235,7 +243,7 @@ def run_agent(
     if definition_path is None:
         raise ValueError("definition_path must be provided")
     if not os.path.exists(definition_path):
-        sys.exit(f"Error: definition not found at {definition_path}")
+        raise FileNotFoundError(f"Error: definition not found at {definition_path}")
 
     frontmatter, body = parse_definition_file(definition_path)
 
@@ -466,7 +474,7 @@ def run_agent(
                 last_error = e
                 continue
 
-        sys.exit(f"Error: all providers exhausted. Last error: {last_error}")
+        raise ProviderExhaustedError(f"Error: all providers exhausted. Last error: {last_error}")
     finally:
         for client in mcp_clients.values():
             client.close()
