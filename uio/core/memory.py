@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from uio.schema.parser import parse_definition_file
+from uio.schema.parser import parse_frontmatter_raw
 
 
 def write_memory_body(path: str, frontmatter: dict, body: str) -> None:
@@ -25,7 +25,7 @@ def load_memory_files(memory_dir: str) -> list[tuple[str, dict, str]]:
     results = []
     for path in sorted(glob(pattern)):
         try:
-            fm, body = parse_definition_file(path)
+            fm, body = parse_frontmatter_raw(path)
         except Exception:
             continue
         results.append((path, fm, body))

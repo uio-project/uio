@@ -24,14 +24,19 @@ _STOPPING_PHRASES = re.compile(
 )
 
 
-def parse_definition_file(path: str) -> tuple[dict, str]:
-    """Return (frontmatter_dict, body_text) for a definition file."""
+def parse_frontmatter_raw(path: str) -> tuple[dict, str]:
+    """Return (frontmatter_dict, body_text) for any YAML-frontmatter file."""
     with open(path) as f:
         raw = f.read()
     m = _FRONTMATTER_RE.match(raw)
     if not m:
         return {}, raw.strip()
     return yaml.safe_load(m.group(1)) or {}, m.group(2).strip()
+
+
+def parse_definition_file(path: str) -> tuple[dict, str]:
+    """Return (frontmatter_dict, body_text) for a definition file."""
+    return parse_frontmatter_raw(path)
 
 
 def validate_definition(path: str, frontmatter: dict) -> list[str]:

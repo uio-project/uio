@@ -70,7 +70,7 @@ KNOWN_CAPABILITY_TYPES: frozenset[str] = frozenset(
         "http",
         "kv",
         "git",
-        "think",
+        "thinking",
     ]
 )
 

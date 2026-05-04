@@ -8,7 +8,7 @@ from uio.core.memory import estimate_tokens
 from uio.core.runner import _build_context_section
 
 
-class TestCountTokens:
+class TestEstimateTokens:
     def test_empty_string(self):
         assert estimate_tokens("") == 0
 
