@@ -312,3 +312,41 @@ class TestSessionMemoryOnFailure:
 
         assert result is None
         assert "diagnostic data" not in mem_file.read_text()
+
+    def test_memory_preserved_when_guardrail_exceeded(self, tmp_path):
+        """Session memory is preserved when a cost guardrail fires."""
+        from uio.core.clients import LLMResponse
+        from uio.core.runner import GuardrailError, run_agent
+        from uio.core.tools import ToolCall
+
+        memory_dir = tmp_path / "memory"
+        memory_dir.mkdir()
+        mem_file = self._write_session_memory(memory_dir)
+
+        tc = ToolCall(name="run_command", args={"command": "echo x"}, call_id="t1")
+        mock_client = MagicMock()
+        mock_client.build_history.return_value = [{"role": "user", "content": "begin"}]
+        mock_client.chat.return_value = LLMResponse(text=None, tool_calls=[tc])
+        mock_client.usage = None
+
+        defn = tmp_path / "guardrail.agent.md"
+        defn.write_text(
+            "---\nname: test-agent\nguardrails:\n  max_cost_usd: 0.000001\n---\nDo the task.\n"
+        )
+
+        with (
+            patch("uio.core.runner.make_client", return_value=mock_client),
+            patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+            patch("uio.core.runner.execute_tool", return_value="ok"),
+            patch("uio.core.runner.estimate_cost_usd", return_value=999.0),
+        ):
+            with pytest.raises(GuardrailError):
+                run_agent(
+                    agent_name="test-agent",
+                    definition_path=str(defn),
+                    no_mcp=True,
+                    ledger_path=str(tmp_path / "ledger.jsonl"),
+                    memory_dir=str(memory_dir),
+                )
+
+        assert "diagnostic data" in mem_file.read_text()
