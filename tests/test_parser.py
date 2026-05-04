@@ -370,3 +370,118 @@ def test_validate_no_vcs_identity_does_not_import_github_app(tmp_path):
     fm, _ = parse_definition_file(str(f))
     validate_definition(str(f), fm)
     assert "uio.providers.github.app" not in sys.modules
+
+
+# ---------------------------------------------------------------------------
+# check_skill_references — code block false-positive prevention (issue #189)
+# ---------------------------------------------------------------------------
+
+
+def _make_skills_dir(tmp_path, *skill_names):
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir(exist_ok=True)
+    for name in skill_names:
+        (skills_dir / f"{name}.skill.md").write_text(
+            f"---\nname: {name}\ndescription: D.\n---\nBody."
+        )
+    return str(skills_dir)
+
+
+def test_check_skill_references_fenced_block_no_false_positive(tmp_path):
+    """A /word inside a fenced code block must not produce a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Before.\n\n```\n/exit\n/nonexistent-skill\n```\n\nAfter."
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+def test_check_skill_references_inline_code_no_false_positive(tmp_path):
+    """A /word inside an inline code span must not produce a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Call `/ghost-skill` to do the thing."
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+def test_check_skill_references_outside_code_block_still_detected(tmp_path):
+    """A /word outside any code block continues to trigger a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Run /ghost-skill here.\n\n```\n/also-ghost\n```"
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert len(warnings) == 1
+    assert "ghost-skill" in warnings[0]
+
+
+def test_check_skill_references_known_skill_in_code_block_no_warning(tmp_path):
+    """A known skill referenced only inside a code block is not flagged."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Example:\n\n```\n/real-skill with args\n```"
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+def test_check_skill_references_double_backtick_inline_no_false_positive(tmp_path):
+    """A /word inside a double-backtick inline span must not produce a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Call `` /ghost-skill `` to invoke it."
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+def test_check_skill_references_tilde_fenced_block_no_false_positive(tmp_path):
+    """A /word inside a tilde-fenced code block must not produce a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Example:\n\n~~~\n/ghost-skill --flag\n~~~\n\nDone."
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+# ---------------------------------------------------------------------------
+# _strip_code_spans — direct unit tests (review suggestion)
+# ---------------------------------------------------------------------------
+
+
+def test_strip_code_spans_single_backtick():
+    from uio.schema.parser import _strip_code_spans
+
+    assert _strip_code_spans("Call `/skill` here.") == "Call  here."
+
+
+def test_strip_code_spans_double_backtick():
+    from uio.schema.parser import _strip_code_spans
+
+    assert _strip_code_spans("Use `` /skill `` syntax.") == "Use  syntax."
+
+
+def test_strip_code_spans_fenced_block():
+    from uio.schema.parser import _strip_code_spans
+
+    text = "Before.\n\n```\n/exit\n```\n\nAfter."
+    result = _strip_code_spans(text)
+    assert "/exit" not in result
+    assert "Before." in result
+    assert "After." in result
+
+
+def test_strip_code_spans_tilde_fenced_block():
+    from uio.schema.parser import _strip_code_spans
+
+    text = "Before.\n\n~~~\n/exit\n~~~\n\nAfter."
+    result = _strip_code_spans(text)
+    assert "/exit" not in result
+
+
+def test_strip_code_spans_adjacent_spans():
+    from uio.schema.parser import _strip_code_spans
+
+    result = _strip_code_spans("`alpha` and `beta` remain clean.")
+    assert "alpha" not in result
+    assert "beta" not in result
+    assert "remain clean." in result
+
+
+def test_strip_code_spans_no_code_unchanged():
+    from uio.schema.parser import _strip_code_spans
+
+    text = "Plain text with /real-skill invocation."
+    assert _strip_code_spans(text) == text

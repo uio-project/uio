@@ -154,6 +154,17 @@ def check_heading_format(path: str, frontmatter: dict, body: str) -> list[str]:
     return warnings
 
 
+def _strip_code_spans(text: str) -> str:
+    """Remove fenced code blocks and inline code spans from markdown text."""
+    # Fenced blocks: backtick and tilde variants (with optional info string)
+    text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    text = re.sub(r"~~~.*?~~~", "", text, flags=re.DOTALL)
+    # Inline spans: match an opening run of N backticks, content, then the same N closing
+    # backticks. This correctly handles both `code` and ``code with `backtick` inside``.
+    text = re.sub(r"(`+).+?\1", "", text, flags=re.DOTALL)
+    return text
+
+
 def check_skill_references(path: str, body: str, skills_dir: str) -> list[str]:
     """Warn when the body references skills that do not exist on disk.
 
@@ -171,11 +182,15 @@ def check_skill_references(path: str, body: str, skills_dir: str) -> list[str]:
     if not known:
         return warnings  # no skills directory or no skills — nothing to validate against
 
+    # Strip fenced code blocks and inline code spans before scanning so that
+    # /word tokens inside documentation examples do not produce false positives.
+    scannable = _strip_code_spans(body)
+
     # Match /skill-name invocations: only standalone tokens preceded by whitespace or
     # start-of-string. The lookahead (?![a-zA-Z0-9_/-]) requires the token to end at a
     # non-word, non-slash boundary, which also prevents regex backtracking from
     # producing spurious short matches inside path segments like /tmp/foo.
-    invocations = re.findall(r"(?<!\S)/([a-zA-Z][a-zA-Z0-9_-]*)(?![a-zA-Z0-9_/-])", body)
+    invocations = re.findall(r"(?<!\S)/([a-zA-Z][a-zA-Z0-9_-]*)(?![a-zA-Z0-9_/-])", scannable)
     for ref in invocations:
         if ref and ref not in known:
             warnings.append(

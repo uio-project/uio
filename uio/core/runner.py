@@ -66,6 +66,7 @@ def _build_context_section(globs: list[str], project_root: str, max_tokens: int)
     sections: list[str] = []
     total_tokens = 0
     cap_reached = False
+    seen: set[str] = set()
 
     for pattern in globs:
         if cap_reached:
@@ -76,6 +77,10 @@ def _build_context_section(globs: list[str], project_root: str, max_tokens: int)
                 break
             if not os.path.isfile(fpath):
                 continue
+            real = os.path.realpath(fpath)
+            if real in seen:
+                continue
+            seen.add(real)
             try:
                 with open(fpath, encoding="utf-8", errors="replace") as fh:
                     content = fh.read()
