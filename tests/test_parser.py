@@ -370,3 +370,51 @@ def test_validate_no_vcs_identity_does_not_import_github_app(tmp_path):
     fm, _ = parse_definition_file(str(f))
     validate_definition(str(f), fm)
     assert "uio.providers.github.app" not in sys.modules
+
+
+# ---------------------------------------------------------------------------
+# check_skill_references — code block false-positive prevention (issue #189)
+# ---------------------------------------------------------------------------
+
+
+def _make_skills_dir(tmp_path, *skill_names):
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir(exist_ok=True)
+    for name in skill_names:
+        (skills_dir / f"{name}.skill.md").write_text(
+            f"---\nname: {name}\ndescription: D.\n---\nBody."
+        )
+    return str(skills_dir)
+
+
+def test_check_skill_references_fenced_block_no_false_positive(tmp_path):
+    """A /word inside a fenced code block must not produce a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Before.\n\n```\n/exit\n/nonexistent-skill\n```\n\nAfter."
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+def test_check_skill_references_inline_code_no_false_positive(tmp_path):
+    """A /word inside an inline code span must not produce a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Call `/ghost-skill` to do the thing."
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []
+
+
+def test_check_skill_references_outside_code_block_still_detected(tmp_path):
+    """A /word outside any code block continues to trigger a warning."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Run /ghost-skill here.\n\n```\n/also-ghost\n```"
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert len(warnings) == 1
+    assert "ghost-skill" in warnings[0]
+
+
+def test_check_skill_references_known_skill_in_code_block_no_warning(tmp_path):
+    """A known skill referenced only inside a code block is not flagged."""
+    skills_dir = _make_skills_dir(tmp_path, "real-skill")
+    body = "Example:\n\n```\n/real-skill with args\n```"
+    warnings = check_skill_references("agent.agent.md", body, skills_dir)
+    assert warnings == []

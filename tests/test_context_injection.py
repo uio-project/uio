@@ -110,6 +110,22 @@ class TestBuildContextSection:
         result = _build_context_section(["*.txt"], str(tmp_path), max_tokens=100)
         assert "should not appear" not in result
 
+    def test_overlapping_patterns_deduplicated(self, tmp_path):
+        """A file matched by two overlapping patterns is injected exactly once."""
+        sub = tmp_path / "src"
+        sub.mkdir()
+        (sub / "utils.py").write_text("unique content")
+        result = _build_context_section(["src/**/*.py", "src/utils.py"], str(tmp_path), 8000)
+        assert result.count("unique content") == 1
+
+    def test_deduplication_does_not_skip_distinct_files(self, tmp_path):
+        """Files matched by different patterns that don't overlap are all included."""
+        (tmp_path / "a.md").write_text("content A")
+        (tmp_path / "b.md").write_text("content B")
+        result = _build_context_section(["a.md", "b.md"], str(tmp_path), 8000)
+        assert "content A" in result
+        assert "content B" in result
+
 
 class TestParserAcceptsContextKey:
     """Ensure validate_definition does not flag 'context' as unknown."""
