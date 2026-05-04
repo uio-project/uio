@@ -1,6 +1,7 @@
 """Tests for cost ledger: estimation and file append."""
 
 import json
+import logging
 from pathlib import Path
 
 
@@ -20,6 +21,20 @@ def test_estimate_openai_mini():
 def test_estimate_unknown_provider():
     cost = estimate_cost_usd("unknown", "unknown-model", 1_000_000, 1_000_000)
     assert cost == 0.0
+
+
+def test_estimate_unknown_model_logs_warning(caplog):
+    with caplog.at_level(logging.WARNING, logger="uio.core.ledger"):
+        estimate_cost_usd("acme", "acme-turbo", 1_000, 500)
+    assert any("acme/acme-turbo" in r.message for r in caplog.records)
+
+
+def test_estimate_unknown_model_warns_once(caplog):
+    with caplog.at_level(logging.WARNING, logger="uio.core.ledger"):
+        estimate_cost_usd("acme2", "acme2-turbo", 1_000, 500)
+        estimate_cost_usd("acme2", "acme2-turbo", 2_000, 1_000)
+    matching = [r for r in caplog.records if "acme2/acme2-turbo" in r.message]
+    assert len(matching) == 1
 
 
 def test_write_creates_file(tmp_path):
