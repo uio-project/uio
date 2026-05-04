@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 import os
 import sys
 
@@ -11,12 +12,20 @@ from uio.core.clients import TOKEN_COSTS_PER_1M
 
 DEFAULT_LEDGER_PATH = "uio_cost.jsonl"
 
+_log = logging.getLogger(__name__)
+_warned_unknown_models: set[str] = set()
+
 
 def estimate_cost_usd(
     provider: str, model: str, prompt_tokens: int, completion_tokens: int
 ) -> float:
     key = f"{provider}/{model}"
-    costs = TOKEN_COSTS_PER_1M.get(key) or TOKEN_COSTS_PER_1M.get(provider, (0.0, 0.0))
+    costs = TOKEN_COSTS_PER_1M.get(key) or TOKEN_COSTS_PER_1M.get(provider)
+    if costs is None:
+        if key not in _warned_unknown_models:
+            _warned_unknown_models.add(key)
+            _log.warning("unknown model '%s' — cost not tracked", key)
+        costs = (0.0, 0.0)
     return (prompt_tokens * costs[0] + completion_tokens * costs[1]) / 1_000_000
 
 
