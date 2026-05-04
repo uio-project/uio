@@ -62,12 +62,13 @@ def render_pr_footer(role: str, vcs_provider: str = "github") -> str:
 
 def render_commit_author(role: str, vcs_provider: str = "github") -> dict[str, str]:
     """Return the git author name and email for the given identity and VCS provider."""
+    default_domain = "gitlab.com" if vcs_provider == "gitlab" else "github.com"
     author = dict(
         COMMIT_AUTHOR.get(
             role,
             {
                 "name": f"uio {role}",
-                "email": f"uio-{role}[bot]@users.noreply.github.com",
+                "email": f"uio-{role}[bot]@users.noreply.{default_domain}",
             },
         )
     )

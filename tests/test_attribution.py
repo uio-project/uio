@@ -175,3 +175,15 @@ def test_render_pr_footer_unknown_role_no_exception():
 def test_build_attribution_instructions_unknown_role_no_exception():
     block = build_attribution_instructions("future-role", "test-agent", "1.0.0")
     assert "future-role" in block
+
+
+def test_render_commit_author_unknown_role_no_exception():
+    author = render_commit_author("future-role")
+    assert author["name"] == "uio future-role"
+    assert "future-role" in author["email"]
+
+
+def test_render_commit_author_unknown_role_gitlab_domain():
+    author = render_commit_author("future-role", vcs_provider="gitlab")
+    assert "gitlab.com" in author["email"]
+    assert "github.com" not in author["email"]
