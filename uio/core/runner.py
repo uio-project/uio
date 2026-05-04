@@ -243,7 +243,7 @@ def run_agent(
     if definition_path is None:
         raise ValueError("definition_path must be provided")
     if not os.path.exists(definition_path):
-        raise FileNotFoundError(f"Error: definition not found at {definition_path}")
+        raise ValueError(f"Error: definition not found at {definition_path}")
 
     frontmatter, body = parse_definition_file(definition_path)
 

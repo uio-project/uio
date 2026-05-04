@@ -117,7 +117,7 @@ def agent_run_cmd(
     except GuardrailError as exc:
         click.echo(f"Error: guardrail violated — {exc}", err=True)
         raise SystemExit(1)
-    except (IdentityError, FileNotFoundError, ProviderExhaustedError) as exc:
+    except (IdentityError, ValueError, ProviderExhaustedError) as exc:
         click.echo(str(exc), err=True)
         raise SystemExit(1)
 

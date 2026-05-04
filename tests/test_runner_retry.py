@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from unittest.mock import MagicMock, patch
 
 from uio.core.runner import _is_retryable
@@ -183,13 +184,12 @@ class TestVcsAliasPreamble:
 class TestRunAgentExceptions:
     """Verify that run_agent raises typed exceptions instead of calling sys.exit."""
 
-    def test_missing_definition_raises_file_not_found_error(self, tmp_path):
-        """run_agent raises FileNotFoundError when the definition file does not exist."""
+    def test_missing_definition_raises_value_error(self, tmp_path):
+        """run_agent raises ValueError when the definition file does not exist."""
         from uio.core.runner import run_agent
-        import pytest
 
         missing = str(tmp_path / "nonexistent.agent.md")
-        with pytest.raises(FileNotFoundError, match="definition not found"):
+        with pytest.raises(ValueError, match="definition not found"):
             run_agent(
                 "nonexistent",
                 definition_path=missing,
@@ -200,7 +200,6 @@ class TestRunAgentExceptions:
     def test_exhausted_providers_raises_provider_exhausted_error(self, tmp_path):
         """run_agent raises ProviderExhaustedError when every provider in the chain fails."""
         from uio.core.runner import ProviderExhaustedError, run_agent
-        import pytest
 
         defn = tmp_path / "test.agent.md"
         defn.write_text("---\nname: test-agent\n---\nDo the task.\n")
