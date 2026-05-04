@@ -319,23 +319,20 @@ def test_unsupported_vcs_provider_exits():
     assert "gitlab" in str(exc_info.value)
 
 
-def test_successful_injection_sets_app_identity_flag(monkeypatch):
+def test_successful_injection_sets_app_identity_flag():
     """A successful _inject_vcs_identity call sets _UIO_APP_IDENTITY_ACTIVE=1."""
-    from unittest.mock import patch
-
     from uio.core.runner import _inject_vcs_identity
 
-    monkeypatch.delenv("_UIO_APP_IDENTITY_ACTIVE", raising=False)
-    monkeypatch.delenv("GH_TOKEN", raising=False)
-
-    with (
-        patch("uio.providers.github.app.env_vars_present", return_value=True),
-        patch("uio.providers.github.app.get_token_for_identity", return_value="ghs_mock"),
-    ):
-        result = _inject_vcs_identity({"vcs-identity": "coder"})
-
-    assert result == "coder"
-    assert os.environ.get("_UIO_APP_IDENTITY_ACTIVE") == "1"
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("GH_TOKEN", None)
+        os.environ.pop("_UIO_APP_IDENTITY_ACTIVE", None)
+        with (
+            patch("uio.providers.github.app.env_vars_present", return_value=True),
+            patch("uio.providers.github.app.get_token_for_identity", return_value="ghs_mock"),
+        ):
+            result = _inject_vcs_identity({"vcs-identity": "coder"})
+        assert result == "coder"
+        assert os.environ.get("_UIO_APP_IDENTITY_ACTIVE") == "1"
 
 
 def test_no_identity_clears_app_identity_flag(monkeypatch):
