@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import queue
 from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
 
 from uio.cli.main import main
-import queue
-
 from uio.core.mcp import (
     MCPClient,
     MCPTimeoutError,
@@ -496,6 +495,13 @@ class TestMCPClientRpcTimeout:
         client._queue.put(None)
         with pytest.raises(RuntimeError, match="closed connection"):
             client._rpc("tools/list", {})
+
+    def test_rpc_timeout_prints_mcp_warning_to_stderr(self, capsys):
+        """Timeout prints a [mcp] warning to stderr before raising so it is visible in all log paths."""
+        client = self._make_client()
+        with pytest.raises(MCPTimeoutError):
+            client._rpc("tools/list", {})
+        assert "[mcp]" in capsys.readouterr().err
 
 
 class TestMcpPluginsForwardedToCli:

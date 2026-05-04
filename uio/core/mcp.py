@@ -58,6 +58,14 @@ class MCPClient:
         self._id += 1
         return self._id
 
+    def _timeout_error(self, method: str) -> MCPTimeoutError:
+        msg = (
+            f"[mcp] '{self.server_name}' timed out after {self._timeout}s "
+            f"waiting for response to '{method}'"
+        )
+        print(f"  {msg}", file=sys.stderr)
+        return MCPTimeoutError(msg)
+
     def _rpc(self, method: str, params: dict) -> dict:
         req_id = self._next_id()
         msg = {"jsonrpc": "2.0", "id": req_id, "method": method, "params": params}
@@ -67,17 +75,11 @@ class MCPClient:
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise MCPTimeoutError(
-                    f"[mcp] '{self.server_name}' timed out after {self._timeout}s "
-                    f"waiting for response to '{method}'"
-                )
+                raise self._timeout_error(method)
             try:
                 line = self._queue.get(timeout=remaining)
             except queue.Empty:
-                raise MCPTimeoutError(
-                    f"[mcp] '{self.server_name}' timed out after {self._timeout}s "
-                    f"waiting for response to '{method}'"
-                )
+                raise self._timeout_error(method)
             if line is None:
                 raise RuntimeError("MCP server closed connection unexpectedly")
             data = json.loads(line)
