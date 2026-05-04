@@ -4,6 +4,7 @@ import json
 import logging
 from pathlib import Path
 
+import uio.core.ledger as ledger_module
 
 from uio.core.ledger import estimate_cost_usd, write_cost_ledger
 
@@ -18,18 +19,23 @@ def test_estimate_openai_mini():
     assert abs(cost - (0.15 + 0.60)) < 1e-9
 
 
-def test_estimate_unknown_provider():
-    cost = estimate_cost_usd("unknown", "unknown-model", 1_000_000, 1_000_000)
+def test_estimate_unknown_provider(monkeypatch, caplog):
+    monkeypatch.setattr(ledger_module, "_warned_unknown_models", set())
+    with caplog.at_level(logging.WARNING, logger="uio.core.ledger"):
+        cost = estimate_cost_usd("unknown", "unknown-model", 1_000_000, 1_000_000)
     assert cost == 0.0
+    assert any("unknown/unknown-model" in r.message for r in caplog.records)
 
 
-def test_estimate_unknown_model_logs_warning(caplog):
+def test_estimate_unknown_model_logs_warning(monkeypatch, caplog):
+    monkeypatch.setattr(ledger_module, "_warned_unknown_models", set())
     with caplog.at_level(logging.WARNING, logger="uio.core.ledger"):
         estimate_cost_usd("acme", "acme-turbo", 1_000, 500)
     assert any("acme/acme-turbo" in r.message for r in caplog.records)
 
 
-def test_estimate_unknown_model_warns_once(caplog):
+def test_estimate_unknown_model_warns_once(monkeypatch, caplog):
+    monkeypatch.setattr(ledger_module, "_warned_unknown_models", set())
     with caplog.at_level(logging.WARNING, logger="uio.core.ledger"):
         estimate_cost_usd("acme2", "acme2-turbo", 1_000, 500)
         estimate_cost_usd("acme2", "acme2-turbo", 2_000, 1_000)

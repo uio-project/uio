@@ -24,7 +24,7 @@ def estimate_cost_usd(
     if costs is None:
         if key not in _warned_unknown_models:
             _warned_unknown_models.add(key)
-            _log.warning("[ledger] unknown model '%s' — cost not tracked", key)
+            _log.warning("unknown model '%s' — cost not tracked", key)
         costs = (0.0, 0.0)
     return (prompt_tokens * costs[0] + completion_tokens * costs[1]) / 1_000_000
 
