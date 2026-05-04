@@ -173,7 +173,7 @@ def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
     command_env["GITHUB_TOKEN"] = token
     command_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = token
 
-    using_app_identity = os.environ.get("GH_TOKEN") == token
+    using_app_identity = os.environ.get("_UIO_APP_IDENTITY_ACTIVE") == "1"
     if using_app_identity:
         print(f"  [mcp] '{server_name}' starting with App identity token (GH_TOKEN)")
     else:
