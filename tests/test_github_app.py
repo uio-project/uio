@@ -317,3 +317,31 @@ def test_unsupported_vcs_provider_exits():
     with pytest.raises(IdentityError) as exc_info:
         _inject_vcs_identity({"vcs-identity": "coder", "vcs-provider": "gitlab"})
     assert "gitlab" in str(exc_info.value)
+
+
+def test_successful_injection_sets_app_identity_flag(monkeypatch):
+    """A successful _inject_vcs_identity call sets _UIO_APP_IDENTITY_ACTIVE=1."""
+    from unittest.mock import patch
+
+    from uio.core.runner import _inject_vcs_identity
+
+    monkeypatch.delenv("_UIO_APP_IDENTITY_ACTIVE", raising=False)
+
+    with (
+        patch("uio.providers.github.app.env_vars_present", return_value=True),
+        patch("uio.providers.github.app.get_token_for_identity", return_value="ghs_mock"),
+    ):
+        result = _inject_vcs_identity({"vcs-identity": "coder"})
+
+    assert result == "coder"
+    assert os.environ.get("_UIO_APP_IDENTITY_ACTIVE") == "1"
+
+
+def test_no_identity_clears_app_identity_flag(monkeypatch):
+    """_inject_vcs_identity with no vcs-identity clears any pre-existing flag."""
+    from uio.core.runner import _inject_vcs_identity
+
+    monkeypatch.setenv("_UIO_APP_IDENTITY_ACTIVE", "1")
+    result = _inject_vcs_identity({})
+    assert result is None
+    assert "_UIO_APP_IDENTITY_ACTIVE" not in os.environ

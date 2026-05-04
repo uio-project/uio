@@ -134,6 +134,7 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
             )
             role = legacy
     if not role:
+        os.environ.pop("_UIO_APP_IDENTITY_ACTIVE", None)
         return None
 
     provider = frontmatter.get("vcs-provider", "github")

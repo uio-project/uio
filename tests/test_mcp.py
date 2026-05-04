@@ -43,7 +43,7 @@ class TestDefaultGithubMcpCommand:
 
 class TestMakeMcpClientTokenPriority:
     def test_gh_token_wins_over_pat(self, monkeypatch):
-        """GH_TOKEN (App identity) takes priority over GITHUB_PERSONAL_ACCESS_TOKEN."""
+        """GH_TOKEN takes priority over GITHUB_PERSONAL_ACCESS_TOKEN."""
         monkeypatch.setenv("GH_TOKEN", "app-token")
         monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "pat-token")
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)

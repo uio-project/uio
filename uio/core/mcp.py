@@ -156,9 +156,10 @@ def _default_github_mcp_command() -> list[str]:
 def make_mcp_client(server_name: str = "github") -> "MCPClient | None":
     """Try to start the GitHub MCP server; return None if no token is available.
 
-    Token priority: GH_TOKEN (set by App identity injection) → GITHUB_TOKEN → GITHUB_PERSONAL_ACCESS_TOKEN.
+    Token priority: GH_TOKEN → GITHUB_TOKEN → GITHUB_PERSONAL_ACCESS_TOKEN.
     The selected token is exported under all three names so that any MCP server implementation
     (gh extension, standalone binary, community npm) can find it regardless of which var it reads.
+    App identity is detected separately via _UIO_APP_IDENTITY_ACTIVE.
     """
     token = (
         os.environ.get("GH_TOKEN")
