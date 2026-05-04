@@ -126,6 +126,17 @@ class TestBuildContextSection:
         assert "content A" in result
         assert "content B" in result
 
+    def test_symlinked_duplicate_injected_once(self, tmp_path):
+        """A file reachable via a symlink under a second pattern is injected only once."""
+        import os
+
+        real_file = tmp_path / "real.md"
+        real_file.write_text("symlinked content")
+        link_file = tmp_path / "alias.md"
+        os.symlink(real_file, link_file)
+        result = _build_context_section(["real.md", "alias.md"], str(tmp_path), 8000)
+        assert result.count("symlinked content") == 1
+
 
 class TestParserAcceptsContextKey:
     """Ensure validate_definition does not flag 'context' as unknown."""

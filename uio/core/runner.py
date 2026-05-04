@@ -77,9 +77,10 @@ def _build_context_section(globs: list[str], project_root: str, max_tokens: int)
                 break
             if not os.path.isfile(fpath):
                 continue
-            if fpath in seen:
+            real = os.path.realpath(fpath)
+            if real in seen:
                 continue
-            seen.add(fpath)
+            seen.add(real)
             try:
                 with open(fpath, encoding="utf-8", errors="replace") as fh:
                     content = fh.read()

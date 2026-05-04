@@ -156,8 +156,12 @@ def check_heading_format(path: str, frontmatter: dict, body: str) -> list[str]:
 
 def _strip_code_spans(text: str) -> str:
     """Remove fenced code blocks and inline code spans from markdown text."""
+    # Fenced blocks: backtick and tilde variants (with optional info string)
     text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-    text = re.sub(r"`[^`\n]*`", "", text)
+    text = re.sub(r"~~~.*?~~~", "", text, flags=re.DOTALL)
+    # Inline spans: match an opening run of N backticks, content, then the same N closing
+    # backticks. This correctly handles both `code` and ``code with `backtick` inside``.
+    text = re.sub(r"(`+).+?\1", "", text, flags=re.DOTALL)
     return text
 
 
