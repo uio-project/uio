@@ -72,7 +72,7 @@ Known keys: `name description complexity tools timeout argument-hint invokable`
 
 `select_model(provider, complexity, model_override)` — returns the model string. Resolution order: `model_override` → `LLM_MODEL` env var → tier-based default from `PROVIDER_DEFAULTS` / `PROVIDER_SMALL_MODELS`.
 
-`select_provider_chain(provider_override)` — if `provider_override` is set, returns `[provider_override]`. Otherwise returns all providers in `ROUTING_CHAIN` whose API key is set, with Ollama always included as the first entry.
+`select_provider_chain(provider_override, complexity)` — if `provider_override` is set, returns `[provider_override]`. Otherwise returns all providers in `ROUTING_CHAIN` whose API key is set. Ollama is excluded for large-complexity runs (local models are unreliable for multi-step tool chains); for small complexity it is the fallback when no cloud keys are available.
 
 ---
 
