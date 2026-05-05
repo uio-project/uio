@@ -46,9 +46,9 @@ A regex is used instead of a streaming YAML parser because frontmatter is always
 
 `validate_definition(path, frontmatter)` checks:
 - `name` and `description` are present and non-empty (error if missing)
-- All keys are in the known-keys set (warning if unknown)
+- All keys are in the known-keys set (error if unknown)
 
-Known keys: `name description complexity tools timeout argument-hint invokable`
+Known keys: `name description complexity tools capabilities timeout argument-hint invokable max_tokens guardrails context github-identity vcs-identity vcs-provider`
 
 ---
 

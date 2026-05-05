@@ -35,8 +35,8 @@ name: My Agent
 description: Does something useful.
 complexity: small
 capabilities:
-  - terminal
-  - github
+  - vcs
+  - thinking
 timeout: 300
 vcs-identity: planner
 ---
@@ -47,7 +47,7 @@ vcs-identity: planner
 | `name` | string | Yes | — | Display name |
 | `description` | string | Yes | — | One-line summary |
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
-| `capabilities` | list of strings | No | — | Informational only; documents which capability families the agent uses; not enforced by the runtime. Common values: `vcs`, `terminal`, `github`, `thinking`. (`tools` is an accepted legacy alias.) |
+| `capabilities` | list of strings | No | — | Declares which capability families the agent uses. Enforced by `validate_definition()` — unknown values produce an error. Accepted values: `vcs`, `db`, `browser`, `search`, `chat`, `tracker`, `ci`, `cloud`, `docs`, `monitor`, `email`, `vector`, `container`, `fs`, `http`, `kv`, `git`, `thinking`. (`tools` is an accepted legacy alias.) |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
 | `vcs-identity` | `planner` \| `coder` \| `reviewer` | No | — | VCS App identity to obtain for this agent's repository operations — see below |
 | `vcs-provider` | `github` \| `gitlab` | No | `github` | VCS platform targeted by `vcs-identity`; controls which MCP tool aliases are injected |
@@ -196,7 +196,7 @@ Known keys (do not produce warnings):
 
 ```
 name  description  complexity  capabilities  tools  timeout  argument-hint  invokable
-vcs-identity  vcs-provider  github-identity
+max_tokens  guardrails  context  github-identity  vcs-identity  vcs-provider
 ```
 
 Any other key produces an error. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
@@ -215,8 +215,8 @@ name: repo-health
 description: Run tests, lint, TODO count, stale branches, and open PRs.
 complexity: large
 capabilities:
-  - terminal
-  - github
+  - vcs
+  - fs
 timeout: 600
 ---
 
@@ -243,7 +243,6 @@ name: deep-review
 description: Multi-step code review with externalised reasoning.
 complexity: large
 capabilities:
-  - github
   - thinking
 ---
 

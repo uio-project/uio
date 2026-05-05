@@ -14,18 +14,20 @@ distinct permission scope, enforcing separation of duties at the GitHub App laye
 
 ## Declaring an identity
 
-Add `github-identity` to your agent's frontmatter:
+Add `vcs-identity` to your agent's frontmatter:
 
 ```yaml
 ---
 name: my-github-agent
 description: An agent that opens pull requests.
-github-identity: coder   # planner | coder | reviewer
+vcs-identity: coder   # planner | coder | reviewer
 capabilities:
-  - terminal
   - vcs
 ---
 ```
+
+> **Deprecated alias:** `github-identity` is accepted for backwards compatibility but
+> new definitions should use `vcs-identity`.
 
 uio obtains a short-lived GitHub App installation token before the agent loop starts and
 sets `GH_TOKEN` — both the `gh` CLI and GitHub MCP server pick it up automatically.
