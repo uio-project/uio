@@ -178,5 +178,5 @@ This vocabulary is intentional. **"Agentic Stack"** is the umbrella term for the
 | **Prompt** | A single-shot LLM instruction. The definition body is sent once and the response is printed — no tool-use loop. Defined in `*.prompt.md`. |
 | **Tool** | An external capability the **model** invokes mid-loop. Tools are agent-directed: the agent decides when and how to call them. Examples: `run_command` (built-in), MCP tools such as GitHub or filesystem access. This is the key distinction from skills — a tool is called by the model; a skill is called by you. |
 | **Workflow** | A deterministic pipeline that chains agents and skills sequentially. Defined in `*.workflow.md`. The structure is fixed; the runtime executes steps in order with `{{ variable }}` interpolation and optional `when:` conditions — no LLM orchestrates the sequence. |
-| **Memory** | Persistent context injected into agent runs across sessions. Not yet implemented (planned). |
-| **Guardrails** | Per-definition constraints on cost, tool access, and iteration count. Not yet implemented (planned). |
+| **Memory** | Persistent context injected into agent runs across sessions. |
+| **Guardrails** | Per-definition constraints on cost, tool access, and iteration count. |
