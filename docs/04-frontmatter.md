@@ -243,7 +243,6 @@ name: deep-review
 description: Multi-step code review with externalised reasoning.
 complexity: large
 capabilities:
-  - vcs
   - thinking
 ---
 

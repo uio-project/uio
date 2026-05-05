@@ -26,11 +26,11 @@ capabilities:
 ---
 ```
 
-uio obtains a short-lived GitHub App installation token before the agent loop starts and
-sets `GH_TOKEN` — both the `gh` CLI and GitHub MCP server pick it up automatically.
-
 > **Deprecated alias:** `github-identity` is accepted for backwards compatibility but
 > new definitions should use `vcs-identity`.
+
+uio obtains a short-lived GitHub App installation token before the agent loop starts and
+sets `GH_TOKEN` — both the `gh` CLI and GitHub MCP server pick it up automatically.
 
 ## Further reading
 
