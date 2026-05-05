@@ -27,6 +27,7 @@
 | [15 — Use cases](15-use-cases.md) | Worked examples: repo health, code review, issue planning, AI-authored PRs, multi-agent pipelines |
 | [16 — About](16-about.md) | The origin story — why uio exists and where the name comes from |
 | [17 — GitHub App identities](17-github-app-identities.md) | Dedicated GitHub App identities for agents — setup, frontmatter, and links to governance and runbooks |
+| [18 — Design decisions](18-design-decisions.md) | Why Python? Language choice rationale and answers to common implementation questions |
 
 ---
 
