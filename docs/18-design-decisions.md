@@ -1,8 +1,6 @@
 # Design decisions
 
-This page documents the rationale behind key design decisions in uio.
-
----
+This page documents the rationale behind key design decisions in uio. It will grow as more decisions are recorded.
 
 ## Why Python?
 
@@ -19,6 +17,6 @@ tight feedback-loop CLI, so cold-start latency is rarely the pain point. If spec
 (e.g. token estimation, file scanning) ever become bottlenecks, a targeted Rust extension via
 PyO3 would be preferable to a full rewrite.
 
-**Summary:** Python is well-matched to what uio actually does. uio's value is in its agent
+Python is well-matched to what uio actually does. uio's value is in its agent
 definitions and workflow logic — the language that lets you iterate fastest on prompts, routing,
 and integrations is the right one.
