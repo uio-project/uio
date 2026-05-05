@@ -147,9 +147,9 @@ environments and regulated on-premises deployments.
 
 ### How provider routing works with the sidecar
 
-`uio` tries providers in order: **Gemini → OpenAI → Ollama**. A provider is included only if
+`uio` tries providers in order: **Ollama → OpenAI → Gemini → Anthropic**. A provider is included only if
 its API key is present in the environment. Ollama has no key requirement and is always the
-final fallback.
+first fallback when no cloud keys are set.
 
 The compose file wires `OLLAMA_BASE_URL=http://ollama:11434/v1` so the uio container reaches
 the Ollama sidecar over the compose network. With no cloud keys set:
@@ -161,7 +161,7 @@ ROUTING_CHAIN: [ollama]  ← only Ollama is available, selected immediately
 With cloud keys set (passed through from the host), cloud providers take priority:
 
 ```
-ROUTING_CHAIN: [gemini, openai, ollama]  ← Gemini tried first; Ollama is the fallback
+ROUTING_CHAIN: [ollama, openai, gemini, anthropic]  ← Ollama first; cloud providers tried in order
 ```
 
 ### First-time setup

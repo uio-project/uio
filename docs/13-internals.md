@@ -64,7 +64,7 @@ Known keys: `name description complexity tools timeout argument-hint invokable`
 
 ### Routing layer — `uio/core/routing.py`
 
-`ROUTING_CHAIN = ["gemini", "openai", "ollama"]` — the auto-routing order.
+`ROUTING_CHAIN = ["ollama", "openai", "gemini", "anthropic"]` — the auto-routing order.
 
 `PROVIDER_KEY_ENV` maps each provider to its required API key env var (`None` for Ollama).
 
