@@ -81,7 +81,7 @@ agents = "/home/alice/shared-agents"
 
 | Key | Default | Description |
 |---|---|---|
-| `default_provider` | `null` | Provider to use when no `--provider` flag is given. One of `gemini`, `openai`, `ollama`. |
+| `default_provider` | `null` | Provider to use when no `--provider` flag is given. One of `gemini`, `openai`, `ollama`, `anthropic`. |
 | `cost_ledger` | `uio_cost.jsonl` | Path to the cost ledger file (relative to CWD) |
 | `timeout` | `300` | Default per-command shell timeout in seconds for `run_command` calls |
 | `max_iterations` | `10` | Iteration cap for `small` agents |

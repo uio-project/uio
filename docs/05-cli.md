@@ -306,6 +306,8 @@ If `.claude/commands` already exists as a directory symlink (legacy setup), `uio
 
 Parses all definition files in the configured directories (agents, skills, prompts, and workflows) and checks required frontmatter fields. Warns on unrecognised keys.
 
+Standard validation also warns on heading format issues, unresolved skill references, and missing skill interface sections. `--strict` additionally enables stopping-criteria detection.
+
 ```bash
 uio validate
 uio validate --strict
@@ -313,7 +315,7 @@ uio validate --strict
 
 | Flag | Description |
 |---|---|
-| `--strict` | Enable opt-in checks: stopping-criteria detection, heading format, skill-reference resolution, and skill interface section presence |
+| `--strict` | Enable opt-in stopping-criteria detection (checks that agents include explicit stopping language) |
 
 Exit code: 0 if all files are valid, 1 if any errors are found. Warnings do not affect the exit code.
 
