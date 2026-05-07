@@ -122,6 +122,8 @@ stdio MCP servers are per-process: each host (uio, VS Code, Claude Code) spawns 
 
 To give VS Code agents the same MCP tools that uio provides, add each server from `uio.toml` to `.vscode/mcp.json`. The servers configured in this project are already mirrored — see `.vscode/mcp.json`. The `{cwd}` placeholder used in `uio.toml` maps to `${workspaceFolder}` in VS Code config.
 
+`uio mcp init --for vscode` generates `.vscode/mcp.json` automatically from the `[mcp.<name>]` sections in `uio.toml`. See [`uio mcp init`](05-cli.md#uio-mcp-init) in the CLI reference for the full flag list.
+
 ### Writing agents that work in both environments
 
 Because tool names differ between uio and VS Code, agent definitions that hardcode `mcp__github__*` tool names will only work in uio. Agent definitions that describe *what to do* rather than which specific tool call to invoke will work in both — the model discovers available tools at runtime and adapts.
@@ -176,6 +178,22 @@ export MCP_GITHUB_COMMAND="gh mcp server"
 5. **Shutdown** — `close()` closes the stdin pipe and terminates the process on session end.
 
 Communication uses newline-delimited JSON. Each request includes an incrementing `id`; responses are matched by `id`. The client spins on `stdout.readline()` until the matching response arrives.
+
+---
+
+## Generating platform config files with `uio mcp init`
+
+Once you have defined your MCP servers in `uio.toml`, run `uio mcp init` to scaffold the platform-specific config file without manually writing env var references:
+
+```bash
+uio mcp init --for claude    # writes .mcp.json for Claude Code
+uio mcp init --for vscode    # writes .vscode/mcp.json for VS Code
+uio mcp init --for claude --global   # merges into ~/.claude/settings.json
+```
+
+Secret values are never written to disk. For `--for claude`, `env_keys` become `${MY_TOKEN}` env var references. For `--for vscode`, they become `${input:my-token}` prompt references — VS Code prompts the user to enter each secret at startup.
+
+See [`uio mcp init`](05-cli.md#uio-mcp-init) in the CLI reference for the full flag list.
 
 ---
 
