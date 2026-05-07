@@ -107,10 +107,17 @@ If there are no issues, state that clearly and keep the review brief.
 
 ### 5. Post the review
 
-Run `/github-post-review` with `owner/repo: <owner>/<repo>`, `pr-number: <pr_number>`,
-and `body: <review-body>`.
+Post the review as a PR comment. Use whichever mechanism is available:
 
-The attribution footer is injected automatically by the runtime — do not add it manually.
+- **GitHub MCP tool** (preferred if available in the session):
+  Call `add_issue_comment` (or the prefixed equivalent `mcp__mcp-github__add_issue_comment`)
+  with `owner`, `repo`, `issue_number: <pr_number>`, and `body: <review-body>`.
+- **gh CLI fallback** (use when no GitHub MCP tool is available):
+  ```
+  gh pr comment <pr_number> --repo <owner>/<repo> --body '<review-body>'
+  ```
+
+Do not skip this step or display the review only in the conversation — always post it to the PR.
 
 ### 6. Stop
 
