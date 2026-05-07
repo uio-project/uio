@@ -56,12 +56,16 @@ Paths to definition directories. Relative paths are resolved from the current wo
 | `agents` | `.uio/agents` | Directory containing `.agent.md` files |
 | `skills` | `.uio/skills` | Directory containing `.skill.md` files |
 | `prompts` | `.uio/prompts` | Directory containing `.prompt.md` files |
+| `workflows` | `.uio/workflows` | Directory containing `.workflow.md` files |
+| `memory` | `.uio/memory` | Directory for persistent memory files |
 
 ```toml
 [dirs]
-agents  = ".uio/agents"
-skills  = ".uio/skills"
-prompts = ".uio/prompts"
+agents    = ".uio/agents"
+skills    = ".uio/skills"
+prompts   = ".uio/prompts"
+workflows = ".uio/workflows"
+memory    = ".uio/memory"
 ```
 
 You can use absolute paths if your definitions live outside the project tree:
@@ -77,11 +81,13 @@ agents = "/home/alice/shared-agents"
 
 | Key | Default | Description |
 |---|---|---|
-| `default_provider` | `null` | Provider to use when no `--provider` flag is given. One of `gemini`, `openai`, `ollama`. |
+| `default_provider` | `null` | Provider to use when no `--provider` flag is given. One of `gemini`, `openai`, `ollama`, `anthropic`. |
 | `cost_ledger` | `uio_cost.jsonl` | Path to the cost ledger file (relative to CWD) |
 | `timeout` | `300` | Default per-command shell timeout in seconds for `run_command` calls |
 | `max_iterations` | `10` | Iteration cap for `small` agents |
 | `max_iterations_large` | `25` | Iteration cap for `large` agents |
+| `anthropic_max_tokens` | `16000` | Maximum tokens per Anthropic API request (Anthropic provider only) |
+| `context_max_tokens` | `8000` | Token cap for context glob injection |
 
 ```toml
 [runtime]
@@ -90,6 +96,8 @@ cost_ledger          = "uio_cost.jsonl"
 timeout              = 300
 max_iterations       = 10   # small agents (summarise, comment, query)
 max_iterations_large = 25   # large agents (github-coder, multi-step workflows)
+# anthropic_max_tokens = 16000  # Anthropic only; overridable per-agent via frontmatter
+# context_max_tokens   = 8000   # token cap for context glob injection
 ```
 
 ---
@@ -127,6 +135,32 @@ command = "gh mcp server"   # explicit gh extension
 ```
 
 This section only affects the MCP server launch command. For agents that do **not** declare `github-identity`, a token must be available via `GH_TOKEN`, `GITHUB_TOKEN`, or `GITHUB_PERSONAL_ACCESS_TOKEN`. See [GitHub authentication](#github-authentication) below.
+
+---
+
+### `[[mcp.plugins]]`
+
+An array of external MCP plugin configurations loaded alongside the built-in servers.
+
+| Key | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | Identifier used in capability matching |
+| `type` | string | Yes | Capability class (`vcs`, `db`, `browser`, `search`, `chat`, `tracker`, `ci`, `cloud`, `think`, …) |
+| `command` | string | Yes | Shell command to launch the MCP server |
+| `env_keys` | list of strings | No | Environment variables required by this server; uio warns and skips the plugin if any are absent |
+
+```toml
+[[mcp.plugins]]
+name    = "sequential-thinking"
+type    = "think"
+command = "npx -y @modelcontextprotocol/server-sequential-thinking"
+
+[[mcp.plugins]]
+name     = "gitlab"
+type     = "vcs"
+command  = "npx -y @gitlab/mcp-server stdio"
+env_keys = ["GITLAB_TOKEN"]
+```
 
 ---
 
@@ -204,9 +238,11 @@ and [`docs/provisioning/`](provisioning/) for App setup guides.
 [dirs]
 # Where uio looks for definition files.
 # Relative to the directory where you run uio.
-agents  = ".uio/agents"
-skills  = ".uio/skills"
-prompts = ".uio/prompts"
+agents    = ".uio/agents"
+skills    = ".uio/skills"
+prompts   = ".uio/prompts"
+workflows = ".uio/workflows"
+memory    = ".uio/memory"
 
 [runtime]
 # Default provider when no --provider flag or LLM_PROVIDER env var is set.
@@ -221,6 +257,9 @@ cost_ledger = "uio_cost.jsonl"
 # Individual agents can override this with the 'timeout' frontmatter field.
 timeout = 300
 
+# anthropic_max_tokens = 16000  # Anthropic only; overridable per-agent via frontmatter
+# context_max_tokens   = 8000   # token cap for context glob injection
+
 [large_agents]
 # Agent names that always use the large model tier, in addition to
 # any agents that set 'complexity: large' in their frontmatter.
@@ -230,6 +269,21 @@ names = []
 # Uncomment to override the GitHub MCP server launch command.
 # [mcp.github]
 # command = "gh mcp server"
+
+# MCP plugin registry — external-provider servers loaded alongside bundled ones.
+# 'type' declares the capability class (vcs, db, browser, search, chat, tracker, ci, …).
+# 'env_keys' lists required environment variables; uio warns and skips if any are absent.
+#
+# [[mcp.plugins]]
+# name    = "sequential-thinking"
+# type    = "think"
+# command = "npx -y @modelcontextprotocol/server-sequential-thinking"
+#
+# [[mcp.plugins]]
+# name     = "gitlab"
+# type     = "vcs"
+# command  = "npx -y @gitlab/mcp-server stdio"
+# env_keys = ["GITLAB_TOKEN"]
 
 # Remote registries — Git repos with a registry.yaml manifest at root.
 # Run 'uio registry search <query>' to find definitions.

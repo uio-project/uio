@@ -187,7 +187,7 @@ When run as `uio prompt run ask-docs "what does the cost ledger store?"`, the fi
 
 ## Validation
 
-`uio validate` parses all definition files in the configured directories and checks:
+`uio validate` parses all definition files in the configured directories — agents, skills, prompts, and workflows (`*.workflow.md`) — and checks:
 
 - **Error** (exits non-zero): `name` or `description` is missing or empty
 - **Warning** (exits zero): an unrecognised frontmatter key is present
