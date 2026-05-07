@@ -17,6 +17,9 @@ uio
 ├── prompt
 │   ├── run <name> [arg]
 │   └── list
+├── workflow
+│   ├── run <name> [arg]
+│   └── list
 ├── chat
 ├── cost
 ├── config
@@ -24,6 +27,12 @@ uio
 │   └── init
 ├── init
 ├── link
+├── mcp
+│   └── init
+├── memory
+│   ├── list
+│   ├── view <name>
+│   └── clear [--session]
 ├── validate
 ├── registry
 │   ├── list
@@ -156,6 +165,42 @@ Accepts `--provider`, `--model`, `--base-url`. Does not accept `--complexity`, `
 Lists all `.prompt.md` files.
 
 Output columns: NAME, ARGUMENT, DESCRIPTION
+
+---
+
+## `uio workflow`
+
+### `uio workflow run <name> [arg]`
+
+Runs a named workflow sequentially from `.uio/workflows/<name>.workflow.md`. Each step is executed in order; the output of one step is not automatically piped into the next unless the step definition references `{{ input }}`.
+
+`WORKFLOW` is the stem of the filename (without `.workflow.md`).
+`ARG` is an optional positional argument injected as `{{ input }}` in step arguments.
+
+```bash
+uio workflow run review-and-fix
+uio workflow run review-and-fix "owner/repo#42"
+uio workflow run review-and-fix --provider openai
+```
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--provider` | `gemini\|openai\|ollama` | auto | LLM provider override for every step; bypasses the routing chain |
+| `--model` | string | inferred | Model name override for every step |
+| `--no-mcp` | flag | off | Disable all MCP servers for every step |
+| `--shell` | `bash\|sh\|zsh\|powershell\|pwsh` | auto | Shell for `run_command`; auto-detects platform |
+
+Exit code: 0 on success, 1 if the workflow definition is not found or a step fails.
+
+### `uio workflow list`
+
+Lists all available workflows from the configured workflows directory (`.uio/workflows/*.workflow.md`).
+
+Output columns: NAME, STEPS, DESCRIPTION
+
+```bash
+uio workflow list
+```
 
 ---
 
@@ -299,6 +344,84 @@ uio link --force
 Running `uio link` a second time is a no-op. Adding or deleting a prompt file and re-running `uio link` adds or removes the corresponding symlink in `.claude/commands/`.
 
 If `.claude/commands` already exists as a directory symlink (legacy setup), `uio link` will prompt to replace it with a real directory. Pass `--force` to replace without prompting.
+
+---
+
+## `uio mcp`
+
+### `uio mcp init`
+
+Scaffolds an MCP configuration file for Claude Code or VS Code, populated from the `[mcp.<name>]` server definitions in `uio.toml`. Secret values are never written to disk — env var references (e.g. `${GITHUB_PERSONAL_ACCESS_TOKEN}`) are emitted instead.
+
+Declare the servers you want to expose in `uio.toml` first:
+
+```toml
+[mcp.github]
+command  = "github-mcp-server stdio"
+env_keys = ["GITHUB_PERSONAL_ACCESS_TOKEN"]
+```
+
+Then generate the platform config:
+
+```bash
+uio mcp init --for claude                 # writes .mcp.json
+uio mcp init --for vscode                 # writes .vscode/mcp.json
+uio mcp init --for claude --global        # merges into ~/.claude/settings.json
+uio mcp init --for claude --force         # overwrites an existing .mcp.json
+uio mcp init --for vscode --dry-run       # print planned output without writing
+```
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--for` | `claude\|vscode` | — | **Required.** Target platform. `claude` writes `.mcp.json`; `vscode` writes `.vscode/mcp.json`. |
+| `--global` | flag | off | *(claude only)* Merge server entries into `~/.claude/settings.json` instead of writing a project-level `.mcp.json`. |
+| `--force` | flag | off | Overwrite the target file (or existing `mcpServers.<name>` entry when `--global`) if it already exists. |
+| `--dry-run` | flag | off | Print the planned output without writing any files. |
+
+Exit code: 0 on success, 1 if no `[mcp.*]` sections are found in `uio.toml`.
+
+`.mcp.json` is added to `.gitignore` automatically by `uio init` because env var references vary per developer.
+
+See [MCP Integration](08-mcp.md) for full context on configuring and using MCP servers.
+
+---
+
+## `uio memory`
+
+### `uio memory list`
+
+Lists all memory files from `.uio/memory/*.memory.md` with their name, scope, and estimated body size in tokens.
+
+Output columns: NAME, SCOPE, TOKENS
+
+```bash
+uio memory list
+```
+
+### `uio memory view <name>`
+
+Prints the full body of the named memory file to stdout.
+
+`NAME` is the value of the `name` frontmatter field (or the file stem if the field is absent).
+
+```bash
+uio memory view my-context
+```
+
+Exit code: 0 on success, 1 if the named memory file is not found.
+
+### `uio memory clear [--session]`
+
+Truncates memory file bodies. Without `--session`, clears ALL memory files (both project-scoped and session-scoped). With `--session`, clears only session-scoped memory files.
+
+```bash
+uio memory clear            # clear all memory files
+uio memory clear --session  # clear only session-scoped files
+```
+
+| Flag | Description |
+|---|---|
+| `--session` | Clear only memory files with `scope: session` in their frontmatter (default: clear all). |
 
 ---
 
