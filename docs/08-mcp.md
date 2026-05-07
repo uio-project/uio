@@ -191,7 +191,7 @@ uio mcp init --for vscode    # writes .vscode/mcp.json for VS Code
 uio mcp init --for claude --global   # merges into ~/.claude/settings.json
 ```
 
-Secret values are never written to disk — `env_keys` declared in `uio.toml` become env var references (`${MY_TOKEN}`) in the output file.
+Secret values are never written to disk. For `--for claude`, `env_keys` become `${MY_TOKEN}` env var references. For `--for vscode`, they become `${input:my-token}` prompt references — VS Code prompts the user to enter each secret at startup.
 
 See [`uio mcp init`](05-cli.md#uio-mcp-init) in the CLI reference for the full flag list.
 

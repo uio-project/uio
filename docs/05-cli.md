@@ -351,7 +351,10 @@ If `.claude/commands` already exists as a directory symlink (legacy setup), `uio
 
 ### `uio mcp init`
 
-Scaffolds an MCP configuration file for Claude Code or VS Code, populated from the `[mcp.<name>]` server definitions in `uio.toml`. Secret values are never written to disk — env var references (e.g. `${GITHUB_PERSONAL_ACCESS_TOKEN}`) are emitted instead.
+Scaffolds an MCP configuration file for Claude Code or VS Code, populated from the `[mcp.<name>]` server definitions in `uio.toml`. Secret values are never written to disk:
+
+- For `--for claude`: `env_keys` become `${KEY_NAME}` env var references read from the environment at startup.
+- For `--for vscode`: `env_keys` become `${input:key-name}` prompt references backed by a VS Code `inputs` block (`promptString`, `password: true`) — VS Code prompts the user to enter each secret at startup.
 
 Declare the servers you want to expose in `uio.toml` first:
 
@@ -368,7 +371,7 @@ uio mcp init --for claude                 # writes .mcp.json
 uio mcp init --for vscode                 # writes .vscode/mcp.json
 uio mcp init --for claude --global        # merges into ~/.claude/settings.json
 uio mcp init --for claude --force         # overwrites an existing .mcp.json
-uio mcp init --for vscode --dry-run       # print planned output without writing
+uio mcp init --for vscode --dry-run       # print target path without writing
 ```
 
 | Flag | Type | Default | Description |
@@ -376,11 +379,11 @@ uio mcp init --for vscode --dry-run       # print planned output without writing
 | `--for` | `claude\|vscode` | — | **Required.** Target platform. `claude` writes `.mcp.json`; `vscode` writes `.vscode/mcp.json`. |
 | `--global` | flag | off | *(claude only)* Merge server entries into `~/.claude/settings.json` instead of writing a project-level `.mcp.json`. |
 | `--force` | flag | off | Overwrite the target file (or existing `mcpServers.<name>` entry when `--global`) if it already exists. |
-| `--dry-run` | flag | off | Print the planned output without writing any files. |
+| `--dry-run` | flag | off | Print the target path without writing any files. |
 
 Exit code: 0 on success, 1 if no `[mcp.*]` sections are found in `uio.toml`.
 
-`.mcp.json` is added to `.gitignore` automatically by `uio init` because env var references vary per developer.
+`.mcp.json` is added to `.gitignore` automatically by `uio init` if a `.gitignore` already exists, because secret references vary per developer.
 
 See [MCP Integration](08-mcp.md) for full context on configuring and using MCP servers.
 
