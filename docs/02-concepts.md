@@ -125,7 +125,8 @@ my-project/
 │   ├── agents/      *.agent.md
 │   ├── skills/      *.skill.md
 │   ├── prompts/     *.prompt.md
-│   └── workflows/   *.workflow.md
+│   ├── workflows/   *.workflow.md
+│   └── memory/
 ├── uio.toml         # optional project config
 └── uio_cost.jsonl   # cost ledger (add to .gitignore)
 ```

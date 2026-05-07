@@ -43,9 +43,11 @@ Definitions live in `.uio/`:
 ```
 my-project/
 └── .uio/
-    ├── agents/   my-agent.agent.md
-    ├── skills/   my-skill.skill.md
-    └── prompts/  my-prompt.prompt.md
+    ├── agents/     my-agent.agent.md
+    ├── skills/     my-skill.skill.md
+    ├── prompts/    my-prompt.prompt.md
+    ├── workflows/  my-workflow.workflow.md
+    └── memory/
 ```
 
 See [Writing Definitions](docs/12-writing-definitions.md) for the full file format and authoring guide.

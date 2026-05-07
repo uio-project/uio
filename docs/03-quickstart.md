@@ -45,6 +45,8 @@ Expected output:
   Created directory: .uio/agents/
   Created directory: .uio/skills/
   Created directory: .uio/prompts/
+  Created directory: .uio/workflows/
+  Created directory: .uio/memory/
   Created: .uio/agents/example.agent.md
   Created: .uio/skills/example.skill.md
   Created: .uio/prompts/example.prompt.md

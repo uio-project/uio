@@ -50,7 +50,7 @@ The following flags apply to `agent run`, `skill run`, and `prompt run`:
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--provider` | `gemini\|openai\|ollama` | auto | Force a specific provider; bypasses the routing chain |
+| `--provider` | `gemini\|openai\|ollama\|anthropic` | auto | Force a specific provider; bypasses the routing chain |
 | `--model` | string | inferred | Model name override; bypasses tier selection entirely |
 | `--complexity` | `large\|small` | inferred | Complexity tier override |
 | `--base-url` | URL | env/config | OpenAI-compatible base URL (LiteLLM, Azure, local proxy) |
@@ -236,7 +236,7 @@ uio config init
 
 ## `uio init`
 
-Scaffolds `.uio/agents/`, `.uio/skills/`, and `.uio/prompts/` with one template file each. Also adds the cost ledger filename to `.gitignore` if a `.gitignore` file exists.
+Scaffolds `.uio/agents/`, `.uio/skills/`, `.uio/prompts/`, `.uio/workflows/`, and `.uio/memory/` with one template file each in `agents/`, `skills/`, and `prompts/`. Also adds the cost ledger filename to `.gitignore` if a `.gitignore` file exists.
 
 ```bash
 uio init
@@ -304,11 +304,16 @@ If `.claude/commands` already exists as a directory symlink (legacy setup), `uio
 
 ## `uio validate`
 
-Parses all definition files in the configured directories and checks required frontmatter fields. Warns on unrecognised keys.
+Parses all definition files in the configured directories (agents, skills, prompts, and workflows) and checks required frontmatter fields. Warns on unrecognised keys.
 
 ```bash
 uio validate
+uio validate --strict
 ```
+
+| Flag | Description |
+|---|---|
+| `--strict` | Enable opt-in checks: stopping-criteria detection, heading format, skill-reference resolution, and skill interface section presence |
 
 Exit code: 0 if all files are valid, 1 if any errors are found. Warnings do not affect the exit code.
 
