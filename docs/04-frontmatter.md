@@ -52,6 +52,9 @@ vcs-identity: planner
 | `vcs-identity` | `planner` \| `coder` \| `reviewer` | No | — | VCS App identity to obtain for this agent's repository operations — see below |
 | `vcs-provider` | `github` \| `gitlab` | No | `github` | VCS platform targeted by `vcs-identity`; controls which MCP tool aliases are injected |
 | `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | **Deprecated.** Use `vcs-identity` instead. Accepted as an alias for backwards compatibility. |
+| `max_tokens` | integer | No | `16000` | Overrides `runtime.anthropic_max_tokens` for this agent; Anthropic provider only |
+| `guardrails` | mapping | No | — | Cost, turn, and tool guardrails — see [`guardrails`](#guardrails) below |
+| `context` | string or list of strings | No | — | Glob pattern(s) whose matching files are injected as a `## Context` block in the system prompt; de-duplicated and truncated at `runtime.context_max_tokens` (default 8000) tokens |
 
 ### Complexity tier resolution
 
@@ -112,6 +115,66 @@ Non-GitHub providers do not validate `vcs-identity` env vars at startup (env var
 `github-identity` is a deprecated alias for `vcs-identity`. It is still accepted by the parser for backwards compatibility, but new definitions should use `vcs-identity`.
 
 See `docs/provisioning/` for setup instructions and `docs/github-permission-matrix.md` for the approved permission model.
+
+### `guardrails`
+
+Optional cost, turn, and tool-blocking limits that apply to a single agent definition. All sub-keys are optional; omit the entire block when none are needed.
+
+| Sub-key | Type | Description |
+|---|---|---|
+| `max_cost_usd` | float | Abort the run if cumulative USD cost exceeds this value. The cost is checked after each tool-call turn using the provider's token pricing. |
+| `max_turns` | integer | Cap the number of tool-call turns for this agent. Overrides the global `runtime.max_turns` setting. |
+| `deny_tools` | list of strings | Glob patterns matched against tool names. Any tool whose name matches a pattern is blocked; the run continues and the tool call returns an error result instead of executing. |
+
+```yaml
+---
+name: safe-agent
+description: Runs with strict cost and tool limits.
+guardrails:
+  max_cost_usd: 0.10
+  max_turns: 5
+  deny_tools:
+    - "mcp__*__delete_*"
+    - "run_command"
+---
+```
+
+### `context`
+
+Inject file contents into the system prompt before the agent body. Accepts a single glob string or a list of glob strings. Matching files are read from the current working directory (the project root at run time), de-duplicated, and assembled into a `## Context` block that appears in the system prompt before the agent's body.
+
+Injection is bounded by `runtime.context_max_tokens` (default: 8000 tokens). When the cap is reached the current file is truncated with a `[truncated — N tokens omitted]` marker and no further files are read. Binary files and files that cannot be opened are silently skipped.
+
+```yaml
+---
+name: context-aware-agent
+description: Reads project config before starting.
+context:
+  - "uio.toml"
+  - "docs/*.md"
+---
+```
+
+A single glob can also be given as a plain string:
+
+```yaml
+context: "README.md"
+```
+
+### `max_tokens`
+
+Overrides `runtime.anthropic_max_tokens` (default: 16000) for this specific agent definition. Only applies when the Anthropic provider is selected. Use this to raise the limit for agents that produce long outputs or lower it to constrain costs.
+
+```yaml
+---
+name: long-output-agent
+description: Generates a detailed report.
+complexity: large
+max_tokens: 32000
+---
+```
+
+See `docs/07-providers.md` for full details on Anthropic token budgets and extended thinking.
 
 ---
 
@@ -218,6 +281,11 @@ capabilities:
   - vcs
   - fs
 timeout: 600
+max_tokens: 32000
+guardrails:
+  max_cost_usd: 0.50
+  deny_tools:
+    - "mcp__*__delete_*"
 ---
 
 # Agent: repo-health
