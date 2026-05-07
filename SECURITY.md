@@ -10,7 +10,7 @@
 
 Please do **not** open a public GitHub issue for a potential vulnerability.
 
-Instead, email [anthropic@mkz.io](mailto:anthropic@mkz.io) with:
+Instead, email [security@uio-ai.org](mailto:security@uio-ai.org) with:
 
 - A description of the issue and its potential impact
 - Steps to reproduce or a proof-of-concept (if available)
