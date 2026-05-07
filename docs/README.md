@@ -28,6 +28,7 @@
 | [16 — About](16-about.md) | The origin story — why uio exists and where the name comes from |
 | [17 — GitHub App identities](17-github-app-identities.md) | Dedicated GitHub App identities for agents — setup, frontmatter, and links to governance and runbooks |
 | [18 — Design decisions](18-design-decisions.md) | Language choice rationale: why Python, and the CLI startup time trade-off |
+| [19 — Memory system](19-memory.md) | `*.memory.md` file format, scope lifecycle, prompt injection, `uio memory` CLI, and `dirs.memory` config key |
 
 ---
 
@@ -68,6 +69,12 @@
 5. [Configuration](06-configuration.md#github-authentication) — set the required env vars
 6. [Governance](governance.md) — ownership, review cadence, and change control
 7. [Runbooks](runbooks/) — audit, incident response, credential rotation, emergency disable
+
+### I want to use persistent memory across agent runs
+
+- [Memory system](19-memory.md) — file format, scope lifecycle, prompt injection, and CLI commands
+- [Configuration](06-configuration.md#dirs) — override the default `.uio/memory` directory via `dirs.memory`
+- [CLI reference — uio memory](05-cli.md#uio-memory) — `list`, `view`, and `clear` commands
 
 ### I want to see what uio can do end-to-end
 
