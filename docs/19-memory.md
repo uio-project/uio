@@ -46,7 +46,7 @@ Key facts:
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | Yes | Display name used in the `## Persistent Memory` heading and in `uio memory view <name>` |
+| `name` | No / optional (falls back to file stem) | Display name used in the `## Persistent Memory` heading and in `uio memory view <name>` |
 | `description` | No | One-line summary (shown in `uio memory list`) |
 | `scope` | No | Lifecycle scope: `project` (default) or `session` — see [Scope lifecycle](#scope-lifecycle) below |
 
@@ -112,42 +112,25 @@ work session — current goals, in-progress task state, or scratchpad notes.
 scope: session
 ```
 
-> **What counts as a clean exit?** Session memory is cleared when the agent finishes
-> its tool-use loop without an unhandled exception — either by returning a response or
-> by reaching the iteration cap. If the agent crashes mid-run (provider error,
-> `KeyboardInterrupt`, etc.) session memory is preserved so the context is available
-> when you retry.
+> **What counts as a clean exit?** Session memory is cleared when the agent
+> finishes its tool-use loop without an unhandled exception. This includes both
+> a natural finish (the model stops calling tools) and hitting the iteration cap.
+> If the agent crashes mid-run (provider error, `KeyboardInterrupt`, etc.)
+> the `finally:` block still runs but `_clean_exit` remains `False`, so session
+> memory is preserved for the next retry.
 
 ---
 
 ## Writing to memory files
 
-uio does not write to memory files automatically — agents accumulate context, but
-the agent definition must explicitly call `run_command` to write back to a memory file
-if you want the agent to update its own memory.
+uio does not write to memory files automatically. Agents can update memory by
+emitting a `run_command` tool call that writes to the file directly, for example:
 
-A simple write-back pattern in an agent definition:
+    Append a fact to session memory:
+    run_command: echo "- Completed: auth flow refactor" >> .uio/memory/session-goals.memory.md
 
-```bash
-# Append a note to session memory
-run_command: |
-  cat >> .uio/memory/session-goals.memory.md << 'EOF'
-  - Completed: auth flow refactor
-  EOF
-```
-
-Or overwrite the body entirely using the frontmatter-safe format:
-
-```bash
-run_command: |
-  python - << 'EOF'
-  import yaml, pathlib
-  path = pathlib.Path(".uio/memory/session-goals.memory.md")
-  fm_end = path.read_text().index("\n---\n", 4) + 5
-  header = path.read_text()[:fm_end]
-  path.write_text(header + "New session body here.\n")
-  EOF
-```
+Alternatively, use `uio memory clear --session` from the command line to reset
+session context before the next run.
 
 ---
 
@@ -169,7 +152,7 @@ new project.
 
 ## Configuration
 
-The memory directory path is controlled by `runtime.memory_dir` in `uio.toml`:
+The memory directory path is controlled by the `dirs.memory` key in `uio.toml`:
 
 | Key | Default | Description |
 |---|---|---|
