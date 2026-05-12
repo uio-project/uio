@@ -116,7 +116,53 @@ If one or more blocking questions are found:
 
 2. **Stop immediately** — do not clone, do not create a branch, do not write any code.
 
-If no blocking questions are found, proceed to step 1.
+If no blocking questions are found, proceed to step 0d.
+
+---
+
+#### 0d. Assign the issue to the bot identity (if issue number provided)
+
+**Skip this step** (print a note: "No issue number provided — skipping self-assignment") and proceed to step 1 when no issue number was given.
+
+**Resolve the bot login (MCP path only).** Login resolution is required only when using the MCP tool for assignment; the CLI path uses `@me` directly and does not need it.
+
+If the MCP tool is available, call:
+
+```
+mcp__mcp-github__get_me   # returns { login: "..." }
+```
+
+If the MCP tool is unavailable, fall back to:
+
+```bash
+gh api user --jq '.login'
+```
+
+If **both** the MCP call and the CLI fallback fail, print a visible warning and proceed to step 1 without attempting assignment:
+
+```
+⚠ Could not resolve bot login: <error> — skipping self-assignment
+```
+
+**Attempt assignment.** Prefer the MCP tool if available:
+
+```
+mcp__mcp-github__issue_write  query={"method": "update", "owner": "<owner>", "repo": "<repo>", "issue_number": <number>, "assignees": ["<login>"]}
+```
+
+Fall back to the CLI (the `@me` alias resolves automatically; `<login>` is not used here):
+
+```bash
+gh issue edit <number> --repo <owner>/<repo> --add-assignee @me
+```
+
+**On failure** (any error from either the MCP call or the CLI), print a visible warning and continue — do not halt the workflow:
+
+```
+⚠ Could not assign issue: <error> — continuing
+```
+
+Proceed to step 1.
 
 ### 1. Understand the target repository
 
