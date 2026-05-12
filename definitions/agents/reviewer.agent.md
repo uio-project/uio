@@ -70,6 +70,9 @@ patterns in the codebase.
 
 **Missing tests** — new logic paths that have no test coverage.
 
+Before producing the review body, resolve `$head_sha` by running
+`git -C <work-dir> rev-parse HEAD`.
+
 Structure the review comment as follows:
 
 ```markdown
@@ -119,7 +122,7 @@ Before posting, check whether the bot has already reviewed this PR.
 **Fetch existing PR issue comments** using whichever mechanism is available:
 
 - **GitHub MCP tool** (preferred): call `mcp__mcp-github__pull_request_read` with
-  `method: get_comments` and `pr_number: <pr_number>`.
+  `method: get_comments` and `pullNumber: <pr_number>`.
 - **gh CLI fallback**: `gh api repos/<owner>/<repo>/issues/<pr_number>/comments`
 
 **Scan the returned comments** for the attribution footer pattern
@@ -127,8 +130,8 @@ Before posting, check whether the bot has already reviewed this PR.
 
 **If a prior review comment is found:**
 
-1. Count prior review comments that match the pattern. The current run number is N + 1
-   (e.g. second run → N = 2, third run → N = 3).
+1. Let C = count of prior review comments that match the pattern. The current run number
+   is C + 1 (e.g. C = 1 → run 2, C = 2 → run 3).
 2. Try to extract the HEAD SHA from the prior comment by looking for a line matching
    `<!-- reviewed-at: <sha> -->`. If found, that is `$prior_review_sha`.
 3. **If `$prior_review_sha` is available** — produce a delta review:
@@ -140,7 +143,7 @@ Before posting, check whether the bot has already reviewed this PR.
 4. **If `$prior_review_sha` is NOT available** (older comment format) — proceed with a
    full re-review and prepend the note: "Prior review found but no SHA recorded; performing
    full re-review."
-5. Label the review header as `## Re-review — <PR title> (run N)` instead of
+5. Label the review header as `## Re-review — <PR title> (run C+1)` instead of
    `## Review — <PR title>`.
 
 **If no prior review comment is found:**
@@ -162,7 +165,7 @@ Post the review as a PR comment. Use whichever mechanism is available:
   gh pr comment <pr_number> --repo <owner>/<repo> --body '<review-body>'
   ```
 
-**Do not post if step 4.5 determined there are no new changes since the last review.**
+**Do not post the full review if step 4.5 determined there are no new changes since the last review** — step 4.5 already posts the brief "No changes since the last review." notice in that case.
 Do not skip this step or display the review only in the conversation — always post it to the PR.
 
 ### 6. Stop
