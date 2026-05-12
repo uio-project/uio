@@ -110,6 +110,87 @@ vcs-provider: gitlab
 
 Non-GitHub providers do not validate `vcs-identity` env vars at startup (env var names vary by installation).
 
+### VCS tool aliases
+
+The alias table is injected into the system prompt whenever **either** of these conditions is true:
+
+- `capabilities` includes `"vcs"`, or
+- `vcs-identity` is set to any recognised value (`planner`, `coder`, `reviewer`)
+
+> **Note:** `vcs-identity` is GitHub App authentication only. Combining `vcs-identity` with `vcs-provider: gitlab` causes a hard startup error. To target GitLab, use `capabilities: [vcs]` + `vcs-provider: gitlab` and omit `vcs-identity`.
+
+When triggered, uio prepends a `## VCS Tool Aliases` preamble block to the system prompt. The block lists every abstract `vcs__*` name and the concrete MCP tool name it resolves to for the active provider. The LLM can then call `vcs__list_pull_requests` (for example) without knowing whether the underlying server is GitHub or GitLab.
+
+**Prefer `vcs__*` names in agent bodies.** Using the abstract names keeps the definition portable — switching between providers requires only a `vcs-provider:` change in frontmatter, not a rewrite of the agent body.
+
+The full alias table across both supported providers:
+
+| Abstract name | GitHub concrete | GitLab concrete |
+|---|---|---|
+| `vcs__add_issue_comment` | `mcp__github__add_issue_comment` | `mcp__gitlab__create_note` |
+| `vcs__create_branch` | `mcp__github__create_branch` | `mcp__gitlab__create_branch` |
+| `vcs__create_issue` | `mcp__github__create_issue` | `mcp__gitlab__create_issue` |
+| `vcs__create_or_update_file` | `mcp__github__create_or_update_file` | `mcp__gitlab__create_or_update_file` |
+| `vcs__create_pull_request` | `mcp__github__create_pull_request` | `mcp__gitlab__create_merge_request` |
+| `vcs__get_file_contents` | `mcp__github__get_file_contents` | `mcp__gitlab__get_file` |
+| `vcs__get_issue` | `mcp__github__get_issue` | `mcp__gitlab__get_issue` |
+| `vcs__get_pull_request` | `mcp__github__get_pull_request` | `mcp__gitlab__get_merge_request` |
+| `vcs__list_branches` | `mcp__github__list_branches` | `mcp__gitlab__list_branches` |
+| `vcs__list_issues` | `mcp__github__list_issues` | `mcp__gitlab__list_issues` |
+| `vcs__list_pull_requests` | `mcp__github__list_pull_requests` | `mcp__gitlab__list_merge_requests` |
+| `vcs__merge_pull_request` | `mcp__github__merge_pull_request` | GitHub only — no GitLab equivalent |
+| `vcs__push_files` | `mcp__github__push_files` | `mcp__gitlab__push_files` |
+| `vcs__search_code` | `mcp__github__search_code` | `mcp__gitlab__search` |
+| `vcs__search_repositories` | `mcp__github__search_repositories` | GitHub only — no GitLab equivalent |
+| `vcs__update_issue` | `mcp__github__update_issue` | `mcp__gitlab__update_issue` |
+
+`vcs__merge_pull_request` and `vcs__search_repositories` have no GitLab equivalent; agents that use them must guard against GitLab deployments or omit those calls when `vcs-provider: gitlab` is set.
+
+#### Worked example — provider-agnostic PR triage agent
+
+The following agent uses only `vcs__*` names. It works on both GitHub and GitLab by changing one frontmatter line.
+
+```markdown
+---
+name: pr-triage
+description: Labels and summarises open pull requests by age and size.
+complexity: small
+capabilities:
+  - vcs
+vcs-provider: github   # switch to "gitlab" to target a GitLab instance
+---
+
+# Agent: pr-triage
+
+You are a pull-request triage assistant. Scan all open pull requests and
+produce a brief triage report grouped by urgency.
+
+## Steps
+
+1. Call `vcs__list_pull_requests` with `state: "open"` to retrieve open PRs.
+2. For each PR, note: title, author, created date, and number of changed files
+   (call `vcs__get_pull_request` if you need details).
+3. Classify each PR:
+   - **Stale** — open more than 14 days with no recent activity
+   - **Large** — more than 50 files changed
+   - **Ready** — recent activity, small diff, not yet reviewed
+4. Print a Markdown table: PR number | title | author | age | classification.
+5. Summarise the totals at the end (stale / large / ready / other).
+
+Do not modify any PR. This is a read-only reporting task.
+```
+
+To retarget this agent at a GitLab instance, change the frontmatter to:
+
+```yaml
+vcs-provider: gitlab
+```
+
+No other edits are needed — `vcs__list_pull_requests` resolves to
+`mcp__gitlab__list_merge_requests` automatically.
+
+Before switching providers, make sure the GitLab MCP server is registered in `uio.toml` and `GITLAB_TOKEN` is set — see [GitLab setup in the providers reference](07-providers.md#gitlab).
+
 ### `github-identity` (deprecated)
 
 `github-identity` is a deprecated alias for `vcs-identity`. It is still accepted by the parser for backwards compatibility, but new definitions should use `vcs-identity`.
