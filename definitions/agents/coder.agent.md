@@ -116,7 +116,44 @@ If one or more blocking questions are found:
 
 2. **Stop immediately** — do not clone, do not create a branch, do not write any code.
 
-If no blocking questions are found, proceed to step 1.
+If no blocking questions are found, proceed to step 0d.
+
+---
+
+#### 0d. Assign the issue to the bot identity (if issue number provided)
+
+**Skip this step** (print a note: "No issue number provided — skipping self-assignment") and proceed to step 1 when no issue number was given.
+
+**Resolve the bot login.** Prefer the MCP tool if available:
+
+```
+mcp__mcp-github__get_me   # returns { login: "..." }
+```
+
+Fall back to the CLI:
+
+```bash
+gh api user --jq '.login'
+```
+
+**Attempt assignment.** Prefer the MCP tool if available:
+
+```
+mcp__mcp-github__issue_write  method=update  owner=<owner>  repo=<repo>
+  issue_number=<number>  assignees=["<login>"]
+```
+
+Fall back to the CLI:
+
+```bash
+gh issue edit <number> --repo <owner>/<repo> --add-assignee @me
+```
+
+**On failure** (any error from either the MCP call or the CLI), print a visible warning and continue — do not halt the workflow:
+
+```
+⚠ Could not assign issue: <error> — continuing
+```
 
 ### 1. Understand the target repository
 
