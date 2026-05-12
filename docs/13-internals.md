@@ -165,7 +165,7 @@ Execution flow:
 
 The loop is shared between agents and skills. Prompts bypass the loop: a single `client.chat()` call is made with an empty tool list, and the response is printed directly.
 
-**Transient-error retry:** Each `client.chat()` call is wrapped in a retry loop (`_MAX_CHAT_RETRIES = 3`, backoff `[5, 15, 30]` seconds). Errors whose string representation contains `503`, `429`, `UNAVAILABLE`, `RESOURCE_EXHAUSTED`, `Too Many Requests`, or `rate limit` are considered retryable (`_is_retryable`). After all three attempts fail, the exception propagates and the outer provider-failover loop tries the next provider in the chain. If the chain is exhausted, `ProviderExhaustedError` is raised.
+**Transient-error retry:** Each `client.chat()` call is wrapped in a retry loop (`_MAX_CHAT_RETRIES = 3`, backoff `[5, 15, 30]` seconds). Errors whose string representation contains `503`, `429`, `UNAVAILABLE`, `RESOURCE_EXHAUSTED`, `Too Many Requests`, or `rate limit` are considered retryable (`_is_retryable`). The loop runs at most 3 attempts (attempt indices 0, 1, 2), but the sleep is only applied when `attempt < _MAX_CHAT_RETRIES - 1` (i.e., `attempt < 2`), so only the 5 s and 15 s backoff values are ever used — the 30 s entry is never reached. After all 3 attempts fail, the exception propagates and the outer provider-failover loop tries the next provider in the chain. If the chain is exhausted, `ProviderExhaustedError` is raised.
 
 ---
 

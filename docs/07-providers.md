@@ -53,13 +53,12 @@ Providers absent from the list are never tried even if their API key is set. See
 
 ### Transient error retries and failover
 
-When a provider call fails with a transient error, uio retries the same provider up to **3 times** before giving up and moving to the next provider in the chain. The retry waits are:
+When a provider call fails with a transient error, uio makes up to **3 attempts total (2 retries)** before giving up and moving to the next provider in the chain. The retry waits are:
 
 | Attempt | Wait |
 |---|---|
 | 1st retry | 5 s |
 | 2nd retry | 15 s |
-| 3rd retry | 30 s |
 
 Errors that trigger a retry (matched by substring):
 
@@ -69,7 +68,7 @@ Errors that trigger a retry (matched by substring):
 - `RESOURCE_EXHAUSTED` (Gemini quota)
 - `rate limit`
 
-If all three retries fail, the error is treated as non-transient and the runner falls through to the next provider. If every provider in the chain is exhausted, uio raises `ProviderExhaustedError` and exits with a summary of the last error.
+If both retries fail (3 total attempts exhausted), the error is treated as non-transient and the runner falls through to the next provider. If every provider in the chain is exhausted, uio raises `ProviderExhaustedError` and exits with a summary of the last error.
 
 ---
 
