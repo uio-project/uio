@@ -288,6 +288,8 @@ command = "npx -y @modelcontextprotocol/server-sequential-thinking"
 
 The server has no token requirement and starts unconditionally when the entry is present.
 
+For the full `[[mcp.plugins]]` field reference (`name`, `type`, `command`, `env_keys`) see [`docs/06-configuration.md` — `[[mcp.plugins]]`](06-configuration.md#mcpplugins).
+
 ### Usage pattern for planning agents
 
 Include an explicit instruction in the agent body to drive the reasoning chain before taking action:
