@@ -289,6 +289,40 @@ The PR body must include:
 - `Closes #<issue>` if an issue number was provided
 - The AI disclosure footer (injected automatically by the runtime)
 
+#### 8a. Post a comment on the originating issue (fresh PR only)
+
+This sub-step is only reached when `$existing_pr = false`. When `$existing_pr = true`, skip it — the existing PR was already linked to the issue when it was first opened.
+
+After the PR is successfully created, if an issue number was provided, post a comment on that issue linking to the new PR. Skip this sub-step silently if no issue number is known.
+
+Prefer the MCP tool when available:
+
+```
+mcp__mcp-github__add_issue_comment
+  owner: <owner>
+  repo:  <repo>
+  issue_number: <issue-number>
+  body: |
+    I've opened a pull request implementing this: <pr-url>
+
+    <attribution footer — use the standard comment footer from the Attribution section of this agent file>
+```
+
+Otherwise fall back to the `gh` CLI:
+
+```bash
+gh issue comment <issue-number> --repo <owner>/<repo> --body "$(cat <<'EOF'
+I've opened a pull request implementing this: <pr-url>
+
+<attribution footer — use the standard comment footer from the Attribution section of this agent file>
+EOF
+)"
+```
+
+The attribution footer is injected by the runtime (see the **Attribution** section of this agent file). Do not hardcode it — always use the footer text produced by the runtime attribution block so it stays consistent with `render_comment_footer` in `uio/core/attribution.py`.
+
+If the comment command fails, log a warning but do **not** abort the workflow — the PR URL must still be reported to the user in step 9.
+
 ### 9. Verify and report
 
 Print the PR URL and a one-sentence summary of what was implemented (fresh implementation) or which review suggestions were addressed (follow-up run). Stop immediately — do not merge, approve, or request review.
