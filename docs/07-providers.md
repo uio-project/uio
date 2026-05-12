@@ -161,6 +161,72 @@ All Ollama runs are recorded in the cost ledger with `estimated_cost_usd: 0.0`.
 
 ---
 
+## GitLab
+
+GitLab is not an LLM provider — it is a **VCS provider** for agent definitions that use `vcs-identity` or `capabilities: [vcs]`. When `vcs-provider: gitlab` is set in frontmatter, uio wires up the GitLab MCP server's tool aliases so agents can use the provider-neutral `vcs__*` names against a GitLab instance.
+
+### MCP server
+
+The GitLab MCP server is the official `@gitlab/mcp-server` npm package maintained by GitLab.
+
+**Install globally:**
+
+```bash
+npm install -g @gitlab/mcp-server
+```
+
+**Or run without installing via npx (recommended):**
+
+```bash
+npx -y @gitlab/mcp-server stdio
+```
+
+### Required environment variable
+
+| Variable | Description |
+|---|---|
+| `GITLAB_TOKEN` | A GitLab personal access token with `api` scope |
+
+Generate a token at **GitLab → User Settings → Access Tokens**. Select the `api` scope. No other scopes are required for standard agent operations.
+
+```bash
+export GITLAB_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
+```
+
+### Register in `uio.toml`
+
+Add the GitLab plugin under `[[mcp.plugins]]`:
+
+```toml
+[[mcp.plugins]]
+name     = "gitlab"
+type     = "vcs"
+command  = "npx -y @gitlab/mcp-server stdio"
+env_keys = ["GITLAB_TOKEN"]
+```
+
+The `type = "vcs"` field tells uio this plugin provides VCS tools. The `env_keys` list specifies which environment variables must be present for the plugin to be activated — if `GITLAB_TOKEN` is absent, the plugin is skipped and uio logs a warning.
+
+### How it differs from GitHub
+
+| Aspect | GitHub | GitLab |
+|---|---|---|
+| Tool prefix | `mcp__github__*` | `mcp__gitlab__*` |
+| Pull requests | Called "pull requests" | Called "merge requests" |
+| `vcs__list_pull_requests` | `mcp__github__list_pull_requests` | `mcp__gitlab__list_merge_requests` |
+| `vcs__create_pull_request` | `mcp__github__create_pull_request` | `mcp__gitlab__create_merge_request` |
+| `vcs__add_issue_comment` | `mcp__github__add_issue_comment` | `mcp__gitlab__create_note` |
+| `vcs__get_file_contents` | `mcp__github__get_file_contents` | `mcp__gitlab__get_file` |
+| `vcs__search_code` | `mcp__github__search_code` | `mcp__gitlab__search` |
+| `vcs__merge_pull_request` | `mcp__github__merge_pull_request` | **No equivalent** |
+| `vcs__search_repositories` | `mcp__github__search_repositories` | **No equivalent** |
+
+The two GitHub-only aliases (`vcs__merge_pull_request` and `vcs__search_repositories`) have no GitLab counterpart. Agents that call these tools will receive a tool-not-found error when running against a GitLab deployment. Design provider-agnostic agents to avoid these two operations, or guard them behind a provider check.
+
+See [VCS tool aliases](04-frontmatter.md#vcs-tool-aliases) in the frontmatter reference for the full alias table.
+
+---
+
 ## LiteLLM proxy
 
 LiteLLM provides an OpenAI-compatible proxy for 100+ providers (Anthropic, Mistral, Groq, Bedrock, etc.). uio's OpenAI client works with any LiteLLM deployment.
