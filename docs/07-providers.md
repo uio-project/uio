@@ -40,6 +40,37 @@ To set it in the environment for all projects:
 export LLM_PROVIDER=gemini
 ```
 
+### Customising the routing chain
+
+By default uio tries `ollama → openai → gemini → anthropic`. To change the order or exclude providers for a project, set `routing_chain` in `uio.toml`:
+
+```toml
+[runtime]
+routing_chain = ["gemini", "anthropic"]   # never try Ollama or OpenAI for this project
+```
+
+Providers absent from the list are never tried even if their API key is set. See [`docs/06-configuration.md`](06-configuration.md#runtime) for the full `[runtime]` key reference.
+
+### Transient error retries and failover
+
+When a provider call fails with a transient error, uio retries the same provider up to **3 times** before giving up and moving to the next provider in the chain. The retry waits are:
+
+| Attempt | Wait |
+|---|---|
+| 1st retry | 5 s |
+| 2nd retry | 15 s |
+| 3rd retry | 30 s |
+
+Errors that trigger a retry (matched by substring):
+
+- HTTP `503` (service unavailable)
+- HTTP `429` / `Too Many Requests`
+- `UNAVAILABLE` (gRPC)
+- `RESOURCE_EXHAUSTED` (Gemini quota)
+- `rate limit`
+
+If all three retries fail, the error is treated as non-transient and the runner falls through to the next provider. If every provider in the chain is exhausted, uio raises `ProviderExhaustedError` and exits with a summary of the last error.
+
 ---
 
 ## Gemini
@@ -151,6 +182,20 @@ export OLLAMA_BASE_URL=http://my-server:11434/v1
 ```
 
 All Ollama runs are recorded in the cost ledger with `estimated_cost_usd: 0.0`.
+
+### Large-complexity skip
+
+**Ollama is excluded from auto-routing when `complexity == "large"`.**
+
+Local models are unlikely to reliably execute multi-step tool-call chains, so uio skips Ollama in the auto-routing chain for large agents — even if no cloud keys are set. This prevents silent quality degradation on complex workloads.
+
+To use Ollama regardless of complexity, pass `--provider ollama` explicitly:
+
+```bash
+uio agent run my-agent --provider ollama --complexity large
+```
+
+The skip only applies to auto-routing. A direct `--provider ollama` flag bypasses it.
 
 ### Models
 

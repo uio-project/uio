@@ -82,6 +82,7 @@ agents = "/home/alice/shared-agents"
 | Key | Default | Description |
 |---|---|---|
 | `default_provider` | `null` | Provider to use when no `--provider` flag is given. One of `gemini`, `openai`, `ollama`, `anthropic`. |
+| `routing_chain` | `["ollama","openai","gemini","anthropic"]` | Ordered list of providers to try during auto-routing. Overrides the built-in default chain for this project. |
 | `cost_ledger` | `uio_cost.jsonl` | Path to the cost ledger file (relative to CWD) |
 | `timeout` | `300` | Default per-command shell timeout in seconds for `run_command` calls |
 | `max_iterations` | `10` | Iteration cap for `small` agents |
@@ -96,6 +97,7 @@ cost_ledger          = "uio_cost.jsonl"
 timeout              = 300
 max_iterations       = 10   # small agents (summarise, comment, query)
 max_iterations_large = 25   # large agents (github-coder, multi-step workflows)
+# routing_chain        = ["openai", "gemini", "anthropic"]  # skip Ollama for this project
 # anthropic_max_tokens = 16000  # Anthropic only; overridable per-agent via frontmatter
 # context_max_tokens   = 8000   # token cap for context glob injection
 ```
@@ -256,6 +258,10 @@ cost_ledger = "uio_cost.jsonl"
 # Per-command shell timeout in seconds for run_command tool calls.
 # Individual agents can override this with the 'timeout' frontmatter field.
 timeout = 300
+
+# Override the provider auto-routing order for this project.
+# Providers not in the list are never tried, even if their key is set.
+# routing_chain = ["openai", "gemini", "anthropic"]
 
 # anthropic_max_tokens = 16000  # Anthropic only; overridable per-agent via frontmatter
 # context_max_tokens   = 8000   # token cap for context glob injection

@@ -72,7 +72,7 @@ Known keys: `name description complexity tools capabilities timeout argument-hin
 
 `select_model(provider, complexity, model_override)` — returns the model string. Resolution order: `model_override` → `LLM_MODEL` env var → tier-based default from `PROVIDER_DEFAULTS` / `PROVIDER_SMALL_MODELS`.
 
-`select_provider_chain(provider_override, complexity)` — if `provider_override` is set, returns `[provider_override]`. Otherwise returns all providers in `ROUTING_CHAIN` whose API key is set. Ollama is excluded for large-complexity runs (local models are unreliable for multi-step tool chains); for small complexity it is the fallback when no cloud keys are available.
+`select_provider_chain(provider_override, complexity, routing_chain)` — if `provider_override` is set, returns `[provider_override]`. Otherwise returns all providers in the active chain (`routing_chain` when provided, else `ROUTING_CHAIN`) whose API key is set. Ollama is excluded for large-complexity runs (local models are unreliable for multi-step tool chains); for small complexity it is the fallback when no cloud keys are available. The `routing_chain` parameter is sourced from `runtime.routing_chain` in `uio.toml`.
 
 ---
 
@@ -155,7 +155,7 @@ Execution flow:
 6. Inject the runtime preamble (`_PREAMBLE_SHELL_ONLY` or `_PREAMBLE_WITH_MCP`)
 7. Build initial history with the user message (definition name + optional arg)
 8. Enter the tool-use loop:
-   - Call `client.chat(system, history)`
+   - Call `client.chat(system, history)` — with transient-error retry (see below)
    - If no tool calls: print response, break
    - For each tool call: call `execute_tool`, collect results
    - Append turn to history (`client.append_turn`)
@@ -164,6 +164,8 @@ Execution flow:
 10. Close MCP client
 
 The loop is shared between agents and skills. Prompts bypass the loop: a single `client.chat()` call is made with an empty tool list, and the response is printed directly.
+
+**Transient-error retry:** Each `client.chat()` call is wrapped in a retry loop (`_MAX_CHAT_RETRIES = 3`, backoff `[5, 15, 30]` seconds). Errors whose string representation contains `503`, `429`, `UNAVAILABLE`, `RESOURCE_EXHAUSTED`, `Too Many Requests`, or `rate limit` are considered retryable (`_is_retryable`). After all three attempts fail, the exception propagates and the outer provider-failover loop tries the next provider in the chain. If the chain is exhausted, `ProviderExhaustedError` is raised.
 
 ---
 
