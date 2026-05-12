@@ -175,7 +175,7 @@ The GitLab MCP server is the official `@gitlab/mcp-server` npm package maintaine
 npm install -g @gitlab/mcp-server
 ```
 
-**Or run without installing via npx (recommended):**
+Alternatively, run it without a global install using npx (recommended — no installation step required):
 
 ```bash
 npx -y @gitlab/mcp-server stdio

@@ -117,6 +117,8 @@ The alias table is injected into the system prompt whenever **either** of these 
 - `capabilities` includes `"vcs"`, or
 - `vcs-identity` is set to any recognised value (`planner`, `coder`, `reviewer`)
 
+> **Note:** `vcs-identity` is GitHub App authentication only. Combining `vcs-identity` with `vcs-provider: gitlab` causes a hard startup error. To target GitLab, use `capabilities: [vcs]` + `vcs-provider: gitlab` and omit `vcs-identity`.
+
 When triggered, uio prepends a `## VCS Tool Aliases` preamble block to the system prompt. The block lists every abstract `vcs__*` name and the concrete MCP tool name it resolves to for the active provider. The LLM can then call `vcs__list_pull_requests` (for example) without knowing whether the underlying server is GitHub or GitLab.
 
 **Prefer `vcs__*` names in agent bodies.** Using the abstract names keeps the definition portable — switching between providers requires only a `vcs-provider:` change in frontmatter, not a rewrite of the agent body.
@@ -186,6 +188,8 @@ vcs-provider: gitlab
 
 No other edits are needed — `vcs__list_pull_requests` resolves to
 `mcp__gitlab__list_merge_requests` automatically.
+
+Before switching providers, make sure the GitLab MCP server is registered in `uio.toml` and `GITLAB_TOKEN` is set — see [GitLab setup in the providers reference](07-providers.md#gitlab).
 
 ### `github-identity` (deprecated)
 
