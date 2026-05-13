@@ -2,9 +2,15 @@
 
 `uio` is the agent runtime for CI/CD. Define agents, skills, and prompts as plain markdown files with YAML frontmatter — checked into your repo, executed headlessly in pipelines, and wired to any LLM provider. The [origin story](docs/16-about.md) covers how and why.
 
-## uio vs. interactive assistants
+## Why uio?
 
-Interactive assistants (chat UIs, IDE plugins) are built for humans in the loop. uio is built for the other end of the spectrum: **automated, headless, version-controlled agent workflows** that run without a human present.
+uio occupies a distinct niche: **definition-as-code automation**. The agents, skills,
+and prompts you author live in your repo, run headlessly in CI/CD, carry distinct
+GitHub App identities, and produce auditable cost records.
+
+Interactive assistants (chat UIs, IDE plugins, terminal REPLs) are what you open when
+you want to build something at a terminal. uio is what runs at 3am when no one is
+watching.
 
 | Need | Interactive assistant (e.g. Copilot, Cursor) | uio |
 |---|---|---|
@@ -12,9 +18,13 @@ Interactive assistants (chat UIs, IDE plugins) are built for humans in the loop.
 | Definitions stored in git | No | Yes — plain markdown files |
 | Reproducible across environments | No | Yes — provider-agnostic |
 | Scriptable / composable | Limited | Yes — `uio agent run`, `uio skill run` |
-| Auditable history of changes | No | Yes — git blame, PR diffs |
+| Auditable cost records | No | Yes — JSONL ledger, `uio cost` |
+| Multi-agent GitHub identities | No | Yes — planner / coder / reviewer App identities |
+| Definition sharing | No | Yes — git-hosted registries |
 
-If your use case is "trigger an agent on push, review its output in a PR" — that is exactly what uio is designed for.
+If your use case is "trigger an agent on push, review its output in a PR" — that is
+exactly what uio is designed for. See [docs/20-positioning.md](docs/20-positioning.md)
+for the full comparison and rationale.
 
 ## Concepts
 
