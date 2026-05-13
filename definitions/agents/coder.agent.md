@@ -116,7 +116,53 @@ If one or more blocking questions are found:
 
 2. **Stop immediately** — do not clone, do not create a branch, do not write any code.
 
-If no blocking questions are found, proceed to step 1.
+If no blocking questions are found, proceed to step 0d.
+
+---
+
+#### 0d. Assign the issue to the bot identity (if issue number provided)
+
+**Skip this step** (print a note: "No issue number provided — skipping self-assignment") and proceed to step 1 when no issue number was given.
+
+**Resolve the bot login (MCP path only).** Login resolution is required only when using the MCP tool for assignment; the CLI path uses `@me` directly and does not need it.
+
+If the MCP tool is available, call:
+
+```
+mcp__mcp-github__get_me   # returns { login: "..." }
+```
+
+If the MCP tool is unavailable, fall back to:
+
+```bash
+gh api user --jq '.login'
+```
+
+If **both** the MCP call and the CLI fallback fail, print a visible warning and proceed to step 1 without attempting assignment:
+
+```
+⚠ Could not resolve bot login: <error> — skipping self-assignment
+```
+
+**Attempt assignment.** Prefer the MCP tool if available:
+
+```
+mcp__mcp-github__issue_write  query={"method": "update", "owner": "<owner>", "repo": "<repo>", "issue_number": <number>, "assignees": ["<login>"]}
+```
+
+Fall back to the CLI (the `@me` alias resolves automatically; `<login>` is not used here):
+
+```bash
+gh issue edit <number> --repo <owner>/<repo> --add-assignee @me
+```
+
+**On failure** (any error from either the MCP call or the CLI), print a visible warning and continue — do not halt the workflow:
+
+```
+⚠ Could not assign issue: <error> — continuing
+```
+
+Proceed to step 1.
 
 ### 1. Understand the target repository
 
@@ -242,6 +288,40 @@ The PR body must include:
 - **Test plan** — checklist of how to verify the change works
 - `Closes #<issue>` if an issue number was provided
 - The AI disclosure footer (injected automatically by the runtime)
+
+#### 8a. Post a comment on the originating issue (fresh PR only)
+
+This sub-step is only reached when `$existing_pr = false`. When `$existing_pr = true`, skip it — the existing PR was already linked to the issue when it was first opened.
+
+After the PR is successfully created, if an issue number was provided, post a comment on that issue linking to the new PR. Skip this sub-step silently if no issue number is known.
+
+Prefer the MCP tool when available:
+
+```
+mcp__mcp-github__add_issue_comment
+  owner: <owner>
+  repo:  <repo>
+  issue_number: <issue-number>
+  body: |
+    I've opened a pull request implementing this: <pr-url>
+
+    <attribution footer — use the standard comment footer from the Attribution section of this agent file>
+```
+
+Otherwise fall back to the `gh` CLI:
+
+```bash
+gh issue comment <issue-number> --repo <owner>/<repo> --body "$(cat <<'EOF'
+I've opened a pull request implementing this: <pr-url>
+
+<attribution footer — use the standard comment footer from the Attribution section of this agent file>
+EOF
+)"
+```
+
+The attribution footer is injected by the runtime (see the **Attribution** section of this agent file). Do not hardcode it — always use the footer text produced by the runtime attribution block so it stays consistent with `render_comment_footer` in `uio/core/attribution.py`.
+
+If the comment command fails, log a warning but do **not** abort the workflow — the PR URL must still be reported to the user in step 9.
 
 ### 9. Verify and report
 
