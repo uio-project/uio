@@ -1,6 +1,20 @@
 # uio
 
-`uio` is a lightweight, provider-agnostic framework for building the **Agentic Stack** — agents, skills, prompts, and tools — as plain markdown files with YAML frontmatter. The `uio` CLI discovers and executes them against any supported LLM provider. The [origin story](docs/16-about.md) covers how and why.
+`uio` is the agent runtime for CI/CD. Define agents, skills, and prompts as plain markdown files with YAML frontmatter — checked into your repo, executed headlessly in pipelines, and wired to any LLM provider. The [origin story](docs/16-about.md) covers how and why.
+
+## Why uio instead of an interactive assistant?
+
+Interactive assistants (chat UIs, IDE plugins) are built for humans in the loop. uio is built for the opposite: **automated, headless, version-controlled agent workflows** that run without a human present.
+
+| Need | Interactive assistant | uio |
+|---|---|---|
+| Runs in CI/CD pipelines | No | Yes |
+| Definitions stored in git | No | Yes — plain markdown files |
+| Reproducible across environments | No | Yes — provider-agnostic |
+| Scriptable / composable | Limited | Yes — `uio agent run`, `uio skill run` |
+| Auditable history of changes | No | Yes — git blame, PR diffs |
+
+If your use case is "trigger an agent on push, review its output in a PR" — that is exactly what uio is designed for.
 
 ## Concepts
 
