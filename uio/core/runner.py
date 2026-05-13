@@ -286,14 +286,6 @@ def run_agent(
 
     preamble = _build_preamble(bool(mcp_clients), shell_override, vcs_provider)
 
-    attribution_block = (
-        build_attribution_instructions(
-            role, frontmatter.get("name", agent_name), __version__, vcs_provider or "github"
-        )
-        if role in KNOWN_ROLES
-        else ""
-    )
-
     memory_block = build_memory_section(memory_dir) if memory_dir else ""
     memory_suffix = ("\n\n" + memory_block.rstrip()) if memory_block else ""
 
@@ -301,13 +293,6 @@ def run_agent(
     if isinstance(context_globs, str):
         context_globs = [context_globs]
     context_block = _build_context_section(context_globs, os.getcwd(), context_max_tokens)
-
-    system_prompt = (
-        f"{preamble}{attribution_block}"
-        f"{context_block}"
-        f"# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
-        f"{memory_suffix}"
-    )
 
     user_message = "Begin your workflow now."
     if arg:
@@ -335,6 +320,25 @@ def run_agent(
         last_error: Exception | None = None
         for candidate_provider in provider_chain:
             resolved_model = select_model(candidate_provider, resolved_complexity, model)
+
+            attribution_block = (
+                build_attribution_instructions(
+                    role,
+                    frontmatter.get("name", agent_name),
+                    __version__,
+                    vcs_provider or "github",
+                    model=resolved_model,
+                )
+                if role in KNOWN_ROLES
+                else ""
+            )
+            system_prompt = (
+                f"{preamble}{attribution_block}"
+                f"{context_block}"
+                f"# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
+                f"{memory_suffix}"
+            )
+
             try:
                 client = make_client(
                     candidate_provider,
