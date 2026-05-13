@@ -2,13 +2,13 @@
 
 `uio` is the agent runtime for CI/CD. Define agents, skills, and prompts as plain markdown files with YAML frontmatter — checked into your repo, executed headlessly in pipelines, and wired to any LLM provider. The [origin story](docs/16-about.md) covers how and why.
 
-## Why uio instead of an interactive assistant?
+## uio vs. interactive assistants
 
-Interactive assistants (chat UIs, IDE plugins) are built for humans in the loop. uio is built for the opposite: **automated, headless, version-controlled agent workflows** that run without a human present.
+Interactive assistants (chat UIs, IDE plugins) are built for humans in the loop. uio is built for the other end of the spectrum: **automated, headless, version-controlled agent workflows** that run without a human present.
 
-| Need | Interactive assistant | uio |
+| Need | Interactive assistant (e.g. Copilot, Cursor) | uio |
 |---|---|---|
-| Runs in CI/CD pipelines | No | Yes |
+| Designed for headless CI/CD execution | No | Yes |
 | Definitions stored in git | No | Yes — plain markdown files |
 | Reproducible across environments | No | Yes — provider-agnostic |
 | Scriptable / composable | Limited | Yes — `uio agent run`, `uio skill run` |
