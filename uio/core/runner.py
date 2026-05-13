@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fnmatch
 import glob as _glob
+import json
 import os
 import sys
 import time
@@ -225,6 +226,52 @@ Shell: {shell_name} — emit {shell_name}-style commands only.
 {alias_section}"""
 
 
+def _resolve_output_schema(frontmatter: dict, definition_path: str) -> dict | None:
+    """Resolve the ``schema:`` frontmatter field to a JSON Schema dict.
+
+    Supports two forms:
+    - An inline mapping (already a dict) — returned as-is.
+    - A ``$ref`` string pointing to a ``.json`` file (relative to the definition
+      file's directory) — loaded and returned.
+
+    Returns ``None`` when the field is absent.
+    Raises ``ValueError`` when ``$ref`` resolution fails.
+    """
+    schema_value = frontmatter.get("schema")
+    if schema_value is None:
+        return None
+
+    if isinstance(schema_value, dict):
+        # Inline $ref to a file — only the {"$ref": "path"} shorthand is resolved here.
+        ref = schema_value.get("$ref")
+        if ref and len(schema_value) == 1:
+            # Pure {"$ref": "path.json"} — treat as file reference.
+            schema_value = ref
+        else:
+            # Full inline schema object — use directly.
+            return schema_value
+
+    if isinstance(schema_value, str):
+        # File reference (either a bare string or resolved from {"$ref": ...})
+        ref_path = schema_value
+        if not os.path.isabs(ref_path):
+            ref_path = os.path.join(os.path.dirname(definition_path), ref_path)
+        try:
+            with open(ref_path, encoding="utf-8") as fh:
+                return json.load(fh)
+        except FileNotFoundError as exc:
+            raise ValueError(
+                f"schema '$ref' file not found: {ref_path!r} (referenced from {definition_path!r})"
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"schema '$ref' file is not valid JSON: {ref_path!r}: {exc}") from exc
+
+    raise ValueError(
+        f"'schema:' in {definition_path!r} must be a mapping or a '$ref' string,"
+        f" got {type(schema_value).__name__}"
+    )
+
+
 def run_agent(
     agent_name: str,
     arg: str | None = None,
@@ -254,6 +301,8 @@ def run_agent(
         raise ValueError(f"Error: definition not found at {definition_path}")
 
     frontmatter, body = parse_definition_file(definition_path)
+
+    output_schema: dict | None = _resolve_output_schema(frontmatter, definition_path)
 
     role = _inject_vcs_identity(frontmatter)
 
@@ -346,6 +395,7 @@ def run_agent(
                     base_url=base_url,
                     complexity=resolved_complexity,
                     max_tokens=resolved_max_tokens,
+                    output_schema=output_schema,
                 )
             except Exception as e:
                 print(

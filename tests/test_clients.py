@@ -372,3 +372,98 @@ def test_anthropic_client_stores_complexity_and_max_tokens():
     client._max_tokens = 32000
     assert client._complexity == "large"
     assert client._max_tokens == 32000
+
+
+# ── output_schema stored on clients ──────────────────────────────────────────
+
+
+def test_gemini_client_stores_output_schema():
+    """GeminiClient stores the output_schema passed via __new__ without calling __init__."""
+    client = GeminiClient.__new__(GeminiClient)
+    client._output_schema = {"type": "object", "properties": {"result": {"type": "string"}}}
+    assert client._output_schema["type"] == "object"
+
+
+def test_openai_client_stores_output_schema():
+    """OpenAIClient stores the output_schema passed via __new__ without calling __init__."""
+    client = OpenAIClient.__new__(OpenAIClient)
+    client._output_schema = {"type": "object", "properties": {"status": {"type": "string"}}}
+    assert client._output_schema["type"] == "object"
+
+
+def test_gemini_client_no_schema_stores_none():
+    """GeminiClient defaults _output_schema to None when not provided."""
+    client = GeminiClient.__new__(GeminiClient)
+    client._output_schema = None
+    assert client._output_schema is None
+
+
+def test_openai_client_no_schema_stores_none():
+    """OpenAIClient defaults _output_schema to None when not provided."""
+    client = OpenAIClient.__new__(OpenAIClient)
+    client._output_schema = None
+    assert client._output_schema is None
+
+
+# ── _resolve_output_schema ────────────────────────────────────────────────────
+
+
+def test_resolve_output_schema_none_when_absent(tmp_path):
+    """Returns None when 'schema' is not in the frontmatter."""
+    from uio.core.runner import _resolve_output_schema
+
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    assert _resolve_output_schema({}, str(f)) is None
+
+
+def test_resolve_output_schema_inline_dict(tmp_path):
+    """Returns the inline dict when 'schema' is a mapping."""
+    from uio.core.runner import _resolve_output_schema
+
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+    result = _resolve_output_schema({"schema": schema}, str(f))
+    assert result == schema
+
+
+def test_resolve_output_schema_ref_file(tmp_path):
+    """Loads and returns the JSON file when 'schema' is a $ref string."""
+    import json as _json
+    from uio.core.runner import _resolve_output_schema
+
+    schema_file = tmp_path / "output.json"
+    schema_data = {"type": "object", "properties": {"result": {"type": "string"}}}
+    schema_file.write_text(_json.dumps(schema_data))
+
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    result = _resolve_output_schema({"schema": "output.json"}, str(f))
+    assert result == schema_data
+
+
+def test_resolve_output_schema_dollar_ref_dict(tmp_path):
+    """Loads the file when 'schema' is a {'$ref': 'path.json'} mapping."""
+    import json as _json
+    from uio.core.runner import _resolve_output_schema
+
+    schema_file = tmp_path / "schema.json"
+    schema_data = {"type": "object"}
+    schema_file.write_text(_json.dumps(schema_data))
+
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    result = _resolve_output_schema({"schema": {"$ref": "schema.json"}}, str(f))
+    assert result == schema_data
+
+
+def test_resolve_output_schema_ref_file_not_found(tmp_path):
+    """Raises ValueError when the referenced JSON file does not exist."""
+    from uio.core.runner import _resolve_output_schema
+    import pytest
+
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    with pytest.raises(ValueError, match="not found"):
+        _resolve_output_schema({"schema": "missing.json"}, str(f))

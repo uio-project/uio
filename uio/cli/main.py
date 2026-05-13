@@ -27,6 +27,7 @@ from uio.schema.parser import (
     check_heading_format,
     check_identity_env,
     check_minimal_body,
+    check_schema_support,
     check_skill_interface_sections,
     check_skill_references,
     check_stopping_criteria,
@@ -195,6 +196,7 @@ def validate_cmd(strict: bool) -> None:
     """
     cfg = load_config()
     skills_dir = cfg["dirs"]["skills"]
+    default_provider: str | None = cfg["runtime"].get("default_provider")
     agent_skill_prompt_patterns = [
         (cfg["dirs"]["agents"], "*.agent.md"),
         (skills_dir, "*.skill.md"),
@@ -223,6 +225,7 @@ def validate_cmd(strict: bool) -> None:
             warnings.extend(check_thinking_complexity(path, fm))
             warnings.extend(check_skill_interface_sections(path, body))
             warnings.extend(check_minimal_body(path, body))
+            warnings.extend(check_schema_support(path, fm, default_provider))
             if strict:
                 warnings.extend(check_stopping_criteria(path, body))
 

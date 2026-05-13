@@ -5,6 +5,7 @@ import textwrap
 
 from uio.schema.parser import (
     check_identity_env,
+    check_schema_support,
     check_skill_references,
     parse_definition_file,
     validate_definition,
@@ -485,3 +486,86 @@ def test_strip_code_spans_no_code_unchanged():
 
     text = "Plain text with /real-skill invocation."
     assert _strip_code_spans(text) == text
+
+
+# ---------------------------------------------------------------------------
+# schema: frontmatter field — validate_definition accepts it
+# ---------------------------------------------------------------------------
+
+
+def test_validate_schema_field_accepted_inline(tmp_path):
+    """'schema:' with an inline mapping is a known key and must not produce an error."""
+    f = tmp_path / "agent.agent.md"
+    f.write_text(
+        "---\nname: A\ndescription: D.\nschema:\n  type: object\n  properties:\n    x:\n      type: string\n---\nBody.\n"
+    )
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert not any("schema" in e for e in errors)
+
+
+def test_validate_schema_field_accepted_ref_string(tmp_path):
+    """'schema:' with a string ($ref-style) value is a known key and must not produce an error."""
+    f = tmp_path / "agent.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\nschema: output.json\n---\nBody.\n")
+    fm, _ = parse_definition_file(str(f))
+    errors = validate_definition(str(f), fm)
+    assert not any("schema" in e for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# check_schema_support
+# ---------------------------------------------------------------------------
+
+
+def test_check_schema_support_no_schema_no_warning(tmp_path):
+    """No 'schema:' field — no warning regardless of provider."""
+    f = tmp_path / "a.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_schema_support(str(f), fm, "anthropic") == []
+
+
+def test_check_schema_support_no_provider_no_warning(tmp_path):
+    """'schema:' declared but provider is None (runtime-resolved) — no warning."""
+    f = tmp_path / "a.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\nschema:\n  type: object\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_schema_support(str(f), fm, None) == []
+
+
+def test_check_schema_support_openai_no_warning(tmp_path):
+    """'schema:' with OpenAI provider — no warning (supported)."""
+    f = tmp_path / "a.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\nschema:\n  type: object\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_schema_support(str(f), fm, "openai") == []
+
+
+def test_check_schema_support_gemini_no_warning(tmp_path):
+    """'schema:' with Gemini provider — no warning (supported)."""
+    f = tmp_path / "a.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\nschema:\n  type: object\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_schema_support(str(f), fm, "gemini") == []
+
+
+def test_check_schema_support_anthropic_warns(tmp_path):
+    """'schema:' with Anthropic provider — emits a warning (not supported)."""
+    f = tmp_path / "a.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\nschema:\n  type: object\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    warnings = check_schema_support(str(f), fm, "anthropic")
+    assert len(warnings) == 1
+    assert "anthropic" in warnings[0]
+    assert "schema" in warnings[0].lower()
+
+
+def test_check_schema_support_ollama_warns(tmp_path):
+    """'schema:' with Ollama provider — emits a warning (not supported)."""
+    f = tmp_path / "a.agent.md"
+    f.write_text("---\nname: A\ndescription: D.\nschema:\n  type: object\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    warnings = check_schema_support(str(f), fm, "ollama")
+    assert len(warnings) == 1
+    assert "ollama" in warnings[0]
