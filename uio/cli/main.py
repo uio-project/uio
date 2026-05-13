@@ -13,6 +13,7 @@ from uio.cli.agent import agent_group
 from uio.cli.chat import chat_cmd
 from uio.cli.config import config_group
 from uio.cli.cost import cost_cmd
+from uio.cli.explain import explain_group
 from uio.cli.link import link_cmd
 from uio.cli.mcp import mcp_group
 from uio.cli.memory import memory_group
@@ -83,6 +84,7 @@ main.add_command(agent_group, "agent")
 main.add_command(skill_group, "skill")
 main.add_command(prompt_group, "prompt")
 main.add_command(workflow_group, "workflow")
+main.add_command(explain_group, "explain")
 main.add_command(chat_cmd, "chat")
 main.add_command(cost_cmd, "cost")
 main.add_command(config_group, "config")
