@@ -334,10 +334,7 @@ def run_agent(
                 else ""
             )
             system_prompt = (
-                f"{preamble}{attribution_block}"
-                f"{context_block}"
-                f"{_agent_header}"
-                f"{memory_suffix}"
+                f"{preamble}{attribution_block}{context_block}{_agent_header}{memory_suffix}"
             )
 
             try:
