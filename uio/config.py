@@ -33,6 +33,9 @@ _DEFAULTS: dict = {
     "large_agents": {
         "names": [],
     },
+    "attribution": {
+        "enabled": True,
+    },
     "registries": [],
     "mcp_plugins": [],
 }
@@ -59,6 +62,9 @@ max_iterations_large = 25   # large agents (github-coder, multi-step workflows)
 # Agent names that always use the large model tier (in addition to
 # any agents that set complexity: large in their frontmatter).
 names = []
+
+# [attribution]
+# enabled = true   # set to false to suppress AI-authorship footers in vcs-identity agents
 
 # [mcp.github]
 # command = "npx -y @github/github-mcp-server stdio"
@@ -119,6 +125,7 @@ def load_config(path: str = "uio.toml") -> dict:
         "large_agents": {
             "names": raw.get("large_agents", {}).get("names", []),
         },
+        "attribution": {**_DEFAULTS["attribution"], **raw.get("attribution", {})},
         "mcp": mcp_inline,
         "mcp_plugins": mcp_plugins,
         "registries": raw.get("registries", []),

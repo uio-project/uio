@@ -211,3 +211,110 @@ def test_render_commit_author_unknown_role_gitlab_domain():
     author = render_commit_author("future-role", vcs_provider="gitlab")
     assert "gitlab.com" in author["email"]
     assert "github.com" not in author["email"]
+
+
+# --- attribution_enabled flag in run_agent ---
+
+
+def _make_vcs_run_args(tmp_path):
+    """Return minimal run_agent kwargs for a vcs-identity (coder) agent."""
+    defn = tmp_path / "coder.agent.md"
+    defn.write_text("---\nname: github-coder\nvcs-identity: coder\n---\nDo the task.\n")
+    return {
+        "agent_name": "github-coder",
+        "definition_path": str(defn),
+        "no_mcp": True,
+        "ledger_path": str(tmp_path / "ledger.jsonl"),
+    }
+
+
+def test_attribution_enabled_true_injects_block(tmp_path):
+    """When attribution_enabled=True (default), the attribution block is injected for vcs-identity agents."""
+    from unittest.mock import MagicMock, patch
+
+    from uio.core.clients import LLMResponse
+    from uio.core.runner import run_agent
+
+    client = MagicMock()
+    client.build_history.return_value = [{"role": "user", "content": "begin"}]
+    client.chat.return_value = LLMResponse(text="Done.", tool_calls=[])
+    client.usage = None
+
+    captured_prompts = []
+
+    def capture_chat(system, history):
+        captured_prompts.append(system)
+        return LLMResponse(text="Done.", tool_calls=[])
+
+    client.chat.side_effect = capture_chat
+
+    with (
+        patch("uio.core.runner.make_client", return_value=client),
+        patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+        patch("uio.core.runner._inject_vcs_identity", return_value="coder"),
+    ):
+        run_agent(**_make_vcs_run_args(tmp_path), attribution_enabled=True)
+
+    assert captured_prompts, "chat was never called"
+    assert "Attribution" in captured_prompts[0]
+
+
+def test_attribution_enabled_false_omits_block(tmp_path):
+    """When attribution_enabled=False, no attribution block is injected even for vcs-identity agents."""
+    from unittest.mock import MagicMock, patch
+
+    from uio.core.clients import LLMResponse
+    from uio.core.runner import run_agent
+
+    client = MagicMock()
+    client.build_history.return_value = [{"role": "user", "content": "begin"}]
+    client.usage = None
+
+    captured_prompts = []
+
+    def capture_chat(system, history):
+        captured_prompts.append(system)
+        return LLMResponse(text="Done.", tool_calls=[])
+
+    client.chat.side_effect = capture_chat
+
+    with (
+        patch("uio.core.runner.make_client", return_value=client),
+        patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+        patch("uio.core.runner._inject_vcs_identity", return_value="coder"),
+    ):
+        run_agent(**_make_vcs_run_args(tmp_path), attribution_enabled=False)
+
+    assert captured_prompts, "chat was never called"
+    assert "Attribution" not in captured_prompts[0]
+
+
+def test_attribution_enabled_default_is_true(tmp_path):
+    """attribution_enabled defaults to True — existing behaviour is unchanged."""
+    from unittest.mock import MagicMock, patch
+
+    from uio.core.clients import LLMResponse
+    from uio.core.runner import run_agent
+
+    client = MagicMock()
+    client.build_history.return_value = [{"role": "user", "content": "begin"}]
+    client.usage = None
+
+    captured_prompts = []
+
+    def capture_chat(system, history):
+        captured_prompts.append(system)
+        return LLMResponse(text="Done.", tool_calls=[])
+
+    client.chat.side_effect = capture_chat
+
+    with (
+        patch("uio.core.runner.make_client", return_value=client),
+        patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+        patch("uio.core.runner._inject_vcs_identity", return_value="coder"),
+    ):
+        # Do NOT pass attribution_enabled — default should inject attribution
+        run_agent(**_make_vcs_run_args(tmp_path))
+
+    assert captured_prompts, "chat was never called"
+    assert "Attribution" in captured_prompts[0]
