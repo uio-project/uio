@@ -21,6 +21,7 @@ watching.
 | Auditable cost records | No | Yes — JSONL ledger, `uio cost` |
 | Multi-agent GitHub identities | No | Yes — planner / coder / reviewer App identities |
 | Definition sharing | No | Yes — git-hosted registries |
+| Auditable history of changes | No | Yes — git blame, PR diffs |
 
 If your use case is "trigger an agent on push, review its output in a PR" — that is
 exactly what uio is designed for. See [docs/20-positioning.md](docs/20-positioning.md)

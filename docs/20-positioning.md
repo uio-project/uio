@@ -27,7 +27,7 @@ schema to the [JSONL cost ledger](10-cost.md) to the
 
 ## Comparison table
 
-| Dimension | Interactive tools | uio |
+| Dimension | Interactive assistant (e.g. Copilot, Cursor) | uio |
 |---|---|---|
 | Primary mode | Interactive TUI / chat | Headless / scriptable |
 | Definition model | None (chat-driven) | Markdown files, version-controlled |
@@ -42,25 +42,11 @@ schema to the [JSONL cost ledger](10-cost.md) to the
 
 ## What this means in practice
 
-When you author a uio agent you are writing a versioned, reviewable, reusable
-automation artefact — not a session transcript. It lives next to your source code,
-evolves with it through pull requests, and runs the same way in your laptop CI and in
-production.
+Every agent definition is a PR-reviewable file — it evolves through git history
+alongside the code it automates. Every run produces a JSONL cost entry queryable with
+`uio cost`.
 
-The [use cases page](15-use-cases.md) shows end-to-end examples: repo health
-monitoring, automated code review, issue planning, AI-authored pull requests, and
-multi-agent pipelines with distinct GitHub identities.
-
-The [GitHub App identities page](17-github-app-identities.md) covers how uio gives
-each agent role (planner, coder, reviewer) a separate GitHub App identity so that
-automated commits and comments are attributable, auditable, and permission-scoped.
-
-The [cost ledger page](10-cost.md) covers the JSONL ledger format and the `uio cost`
-command — every token spent by every agent run is recorded and queryable.
-
-The [registry page](11-registry.md) covers how definition files can be shared and
-installed from git-hosted registries, so automation patterns are reusable across teams
-and organisations.
+**See also:** [use cases](15-use-cases.md) · [cost ledger](10-cost.md) · [GitHub App identities](17-github-app-identities.md) · [registries](11-registry.md)
 
 ---
 
