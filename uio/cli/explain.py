@@ -7,7 +7,6 @@ Use --raw to strip the markers for copy/paste into an external playground.
 
 from __future__ import annotations
 
-import glob as _glob
 import os
 from pathlib import Path
 
@@ -15,14 +14,15 @@ import click
 
 from uio.config import load_config
 from uio.core.attribution import build_attribution_instructions
+from uio.core.identities import KNOWN_ROLES
 from uio.core.memory import build_memory_section
-from uio.core.runner import _build_preamble
+from uio.core.runner import _build_context_section, _build_preamble
 from uio.schema.parser import parse_definition_file
 
 # Marker strings used to annotate each section.
 _MARKER_PREAMBLE = "--- preamble ---"
 _MARKER_BODY = "--- body ---"
-_MARKER_CONTEXT = "--- context: {name} ---"
+_MARKER_CONTEXT = "--- context ---"
 _MARKER_ATTRIBUTION = "--- attribution ---"
 _MARKER_MEMORY = "--- memory ---"
 
@@ -51,12 +51,19 @@ def _explain_definition(
     # Use has_mcp=True so the preamble shows the full MCP-available variant,
     # which is the common case.  Users who want to see the no-MCP preamble can
     # inspect the source; explain is a debugging aid, not a perfect replay.
-    preamble = _build_preamble(has_mcp=True)
+    #
+    # Mirror runner.py logic: inject the VCS alias table when vcs-identity is
+    # set OR when capabilities includes "vcs".
+    role = frontmatter.get("vcs-identity") or frontmatter.get("github-identity")
+    _caps = frontmatter.get("capabilities") or []
+    if isinstance(_caps, str):
+        _caps = [_caps]
+    vcs_provider: str | None = None
+    if role in KNOWN_ROLES or "vcs" in _caps:
+        vcs_provider = frontmatter.get("vcs-provider", "github")
+    preamble = _build_preamble(has_mcp=True, vcs_provider=vcs_provider)
 
     # --- attribution (only for vcs-identity agents) ---
-    from uio.core.identities import KNOWN_ROLES
-
-    role = frontmatter.get("vcs-identity") or frontmatter.get("github-identity")
     attribution_block = ""
     if role and role in KNOWN_ROLES and cfg["attribution"]["enabled"]:
         attribution_block = build_attribution_instructions(
@@ -72,60 +79,23 @@ def _explain_definition(
     if isinstance(context_globs, str):
         context_globs = [context_globs]
 
-    # Resolve context files individually so we can emit per-file markers.
-    context_parts: list[tuple[str, str]] = []
+    # Delegate to runner._build_context_section so the output matches exactly
+    # what the model sees at runtime (## Context header + ### rel_path headings).
+    context_block = ""
     if context_globs:
         project_root = os.getcwd()
         max_tokens = cfg["runtime"]["context_max_tokens"]
-        seen: set[str] = set()
-        total_tokens = 0
-        cap_reached = False
-        from uio.core.memory import estimate_tokens
+        context_block = _build_context_section(context_globs, project_root, max_tokens)
 
-        for pattern in context_globs:
-            if cap_reached:
-                break
-            matched = sorted(_glob.glob(os.path.join(project_root, pattern), recursive=True))
-            for fpath in matched:
-                if cap_reached:
-                    break
-                if not os.path.isfile(fpath):
-                    continue
-                real = os.path.realpath(fpath)
-                if real in seen:
-                    continue
-                seen.add(real)
-                try:
-                    with open(fpath, encoding="utf-8", errors="replace") as fh:
-                        content = fh.read()
-                except OSError:
-                    continue
-
-                file_tokens = estimate_tokens(content)
-                rel_path = os.path.relpath(fpath, project_root)
-                remaining = max_tokens - total_tokens
-
-                if file_tokens <= remaining:
-                    context_parts.append((rel_path, content))
-                    total_tokens += file_tokens
-                    if total_tokens >= max_tokens:
-                        cap_reached = True
-                else:
-                    cutoff = remaining * 4
-                    omitted = file_tokens - remaining
-                    truncated = f"{content[:cutoff]}\n[truncated — {omitted} tokens omitted]"
-                    context_parts.append((rel_path, truncated))
-                    cap_reached = True
-
-    # --- body heading (matches runner.py "_agent_header") ---
+    # --- body heading ---
+    # runner.py always uses f"# Agent: {name}\n\n{body}" for all definition
+    # types (agents, skills, and prompts all go through run_agent).
     display_name = frontmatter.get("name", name)
-    if kind == "agent":
-        body_heading = f"# Agent: {display_name}\n\n{body}"
-    elif kind == "skill":
-        body_heading = f"# Skill: {display_name}\n\n{body}"
-    else:
-        # prompts have no H1 heading prefix in the runner; body is used verbatim
+    if kind == "prompt":
+        # Prompts have no H1 heading prefix in the runner; body is used verbatim.
         body_heading = body
+    else:
+        body_heading = f"# Agent: {display_name}\n\n{body}"
 
     # --- memory ---
     memory_dir = cfg["dirs"].get("memory", ".uio/memory")
@@ -139,9 +109,8 @@ def _explain_definition(
     if attribution_block:
         parts.append(_section(_MARKER_ATTRIBUTION, attribution_block, raw))
 
-    for rel_path, file_content in context_parts:
-        marker = _MARKER_CONTEXT.format(name=rel_path)
-        parts.append(_section(marker, file_content, raw))
+    if context_block:
+        parts.append(_section(_MARKER_CONTEXT, context_block, raw))
 
     parts.append(_section(_MARKER_BODY, body_heading, raw))
 

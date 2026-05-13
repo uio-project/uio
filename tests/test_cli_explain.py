@@ -211,7 +211,7 @@ class TestExplainSkill:
             result = CliRunner().invoke(explain_skill_cmd, ["test-skill"])
 
         assert result.exit_code == 0
-        assert "# Skill: test-skill" in result.output
+        assert "# Agent: test-skill" in result.output
 
     def test_raw_flag_strips_markers(self, tmp_path):
         _write_skill(tmp_path)
@@ -284,7 +284,7 @@ class TestExplainPrompt:
 
 class TestExplainContextMarkers:
     def test_context_marker_present(self, tmp_path):
-        """When a context glob matches a file, a per-file marker is emitted."""
+        """When a context glob matches a file, the context block marker is emitted."""
         d = tmp_path / "agents"
         d.mkdir(parents=True, exist_ok=True)
         (d / "ctx-agent.agent.md").write_text(_AGENT_WITH_CONTEXT_MD)
@@ -301,8 +301,9 @@ class TestExplainContextMarkers:
             result = CliRunner().invoke(explain_agent_cmd, ["ctx-agent"])
 
         assert result.exit_code == 0
-        # Marker should reference the filename
-        assert "--- context:" in result.output
+        # Single context block marker
+        assert "--- context ---" in result.output
+        # File is referenced via ### heading inside the block
         assert "README.md" in result.output
 
     def test_context_marker_absent_in_raw(self, tmp_path):
@@ -322,7 +323,7 @@ class TestExplainContextMarkers:
             result = CliRunner().invoke(explain_agent_cmd, ["ctx-agent", "--raw"])
 
         assert result.exit_code == 0
-        assert "--- context:" not in result.output
+        assert "--- context ---" not in result.output
         # But the file content should still be present
         assert "Project README" in result.output
 
