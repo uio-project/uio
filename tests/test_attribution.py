@@ -289,6 +289,49 @@ def test_attribution_enabled_false_omits_block(tmp_path):
     assert "Attribution" not in captured_prompts[0]
 
 
+def test_attribution_disabled_with_known_role_omits_block(tmp_path):
+    """Guard condition ``role in KNOWN_ROLES and attribution_enabled`` is False when
+    attribution_enabled=False, even for a fully-valid vcs-identity role.
+
+    Unlike test_attribution_enabled_false_omits_block this test also asserts that
+    the system_prompt still contains the agent body (i.e. only the attribution
+    block is absent, not the whole prompt).
+    """
+    from unittest.mock import MagicMock, patch
+
+    from uio.core.clients import LLMResponse
+    from uio.core.identities import KNOWN_ROLES
+    from uio.core.runner import run_agent
+
+    assert "coder" in KNOWN_ROLES, "precondition: coder must be a known role"
+
+    client = MagicMock()
+    client.build_history.return_value = [{"role": "user", "content": "begin"}]
+    client.usage = None
+
+    captured_prompts = []
+
+    def capture_chat(system, history):
+        captured_prompts.append(system)
+        return LLMResponse(text="Done.", tool_calls=[])
+
+    client.chat.side_effect = capture_chat
+
+    with (
+        patch("uio.core.runner.make_client", return_value=client),
+        patch("uio.core.runner.select_provider_chain", return_value=["gemini"]),
+        patch("uio.core.runner._inject_vcs_identity", return_value="coder"),
+    ):
+        run_agent(**_make_vcs_run_args(tmp_path), attribution_enabled=False)
+
+    assert captured_prompts, "chat was never called"
+    system = captured_prompts[0]
+    # Attribution block must be absent
+    assert "Attribution" not in system
+    # But the agent body must still be present
+    assert "Do the task." in system
+
+
 def test_attribution_enabled_default_is_true(tmp_path):
     """attribution_enabled defaults to True — existing behaviour is unchanged."""
     from unittest.mock import MagicMock, patch

@@ -106,6 +106,20 @@ names = []
 """
 
 
+def _coerce_attribution(attribution: dict) -> dict:
+    """Ensure attribution.enabled is a bool.
+
+    A user who writes ``enabled = "false"`` (a string) in TOML gets a truthy
+    Python string, so attribution would silently remain active despite their
+    intent.  We coerce any non-bool value: the empty string and ``"false"``
+    (case-insensitive) become ``False``; everything else becomes ``True``.
+    """
+    enabled = attribution.get("enabled", True)
+    if not isinstance(enabled, bool):
+        enabled = str(enabled).strip().lower() not in ("false", "0", "no", "off", "")
+    return {**attribution, "enabled": enabled}
+
+
 def load_config(path: str = "uio.toml") -> dict:
     """Return merged config dict with built-in defaults."""
     raw: dict = {}
@@ -125,7 +139,9 @@ def load_config(path: str = "uio.toml") -> dict:
         "large_agents": {
             "names": raw.get("large_agents", {}).get("names", []),
         },
-        "attribution": {**_DEFAULTS["attribution"], **raw.get("attribution", {})},
+        "attribution": _coerce_attribution(
+            {**_DEFAULTS["attribution"], **raw.get("attribution", {})}
+        ),
         "mcp": mcp_inline,
         "mcp_plugins": mcp_plugins,
         "registries": raw.get("registries", []),

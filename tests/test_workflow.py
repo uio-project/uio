@@ -291,6 +291,7 @@ _MINIMAL_CFG: dict = {
         "anthropic_max_tokens": None,
     },
     "large_agents": {"names": []},
+    "attribution": {"enabled": True},
     "mcp": {},
     "mcp_plugins": [],
 }

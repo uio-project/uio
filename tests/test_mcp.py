@@ -592,6 +592,7 @@ class TestMcpPluginsForwardedToCli:
             "mcp": {},
             "mcp_plugins": plugins,
             "large_agents": {"names": []},
+            "attribution": {"enabled": True},
         }
 
     def test_skill_run_forwards_mcp_plugins(self):

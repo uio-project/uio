@@ -113,7 +113,7 @@ def agent_run_cmd(
             routing_chain=cfg["runtime"].get("routing_chain"),
             memory_dir=cfg["dirs"]["memory"],
             context_max_tokens=cfg["runtime"]["context_max_tokens"],
-            attribution_enabled=cfg.get("attribution", {}).get("enabled", True),
+            attribution_enabled=cfg["attribution"]["enabled"],
         )
     except GuardrailError as exc:
         click.echo(f"Error: guardrail violated — {exc}", err=True)
