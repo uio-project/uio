@@ -246,6 +246,7 @@ def run_agent(
     routing_chain: list[str] | None = None,
     memory_dir: str | None = None,
     context_max_tokens: int = 8000,
+    attribution_enabled: bool = True,
 ) -> str | None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -330,7 +331,7 @@ def run_agent(
                     vcs_provider or "github",
                     model=resolved_model,
                 )
-                if role in KNOWN_ROLES
+                if role in KNOWN_ROLES and attribution_enabled
                 else ""
             )
             system_prompt = (
