@@ -316,6 +316,7 @@ def run_agent(
     )
 
     _clean_exit = False
+    _agent_header = f"# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
     try:
         last_error: Exception | None = None
         for candidate_provider in provider_chain:
@@ -335,7 +336,7 @@ def run_agent(
             system_prompt = (
                 f"{preamble}{attribution_block}"
                 f"{context_block}"
-                f"# Agent: {frontmatter.get('name', agent_name)}\n\n{body}"
+                f"{_agent_header}"
                 f"{memory_suffix}"
             )
 

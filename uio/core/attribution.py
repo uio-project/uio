@@ -41,7 +41,7 @@ _PROVIDER_COMMIT_EMAILS: Final[dict[str, dict[str, str]]] = {
 }
 
 
-def render_comment_footer(role: str, agent_name: str, version: str = "", model: str = "") -> str:
+def render_comment_footer(role: str, agent_name: str, version: str = "", model: str = "") -> str:  # noqa: ARG001
     """One-line footer for VCS issue and PR/MR comments.
 
     Format: ``> 🤖 {agent_name} ({model}) - [uio](...) ({version})``

@@ -43,7 +43,7 @@ def test_comment_footer_model_in_parens():
 def test_comment_footer_no_model_no_parens():
     footer = render_comment_footer("planner", "my-planner", "0.1.0")
     # agent_name directly followed by " -", no model parenthetical
-    assert "my-planner -" in footer or "my-planner (" not in footer
+    assert "my-planner -" in footer
 
 
 def test_pr_footer_contains_display_name():
