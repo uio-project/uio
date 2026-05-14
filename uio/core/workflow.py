@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import sys
+import uuid
 from dataclasses import dataclass
 
 from uio.schema.parser import parse_definition_file
@@ -91,12 +92,14 @@ def run_workflow(
         print("  [workflow] No steps defined. Nothing to do.")
         return
 
+    workflow_run_id = str(uuid.uuid4())
     variables: dict[str, str] = {"input": arg or ""}
 
     print(f"\n🔄 Workflow: {fm.get('name', workflow_name)}")
     print(f"   Steps: {len(steps)}")
     if arg:
         print(f"   Input: {arg}")
+    print(f"   Run ID: {workflow_run_id}")
     print()
 
     for i, step in enumerate(steps, 1):
@@ -145,6 +148,8 @@ def run_workflow(
                 memory_dir=cfg["dirs"]["memory"],
                 context_max_tokens=cfg["runtime"]["context_max_tokens"],
                 attribution_enabled=cfg["attribution"]["enabled"],
+                workflow=workflow_name,
+                workflow_run_id=workflow_run_id,
             )
         except GuardrailError as exc:
             print(f"\n❌ Workflow halted at step '{step.name}': guardrail — {exc}", file=sys.stderr)

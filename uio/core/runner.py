@@ -303,6 +303,8 @@ def run_agent(
     context_max_tokens: int = 8000,
     attribution_enabled: bool = True,
     cost_callback: Callable[[str, str, str, int, int], None] | None = None,
+    workflow: str | None = None,
+    workflow_run_id: str | None = None,
 ) -> str | None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -468,6 +470,8 @@ def run_agent(
                             total_prompt,
                             total_completion,
                             ledger_path,
+                            workflow=workflow,
+                            workflow_run_id=workflow_run_id,
                         )
                         if cost_callback is not None:
                             cost_callback(
@@ -495,6 +499,8 @@ def run_agent(
                                 total_prompt,
                                 total_completion,
                                 ledger_path,
+                                workflow=workflow,
+                                workflow_run_id=workflow_run_id,
                             )
                             raise GuardrailError(
                                 f"max_cost_usd {guardrail_max_cost} exceeded"
@@ -540,6 +546,8 @@ def run_agent(
                     total_prompt,
                     total_completion,
                     ledger_path,
+                    workflow=workflow,
+                    workflow_run_id=workflow_run_id,
                 )
                 if cost_callback is not None:
                     cost_callback(

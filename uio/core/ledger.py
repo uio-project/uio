@@ -36,19 +36,29 @@ def write_cost_ledger(
     prompt_tokens: int,
     completion_tokens: int,
     ledger_path: str = DEFAULT_LEDGER_PATH,
+    workflow: str | None = None,
+    workflow_run_id: str | None = None,
 ) -> None:
-    entry = {
+    entry: dict = {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "agent": agent_name,
-        "provider": provider,
-        "model": model,
-        "prompt_tokens": prompt_tokens,
-        "completion_tokens": completion_tokens,
-        "total_tokens": prompt_tokens + completion_tokens,
-        "estimated_cost_usd": round(
-            estimate_cost_usd(provider, model, prompt_tokens, completion_tokens), 6
-        ),
     }
+    if workflow is not None:
+        entry["workflow"] = workflow
+    if workflow_run_id is not None:
+        entry["workflow_run_id"] = workflow_run_id
+    entry.update(
+        {
+            "provider": provider,
+            "model": model,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "estimated_cost_usd": round(
+                estimate_cost_usd(provider, model, prompt_tokens, completion_tokens), 6
+            ),
+        }
+    )
     try:
         os.makedirs(os.path.dirname(os.path.abspath(ledger_path)), exist_ok=True)
         with open(ledger_path, "a") as f:

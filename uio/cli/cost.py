@@ -11,7 +11,9 @@ import click
 from uio.config import load_config
 
 
-def _load_ledger(ledger_path: str, since: str | None, tail: int | None) -> list[dict]:
+def _load_ledger(
+    ledger_path: str, since: str | None, tail: int | None, workflow: str | None = None
+) -> list[dict]:
     p = Path(ledger_path)
     if not p.exists():
         return []
@@ -44,6 +46,9 @@ def _load_ledger(ledger_path: str, since: str | None, tail: int | None) -> list[
                 filtered.append(e)
         entries = filtered
 
+    if workflow is not None:
+        entries = [e for e in entries if e.get("workflow") == workflow]
+
     if tail is not None:
         entries = entries[-tail:]
     return entries
@@ -53,18 +58,26 @@ def _print_cost_table(entries: list[dict]) -> None:
     if not entries:
         click.echo("(no entries in ledger)")
         return
-    rows = [
-        [
+    show_workflow = any("workflow" in e for e in entries)
+    rows = []
+    for e in entries:
+        row = [
             e.get("timestamp", "")[:19].replace("T", " "),
             e.get("agent", "—"),
+        ]
+        if show_workflow:
+            row.append(e.get("workflow", "—"))
+        row += [
             e.get("provider", "—"),
             e.get("model", "—"),
             str(e.get("total_tokens", 0)),
             f"${e.get('estimated_cost_usd', 0.0):.6f}",
         ]
-        for e in entries
-    ]
-    headers = ["TIMESTAMP", "AGENT", "PROVIDER", "MODEL", "TOKENS", "COST"]
+        rows.append(row)
+    headers = ["TIMESTAMP", "AGENT"]
+    if show_workflow:
+        headers.append("WORKFLOW")
+    headers += ["PROVIDER", "MODEL", "TOKENS", "COST"]
     widths = [max(len(h), max(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
     click.echo("  ".join(h.ljust(w) for h, w in zip(headers, widths)))
     click.echo("  ".join("-" * w for w in widths))
@@ -94,11 +107,18 @@ def _print_cost_table(entries: list[dict]) -> None:
     metavar="PATH",
     help="Path to the cost ledger file (default: from uio.toml or uio_cost.jsonl).",
 )
+@click.option(
+    "--workflow",
+    default=None,
+    metavar="NAME",
+    help="Filter to entries from the named workflow.",
+)
 def cost_cmd(
     tail: int | None,
     since: str | None,
     as_json: bool,
     ledger: str | None,
+    workflow: str | None,
 ) -> None:
     """Summarise AI token spend from the cost ledger.
 
@@ -108,11 +128,12 @@ def cost_cmd(
       uio cost
       uio cost --tail 20
       uio cost --since 2026-04-01
+      uio cost --workflow review-and-fix
       uio cost --json | jq '.estimated_cost_usd'
     """
     if ledger is None:
         ledger = load_config()["runtime"]["cost_ledger"]
-    entries = _load_ledger(ledger, since, tail)
+    entries = _load_ledger(ledger, since, tail, workflow)
     if as_json:
         for e in entries:
             click.echo(json.dumps(e))
