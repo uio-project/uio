@@ -562,3 +562,66 @@ def test_check_workflow_steps_prompt_and_agent_mutually_exclusive():
     fm = {"steps": [{"name": "s", "agent": "a", "prompt": "p"}]}
     warnings = check_workflow_steps("w.workflow.md", fm)
     assert any("mutually exclusive" in w for w in warnings)
+
+
+def test_run_workflow_passes_workflow_and_run_id_to_run_agent(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "wf",
+        textwrap.dedent("""\
+            ---
+            name: wf
+            description: D.
+            steps:
+              - name: s
+                agent: my-agent
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    captured_kwargs: list[dict] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        captured_kwargs.append(kwargs)
+        return None
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("wf", None, cfg=cfg)
+
+    assert captured_kwargs[0]["workflow"] == "wf"
+    assert "workflow_run_id" in captured_kwargs[0]
+    import uuid as _uuid
+
+    _uuid.UUID(captured_kwargs[0]["workflow_run_id"], version=4)
+
+
+def test_run_workflow_all_steps_share_same_run_id(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "multi",
+        textwrap.dedent("""\
+            ---
+            name: multi
+            description: D.
+            steps:
+              - name: step-a
+                agent: agent-a
+              - name: step-b
+                agent: agent-b
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    run_ids: list[str] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        run_ids.append(kwargs.get("workflow_run_id", ""))
+        return None
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("multi", None, cfg=cfg)
+
+    assert len(run_ids) == 2
+    assert run_ids[0] == run_ids[1], "all steps must share the same workflow_run_id"

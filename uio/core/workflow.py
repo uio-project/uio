@@ -99,6 +99,7 @@ def run_workflow(
     print(f"   Steps: {len(steps)}")
     if arg:
         print(f"   Input: {arg}")
+    print(f"   Run ID: {workflow_run_id}")
     print()
 
     for i, step in enumerate(steps, 1):

@@ -75,3 +75,45 @@ def test_write_cost_is_zero_for_ollama(tmp_path):
     write_cost_ledger("my-agent", "ollama", "qwen2.5-coder:32b", 100_000, 50_000, ledger)
     entry = json.loads(Path(ledger).read_text().strip())
     assert entry["estimated_cost_usd"] == 0.0
+
+
+def test_write_workflow_fields_included_when_set(tmp_path):
+    ledger = str(tmp_path / "cost.jsonl")
+    write_cost_ledger(
+        "coder",
+        "openai",
+        "gpt-4o",
+        100,
+        50,
+        ledger,
+        workflow="review-and-fix",
+        workflow_run_id="abc-123",
+    )
+    entry = json.loads(Path(ledger).read_text().strip())
+    assert entry["workflow"] == "review-and-fix"
+    assert entry["workflow_run_id"] == "abc-123"
+
+
+def test_write_workflow_fields_appear_before_cost_metrics(tmp_path):
+    ledger = str(tmp_path / "cost.jsonl")
+    write_cost_ledger(
+        "coder",
+        "openai",
+        "gpt-4o",
+        100,
+        50,
+        ledger,
+        workflow="my-wf",
+        workflow_run_id="run-1",
+    )
+    keys = list(json.loads(Path(ledger).read_text().strip()).keys())
+    assert keys.index("workflow") < keys.index("prompt_tokens")
+    assert keys.index("workflow_run_id") < keys.index("prompt_tokens")
+
+
+def test_write_workflow_fields_absent_when_none(tmp_path):
+    ledger = str(tmp_path / "cost.jsonl")
+    write_cost_ledger("agent", "gemini", "gemini-2.5-flash", 100, 50, ledger)
+    entry = json.loads(Path(ledger).read_text().strip())
+    assert "workflow" not in entry
+    assert "workflow_run_id" not in entry

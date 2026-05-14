@@ -59,33 +59,25 @@ def _print_cost_table(entries: list[dict]) -> None:
         click.echo("(no entries in ledger)")
         return
     show_workflow = any("workflow" in e for e in entries)
+    rows = []
+    for e in entries:
+        row = [
+            e.get("timestamp", "")[:19].replace("T", " "),
+            e.get("agent", "—"),
+        ]
+        if show_workflow:
+            row.append(e.get("workflow", "—"))
+        row += [
+            e.get("provider", "—"),
+            e.get("model", "—"),
+            str(e.get("total_tokens", 0)),
+            f"${e.get('estimated_cost_usd', 0.0):.6f}",
+        ]
+        rows.append(row)
+    headers = ["TIMESTAMP", "AGENT"]
     if show_workflow:
-        rows = [
-            [
-                e.get("timestamp", "")[:19].replace("T", " "),
-                e.get("agent", "—"),
-                e.get("workflow", "—"),
-                e.get("provider", "—"),
-                e.get("model", "—"),
-                str(e.get("total_tokens", 0)),
-                f"${e.get('estimated_cost_usd', 0.0):.6f}",
-            ]
-            for e in entries
-        ]
-        headers = ["TIMESTAMP", "AGENT", "WORKFLOW", "PROVIDER", "MODEL", "TOKENS", "COST"]
-    else:
-        rows = [
-            [
-                e.get("timestamp", "")[:19].replace("T", " "),
-                e.get("agent", "—"),
-                e.get("provider", "—"),
-                e.get("model", "—"),
-                str(e.get("total_tokens", 0)),
-                f"${e.get('estimated_cost_usd', 0.0):.6f}",
-            ]
-            for e in entries
-        ]
-        headers = ["TIMESTAMP", "AGENT", "PROVIDER", "MODEL", "TOKENS", "COST"]
+        headers.append("WORKFLOW")
+    headers += ["PROVIDER", "MODEL", "TOKENS", "COST"]
     widths = [max(len(h), max(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
     click.echo("  ".join(h.ljust(w) for h, w in zip(headers, widths)))
     click.echo("  ".join("-" * w for w in widths))
