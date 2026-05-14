@@ -256,6 +256,13 @@ def _resolve_output_schema(frontmatter: dict, definition_path: str) -> dict | No
         ref_path = schema_value
         if not os.path.isabs(ref_path):
             ref_path = os.path.join(os.path.dirname(definition_path), ref_path)
+        # Containment check: resolved path must stay within the definition file's directory.
+        allowed_root = os.path.abspath(os.path.dirname(definition_path))
+        if not os.path.abspath(ref_path).startswith(allowed_root + os.sep):
+            raise ValueError(
+                f"schema '$ref' path escapes the definition directory: {ref_path!r}"
+                f" (must be inside {allowed_root!r})"
+            )
         try:
             with open(ref_path, encoding="utf-8") as fh:
                 return json.load(fh)

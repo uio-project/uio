@@ -124,6 +124,7 @@ class GeminiClient(LLMClient):
             "tools": [types.Tool(function_declarations=self._func_decls)],
         }
         if self._output_schema is not None:
+            config_kwargs.pop("tools", None)  # response_schema and function_declarations are mutually exclusive
             config_kwargs["response_mime_type"] = "application/json"
             config_kwargs["response_schema"] = _sanitize_schema_for_gemini(self._output_schema)
         config = types.GenerateContentConfig(**config_kwargs)
@@ -204,6 +205,7 @@ class OpenAIClient(LLMClient):
             "tools": [{"type": "function", "function": t} for t in self._tools],
         }
         if self._output_schema is not None:
+            create_kwargs.pop("tools", None)  # structured output and tool-calling are mutually exclusive
             create_kwargs["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {

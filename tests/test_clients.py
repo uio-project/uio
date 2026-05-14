@@ -6,6 +6,7 @@ Only append_turn and build_history are under test — pure message formatting.
 
 import json
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 
 from uio.core.clients import (
@@ -374,35 +375,114 @@ def test_anthropic_client_stores_complexity_and_max_tokens():
     assert client._max_tokens == 32000
 
 
-# ── output_schema stored on clients ──────────────────────────────────────────
+# ── output_schema: create_kwargs / config_kwargs injection ───────────────────
+
+_SAMPLE_SCHEMA = {"type": "object", "properties": {"result": {"type": "string"}}}
 
 
-def test_gemini_client_stores_output_schema():
-    """GeminiClient stores the output_schema passed via __new__ without calling __init__."""
-    client = GeminiClient.__new__(GeminiClient)
-    client._output_schema = {"type": "object", "properties": {"result": {"type": "string"}}}
-    assert client._output_schema["type"] == "object"
+def test_openai_chat_with_output_schema_injects_response_format():
+    """chat() adds response_format and drops tools when output_schema is set."""
+    mock_resp = MagicMock()
+    mock_resp.choices[0].message.content = '{"result": "ok"}'
+    mock_resp.choices[0].message.tool_calls = None
+    mock_resp.usage = None
+
+    with patch("openai.OpenAI") as mock_openai_cls:
+        mock_completions = MagicMock()
+        mock_completions.create.return_value = mock_resp
+        mock_openai_cls.return_value.chat.completions = mock_completions
+
+        client = OpenAIClient(output_schema=_SAMPLE_SCHEMA)
+        client.chat(system="sys", history=[{"role": "user", "content": "go"}])
+
+        _, kwargs = mock_completions.create.call_args
+        assert "response_format" in kwargs
+        assert kwargs["response_format"]["type"] == "json_schema"
+        assert kwargs["response_format"]["json_schema"]["strict"] is True
+        assert "tools" not in kwargs, "tools must be omitted when output_schema is set"
 
 
-def test_openai_client_stores_output_schema():
-    """OpenAIClient stores the output_schema passed via __new__ without calling __init__."""
-    client = OpenAIClient.__new__(OpenAIClient)
-    client._output_schema = {"type": "object", "properties": {"status": {"type": "string"}}}
-    assert client._output_schema["type"] == "object"
+def test_openai_chat_without_output_schema_includes_tools():
+    """chat() includes tools and no response_format when output_schema is None."""
+    mock_resp = MagicMock()
+    mock_resp.choices[0].message.content = "hello"
+    mock_resp.choices[0].message.tool_calls = None
+    mock_resp.usage = None
+
+    with patch("openai.OpenAI") as mock_openai_cls:
+        mock_completions = MagicMock()
+        mock_completions.create.return_value = mock_resp
+        mock_openai_cls.return_value.chat.completions = mock_completions
+
+        client = OpenAIClient()
+        client.chat(system="sys", history=[{"role": "user", "content": "go"}])
+
+        _, kwargs = mock_completions.create.call_args
+        assert "tools" in kwargs
+        assert "response_format" not in kwargs
 
 
-def test_gemini_client_no_schema_stores_none():
-    """GeminiClient defaults _output_schema to None when not provided."""
-    client = GeminiClient.__new__(GeminiClient)
-    client._output_schema = None
-    assert client._output_schema is None
+def test_gemini_chat_with_output_schema_drops_tools_and_sets_mime():
+    """chat() drops tools and sets response_schema when output_schema is set."""
+    mock_resp = MagicMock()
+    mock_resp.candidates[0].content.parts = []
+    mock_resp.usage_metadata = None
+
+    fake_config_cls = MagicMock()
+    fake_tool_cls = MagicMock()
+    fake_models = MagicMock()
+    fake_models.generate_content.return_value = mock_resp
+
+    with (
+        patch("google.genai.Client") as mock_genai_cls,
+        patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}),
+    ):
+        mock_genai_cls.return_value.models = fake_models
+
+        import google.genai.types as gtypes
+
+        with (
+            patch.object(gtypes, "GenerateContentConfig", fake_config_cls),
+            patch.object(gtypes, "Tool", fake_tool_cls),
+        ):
+            client = GeminiClient(output_schema=_SAMPLE_SCHEMA)
+            client.chat(system="sys", history=[{"role": "user", "parts": [{"text": "go"}]}])
+
+        config_call_kwargs = fake_config_cls.call_args[1]
+        assert "tools" not in config_call_kwargs, "tools must be omitted when output_schema is set"
+        assert config_call_kwargs.get("response_mime_type") == "application/json"
+        assert "response_schema" in config_call_kwargs
 
 
-def test_openai_client_no_schema_stores_none():
-    """OpenAIClient defaults _output_schema to None when not provided."""
-    client = OpenAIClient.__new__(OpenAIClient)
-    client._output_schema = None
-    assert client._output_schema is None
+def test_gemini_chat_without_output_schema_includes_tools():
+    """chat() includes tools and no response_schema when output_schema is None."""
+    mock_resp = MagicMock()
+    mock_resp.candidates[0].content.parts = []
+    mock_resp.usage_metadata = None
+
+    fake_config_cls = MagicMock()
+    fake_tool_cls = MagicMock()
+    fake_models = MagicMock()
+    fake_models.generate_content.return_value = mock_resp
+
+    with (
+        patch("google.genai.Client") as mock_genai_cls,
+        patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}),
+    ):
+        mock_genai_cls.return_value.models = fake_models
+
+        import google.genai.types as gtypes
+
+        with (
+            patch.object(gtypes, "GenerateContentConfig", fake_config_cls),
+            patch.object(gtypes, "Tool", fake_tool_cls),
+        ):
+            client = GeminiClient()
+            client.chat(system="sys", history=[{"role": "user", "parts": [{"text": "go"}]}])
+
+        config_call_kwargs = fake_config_cls.call_args[1]
+        assert "tools" in config_call_kwargs
+        assert "response_schema" not in config_call_kwargs
 
 
 # ── _resolve_output_schema ────────────────────────────────────────────────────

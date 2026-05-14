@@ -259,7 +259,7 @@ def check_schema_support(path: str, frontmatter: dict, provider: str | None) -> 
 
     Returns a one-element warning list otherwise.
     """
-    if not frontmatter.get("schema"):
+    if frontmatter.get("schema") is None:
         return []
     if provider is None:
         return []
