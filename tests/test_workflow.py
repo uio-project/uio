@@ -497,7 +497,16 @@ def test_run_workflow_skill_step(tmp_path):
 
 
 def test_parse_workflow_steps_prompt_step():
-    fm = {"steps": [{"name": "summarise", "prompt": "summarise-pr", "arg": "{{ input }}", "output": "summary"}]}
+    fm = {
+        "steps": [
+            {
+                "name": "summarise",
+                "prompt": "summarise-pr",
+                "arg": "{{ input }}",
+                "output": "summary",
+            }
+        ]
+    }
     steps = parse_workflow_steps(fm)
     assert len(steps) == 1
     assert steps[0].prompt == "summarise-pr"
