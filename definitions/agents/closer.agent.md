@@ -52,14 +52,8 @@ Search for PRs and issues that reference this parent issue number N.
 
 **Find linked PRs** — search for PRs whose body contains a closing keyword:
 
-Use a GitHub MCP tool if available:
-```
-mcp__mcp-github__search_pull_requests  query="repo:<owner>/<repo> closes #<N>"
-mcp__mcp-github__search_pull_requests  query="repo:<owner>/<repo> fixes #<N>"
-mcp__mcp-github__search_pull_requests  query="repo:<owner>/<repo> resolves #<N>"
-```
-
-Otherwise fall back to:
+Use a GitHub MCP tool if available (search by capability with ToolSearch — the tool name
+varies between the uio runtime and VS Code), otherwise fall back to:
 ```bash
 gh pr list --repo <owner>/<repo> --state all --json number,title,body,state,mergedAt,headRefName \
   | jq '[.[] | select(.body | ascii_downcase | test("(closes|fixes|resolves|part of) #<N>\\b"))]'
@@ -161,7 +155,7 @@ The agent stops and reports (without closing) in any of these conditions:
 - No acceptance criteria can be extracted from the issue body
 - Any directly linked child issue is still open
 - No linked PRs are found for the parent issue
-- Any criterion cannot be matched to a merged PR
+- Any criterion is not met or only partially met
 
 The agent proceeds to close only when all criteria are verified as met.
 

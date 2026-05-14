@@ -120,7 +120,7 @@ def build_attribution_instructions(
         bot_kind = "non-human GitHub App"
 
     commit_section = ""
-    if role == "coder":
+    if role == "coder":  # only coder creates commits; other identities (closer, reviewer, planner) do not
         commit_section = f"""\
 - **Commits** — set the git author for every commit you create:
   ```
