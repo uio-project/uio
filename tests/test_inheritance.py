@@ -244,7 +244,7 @@ def test_override_marker_content_is_preserved(tmp_path):
 
 
 def test_multi_level_chain(tmp_path):
-    """A -> B -> C: C's body comes first, then B's, then A's."""
+    """A -> B -> C: grandparent body comes first, then parent's, then child's."""
     _write(
         tmp_path,
         "grandparent.agent.md",

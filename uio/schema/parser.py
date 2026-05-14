@@ -64,7 +64,14 @@ def _find_definition_by_name(name: str, search_dirs: list[str]) -> str | None:
         for ext in extensions:
             matches = glob(os.path.join(directory, ext))
             for match in matches:
-                stem = Path(match).name.split(".")[0]
+                name_part = Path(match).name
+                stem = None
+                for ext_suffix in (".agent.md", ".skill.md", ".prompt.md"):
+                    if name_part.endswith(ext_suffix):
+                        stem = name_part[: -len(ext_suffix)]
+                        break
+                if stem is None:
+                    stem = name_part.split(".")[0]  # fallback for unknown extension types
                 if stem == name:
                     return match
     return None
@@ -192,9 +199,9 @@ def check_inheritance_cycles(paths: list[str]) -> list[str]:
         try:
             resolve_inheritance(path, fm, body)
         except ValueError as exc:
-            warnings.append(f"WARNING: {exc}")
+            warnings.append(str(exc))
         except FileNotFoundError as exc:
-            warnings.append(f"WARNING: {exc}")
+            warnings.append(str(exc))
     return warnings
 
 
