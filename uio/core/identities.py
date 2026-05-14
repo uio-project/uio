@@ -6,6 +6,6 @@ from typing import Final, Literal
 
 __all__ = ["KNOWN_ROLES", "IdentityRole"]
 
-KNOWN_ROLES: Final = ("planner", "coder", "reviewer")
+KNOWN_ROLES: Final = ("planner", "coder", "reviewer", "closer")
 
-IdentityRole = Literal["planner", "coder", "reviewer"]
+IdentityRole = Literal["planner", "coder", "reviewer", "closer"]
