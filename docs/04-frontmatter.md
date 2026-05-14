@@ -285,14 +285,23 @@ schema:
 ---
 ```
 
-Or a `$ref` to an external `.json` file (resolved relative to the project root):
+Or a `$ref` to an external `.json` file. The path is resolved **relative to the definition file's own directory** and must remain within that directory (paths escaping via `../` are rejected at runtime):
 
 ```yaml
+# .uio/agents/pr-status.agent.md
 schema:
-  $ref: schemas/pr-status.json
+  $ref: pr-status-schema.json   # resolves to .uio/agents/pr-status-schema.json
+```
+
+A bare string is equivalent to `{$ref: ...}` and is the shortest form:
+
+```yaml
+schema: pr-status-schema.json
 ```
 
 `uio validate` emits a warning when `schema:` is declared but the configured provider does not support structured output. Only `openai` and `gemini` are supported; `ollama` and `anthropic` do not support this field.
+
+> **Note:** `schema:` is accepted on `.skill.md` and `.prompt.md` definitions as well, with identical semantics.
 
 ### `extends`
 
@@ -328,6 +337,8 @@ Only check for security issues. Ignore style and formatting entirely.
 ```
 
 `uio validate` resolves all inheritance chains and warns on cycles or unresolvable parents. Multi-level chains (A → B → C) are supported.
+
+> **Note:** `extends:` is accepted on `.skill.md` and `.prompt.md` definitions as well, with identical semantics.
 
 ---
 
