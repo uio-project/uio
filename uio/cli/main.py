@@ -26,6 +26,7 @@ from uio.examples import EXAMPLES
 from uio.schema.parser import (
     check_heading_format,
     check_identity_env,
+    check_inheritance_cycles,
     check_minimal_body,
     check_schema_support,
     check_skill_interface_sections,
@@ -209,10 +210,12 @@ def validate_cmd(strict: bool) -> None:
     errors: list[str] = []
     warnings: list[str] = []
     total = 0
+    all_definition_paths: list[str] = []
 
     for directory, pattern in agent_skill_prompt_patterns:
         for path in sorted(glob(f"{directory}/{pattern}")):
             total += 1
+            all_definition_paths.append(path)
             try:
                 fm, body = parse_definition_file(path)
             except Exception as e:
@@ -239,6 +242,9 @@ def validate_cmd(strict: bool) -> None:
                 continue
             errors.extend(validate_workflow_definition(path, fm))
             warnings.extend(check_workflow_steps(path, fm))
+
+    # Resolve inheritance chains and warn on cycles / missing parents
+    warnings.extend(check_inheritance_cycles(all_definition_paths))
 
     if total == 0:
         click.echo("  No definition files found.")

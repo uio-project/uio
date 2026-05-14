@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import re
+from glob import glob
+from pathlib import Path
 
 import yaml
 
@@ -23,6 +25,9 @@ _STOPPING_PHRASES = re.compile(
     re.IGNORECASE,
 )
 
+# Marker that causes a child body to *replace* the parent body instead of appending.
+_OVERRIDE_MARKER = "# Override"
+
 
 def parse_frontmatter_raw(path: str) -> tuple[dict, str]:
     """Return (frontmatter_dict, body_text) for any YAML-frontmatter file."""
@@ -37,6 +42,160 @@ def parse_frontmatter_raw(path: str) -> tuple[dict, str]:
 def parse_definition_file(path: str) -> tuple[dict, str]:
     """Return (frontmatter_dict, body_text) for a definition file."""
     return parse_frontmatter_raw(path)
+
+
+# ---------------------------------------------------------------------------
+# Definition inheritance (extends: frontmatter key)
+# ---------------------------------------------------------------------------
+
+# Keys that are *not* inherited from the parent — they are always child-specific.
+_NON_INHERITED_KEYS = frozenset({"name", "description", "extends"})
+
+
+def _find_definition_by_name(name: str, search_dirs: list[str]) -> str | None:
+    """Return the path of the first definition file whose stem matches *name*.
+
+    Searches *search_dirs* in order, accepting files with any of the standard
+    definition extensions (``*.agent.md``, ``*.skill.md``, ``*.prompt.md``).
+    Returns ``None`` when no match is found.
+    """
+    extensions = ("*.agent.md", "*.skill.md", "*.prompt.md")
+    for directory in search_dirs:
+        for ext in extensions:
+            matches = glob(os.path.join(directory, ext))
+            for match in matches:
+                stem = Path(match).name.split(".")[0]
+                if stem == name:
+                    return match
+    return None
+
+
+def _collect_uio_dirs(start_path: str) -> list[str]:
+    """Return all sub-directories of the nearest ``.uio/`` tree containing *start_path*.
+
+    Walks upward from the directory containing *start_path* until it finds a
+    ``.uio/`` directory, then returns all leaf sub-directories within it (agents,
+    skills, prompts) as the search scope for parent resolution.
+
+    Falls back to just the directory containing *start_path* when no ``.uio/``
+    ancestor is found.
+    """
+    start_dir = Path(start_path).resolve().parent
+    candidate = start_dir
+    for _ in range(20):  # guard against runaway traversal
+        uio_dir = candidate / ".uio"
+        if uio_dir.is_dir():
+            # Collect all immediate sub-directories of .uio/
+            dirs = [str(uio_dir)]
+            for child in uio_dir.iterdir():
+                if child.is_dir():
+                    dirs.append(str(child))
+            return dirs
+        parent = candidate.parent
+        if parent == candidate:
+            break
+        candidate = parent
+    # No .uio/ ancestor found — fall back to the file's own directory
+    return [str(start_dir)]
+
+
+def resolve_inheritance(
+    path: str,
+    frontmatter: dict,
+    body: str,
+    *,
+    _visited: tuple[str, ...] = (),
+    search_dirs: list[str] | None = None,
+) -> tuple[dict, str]:
+    """Resolve ``extends:`` inheritance and return the merged (frontmatter, body).
+
+    Merge semantics:
+    - Frontmatter: parent values are the baseline; child values override them.
+      ``name``, ``description``, and ``extends`` are always taken from the child.
+    - Body: child body is **appended after parent body** by default.
+      If the child body starts with ``# Override``, the child body **replaces**
+      the parent body instead of appending.
+
+    Inheritance is resolved recursively so multi-level chains work correctly.
+    Cycles are detected via the *_visited* path tuple and raise ``ValueError``.
+    """
+    extends = frontmatter.get("extends")
+    if not extends:
+        return frontmatter, body
+
+    abs_path = str(Path(path).resolve())
+    if abs_path in _visited:
+        chain = " -> ".join(_visited + (abs_path,))
+        raise ValueError(f"Inheritance cycle detected: {chain}")
+
+    visited = _visited + (abs_path,)
+
+    if search_dirs is None:
+        search_dirs = _collect_uio_dirs(path)
+
+    parent_path = _find_definition_by_name(str(extends), search_dirs)
+    if parent_path is None:
+        raise FileNotFoundError(
+            f"{path}: extends: '{extends}' — no definition named '{extends}' found"
+        )
+
+    parent_fm_raw, parent_body_raw = parse_frontmatter_raw(parent_path)
+
+    # Recursively resolve the parent's own inheritance first
+    parent_fm, parent_body = resolve_inheritance(
+        parent_path,
+        parent_fm_raw,
+        parent_body_raw,
+        _visited=visited,
+        search_dirs=search_dirs,
+    )
+
+    # Merge frontmatter: parent values as baseline, child overrides (except non-inherited keys)
+    merged_fm: dict = {}
+    for k, v in parent_fm.items():
+        if k not in _NON_INHERITED_KEYS:
+            merged_fm[k] = v
+    for k, v in frontmatter.items():
+        if k != "extends":
+            merged_fm[k] = v
+
+    # Merge body
+    if body.startswith(_OVERRIDE_MARKER):
+        # Child explicitly replaces parent body; strip the marker line itself
+        after_marker = body[len(_OVERRIDE_MARKER) :].lstrip("\n")
+        merged_body = after_marker
+    else:
+        if parent_body and body:
+            merged_body = parent_body + "\n\n" + body
+        elif parent_body:
+            merged_body = parent_body
+        else:
+            merged_body = body
+
+    return merged_fm, merged_body
+
+
+def check_inheritance_cycles(paths: list[str]) -> list[str]:
+    """Return warning strings for any inheritance cycles found across *paths*.
+
+    Each element of *paths* should be the absolute or relative path to a
+    definition file.  Files without an ``extends:`` key are skipped silently.
+    """
+    warnings: list[str] = []
+    for path in paths:
+        try:
+            fm, body = parse_frontmatter_raw(path)
+        except Exception:
+            continue
+        if not fm.get("extends"):
+            continue
+        try:
+            resolve_inheritance(path, fm, body)
+        except ValueError as exc:
+            warnings.append(f"WARNING: {exc}")
+        except FileNotFoundError as exc:
+            warnings.append(f"WARNING: {exc}")
+    return warnings
 
 
 def validate_definition(path: str, frontmatter: dict) -> list[str]:
@@ -61,6 +220,7 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
         "vcs-identity",
         "vcs-provider",
         "schema",
+        "extends",
     }
     for key in frontmatter:
         if key not in known:
