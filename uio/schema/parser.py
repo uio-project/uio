@@ -272,7 +272,7 @@ def check_schema_support(path: str, frontmatter: dict, provider: str | None) -> 
 
 
 _WORKFLOW_KNOWN_KEYS = {"name", "description", "steps"}
-_STEP_KNOWN_KEYS = {"name", "agent", "skill", "arg", "output", "when"}
+_STEP_KNOWN_KEYS = {"name", "agent", "skill", "prompt", "arg", "output", "when"}
 
 
 def validate_workflow_definition(path: str, frontmatter: dict) -> list[str]:
@@ -307,10 +307,12 @@ def check_workflow_steps(path: str, frontmatter: dict) -> list[str]:
                 warnings.append(f"{path}: step {i + 1} has unrecognised key '{key}'")
         has_agent = "agent" in step
         has_skill = "skill" in step
-        if has_agent and has_skill:
+        has_prompt = "prompt" in step
+        type_count = sum([has_agent, has_skill, has_prompt])
+        if type_count > 1:
             warnings.append(
-                f"{path}: step {i + 1} defines both 'agent' and 'skill' — they are mutually exclusive"
+                f"{path}: step {i + 1} defines multiple step types ('agent', 'skill', 'prompt' are mutually exclusive)"
             )
-        elif not has_agent and not has_skill:
-            warnings.append(f"{path}: step {i + 1} has neither 'agent' nor 'skill'")
+        elif type_count == 0:
+            warnings.append(f"{path}: step {i + 1} has neither 'agent', 'skill', nor 'prompt'")
     return warnings

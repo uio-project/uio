@@ -18,6 +18,7 @@ class WorkflowStep:
     name: str
     agent: str | None = None
     skill: str | None = None
+    prompt: str | None = None
     arg: str | None = None
     output: str | None = None
     when: str | None = None
@@ -34,6 +35,7 @@ def parse_workflow_steps(frontmatter: dict) -> list[WorkflowStep]:
                 name=s.get("name", ""),
                 agent=s.get("agent"),
                 skill=s.get("skill"),
+                prompt=s.get("prompt"),
                 arg=s.get("arg"),
                 output=s.get("output"),
                 when=s.get("when"),
@@ -110,9 +112,12 @@ def run_workflow(
         elif step.skill:
             def_path = f"{cfg['dirs']['skills']}/{step.skill}.skill.md"
             runner_name = step.skill
+        elif step.prompt:
+            def_path = f"{cfg['dirs']['prompts']}/{step.prompt}.prompt.md"
+            runner_name = step.prompt
         else:
             print(
-                f"  [workflow] Error: step '{step.name}' has neither 'agent' nor 'skill'",
+                f"  [workflow] Error: step '{step.name}' has none of 'agent', 'skill', or 'prompt'",
                 file=sys.stderr,
             )
             sys.exit(1)

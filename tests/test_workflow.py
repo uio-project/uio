@@ -191,10 +191,16 @@ def test_check_workflow_steps_both_agent_and_skill():
     assert any("mutually exclusive" in w for w in warnings)
 
 
-def test_check_workflow_steps_neither_agent_nor_skill():
+def test_check_workflow_steps_no_step_type():
     fm = {"steps": [{"name": "s"}]}
     warnings = check_workflow_steps("w.workflow.md", fm)
     assert any("neither" in w for w in warnings)
+
+
+def test_check_workflow_steps_skill_and_prompt_mutually_exclusive():
+    fm = {"steps": [{"name": "s", "skill": "a", "prompt": "p"}]}
+    warnings = check_workflow_steps("w.workflow.md", fm)
+    assert any("mutually exclusive" in w for w in warnings)
 
 
 def test_check_workflow_steps_unknown_key():
@@ -277,6 +283,7 @@ _MINIMAL_CFG: dict = {
     "dirs": {
         "agents": ".uio/agents",
         "skills": ".uio/skills",
+        "prompts": ".uio/prompts",
         "workflows": ".uio/workflows",
         "memory": None,
     },
@@ -303,6 +310,7 @@ def _make_cfg(tmp_path) -> dict:
     cfg["dirs"]["workflows"] = str(tmp_path / "workflows")
     cfg["dirs"]["agents"] = str(tmp_path / "agents")
     cfg["dirs"]["skills"] = str(tmp_path / "skills")
+    cfg["dirs"]["prompts"] = str(tmp_path / "prompts")
     return cfg
 
 
@@ -492,3 +500,65 @@ def test_run_workflow_skill_step(tmp_path):
 
     assert calls[0][0] == "summarise"
     assert ".skill.md" in calls[0][1]  # resolved as a skill, not an agent
+
+
+def test_parse_workflow_steps_prompt_step():
+    fm = {
+        "steps": [
+            {
+                "name": "summarise",
+                "prompt": "summarise-pr",
+                "arg": "{{ input }}",
+                "output": "summary",
+            }
+        ]
+    }
+    steps = parse_workflow_steps(fm)
+    assert len(steps) == 1
+    assert steps[0].prompt == "summarise-pr"
+    assert steps[0].agent is None
+    assert steps[0].skill is None
+    assert steps[0].output == "summary"
+
+
+def test_run_workflow_prompt_step(tmp_path):
+    _write_workflow(
+        tmp_path,
+        "prompt-wf",
+        textwrap.dedent("""\
+            ---
+            name: prompt-wf
+            description: D.
+            steps:
+              - name: summarise
+                prompt: summarise-pr
+                arg: "{{ input }}"
+                output: summary
+            ---
+            Body.
+        """),
+    )
+    cfg = _make_cfg(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def fake_run_agent(name, arg, **kwargs):
+        calls.append((name, kwargs.get("definition_path", "")))
+        return "the summary"
+
+    with patch("uio.core.runner.run_agent", side_effect=fake_run_agent):
+        run_workflow("prompt-wf", "some text", cfg=cfg)
+
+    assert calls[0][0] == "summarise-pr"
+    assert ".prompt.md" in calls[0][1]  # resolved as a prompt
+
+
+def test_check_workflow_steps_prompt_step_valid():
+    fm = {"steps": [{"name": "s", "prompt": "my-prompt", "arg": "{{ input }}"}]}
+    warnings = check_workflow_steps("w.workflow.md", fm)
+    assert warnings == []
+
+
+def test_check_workflow_steps_prompt_and_agent_mutually_exclusive():
+    fm = {"steps": [{"name": "s", "agent": "a", "prompt": "p"}]}
+    warnings = check_workflow_steps("w.workflow.md", fm)
+    assert any("mutually exclusive" in w for w in warnings)
