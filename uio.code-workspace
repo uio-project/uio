@@ -23,6 +23,7 @@
 		},
 		"explorer.fileNesting.enabled": true,
 		"explorer.fileNesting.patterns": {
+			"AGENTS.md": "CLAUDE.md",
 			"LICENSE": "CHANGELOG.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md"
 		}
 	}
