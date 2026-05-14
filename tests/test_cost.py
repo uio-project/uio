@@ -113,8 +113,20 @@ def test_print_cost_table_shows_workflow_column_when_any_entry_has_field(capsys)
 def test_print_cost_table_total_line(capsys):
     _print_cost_table(
         [
-            {"agent": "a", "provider": "x", "model": "m", "total_tokens": 100, "estimated_cost_usd": 0.001},
-            {"agent": "b", "provider": "x", "model": "m", "total_tokens": 200, "estimated_cost_usd": 0.002},
+            {
+                "agent": "a",
+                "provider": "x",
+                "model": "m",
+                "total_tokens": 100,
+                "estimated_cost_usd": 0.001,
+            },
+            {
+                "agent": "b",
+                "provider": "x",
+                "model": "m",
+                "total_tokens": 200,
+                "estimated_cost_usd": 0.002,
+            },
         ]
     )
     out = capsys.readouterr().out
@@ -130,8 +142,22 @@ def test_cost_cmd_workflow_flag_filters(tmp_path):
     _write_ledger(
         p,
         [
-            {"agent": "a", "workflow": "keep", "provider": "x", "model": "m", "total_tokens": 10, "estimated_cost_usd": 0.0},
-            {"agent": "b", "workflow": "drop", "provider": "x", "model": "m", "total_tokens": 20, "estimated_cost_usd": 0.0},
+            {
+                "agent": "a",
+                "workflow": "keep",
+                "provider": "x",
+                "model": "m",
+                "total_tokens": 10,
+                "estimated_cost_usd": 0.0,
+            },
+            {
+                "agent": "b",
+                "workflow": "drop",
+                "provider": "x",
+                "model": "m",
+                "total_tokens": 20,
+                "estimated_cost_usd": 0.0,
+            },
         ],
     )
     runner = CliRunner()
