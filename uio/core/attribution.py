@@ -13,6 +13,7 @@ IDENTITY_DISPLAY_NAMES: Final[dict[str, str]] = {
     "planner": "AI Planner",
     "coder": "AI Coder",
     "reviewer": "AI Reviewer",
+    "closer": "AI Closer",
 }
 
 # Non-human author identity for git commits created by the AI Coder.
@@ -29,6 +30,10 @@ COMMIT_AUTHOR: Final[dict[str, dict[str, str]]] = {
         "name": "uio AI Reviewer",
         "email": "uio-reviewer[bot]@users.noreply.github.com",
     },
+    "closer": {
+        "name": "uio AI Closer",
+        "email": "uio-closer[bot]@users.noreply.github.com",
+    },
 }
 
 # Provider-specific commit email overrides (GitHub is the default in COMMIT_AUTHOR).
@@ -37,6 +42,7 @@ _PROVIDER_COMMIT_EMAILS: Final[dict[str, dict[str, str]]] = {
         "planner": "uio-planner[bot]@users.noreply.gitlab.com",
         "coder": "uio-coder[bot]@users.noreply.gitlab.com",
         "reviewer": "uio-reviewer[bot]@users.noreply.gitlab.com",
+        "closer": "uio-closer[bot]@users.noreply.gitlab.com",
     },
 }
 
@@ -114,6 +120,7 @@ def build_attribution_instructions(
         bot_kind = "non-human GitHub App"
 
     commit_section = ""
+    # only coder creates commits; closer, reviewer, and planner do not
     if role == "coder":
         commit_section = f"""\
 - **Commits** — set the git author for every commit you create:
