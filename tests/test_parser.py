@@ -7,6 +7,7 @@ from uio.schema.parser import (
     check_identity_env,
     check_schema_support,
     check_skill_references,
+    check_unknown_keys,
     parse_definition_file,
     validate_definition,
 )
@@ -17,8 +18,8 @@ def test_standard_frontmatter(tmp_path):
         ---
         name: My Agent
         description: A test agent.
-        tools:
-          - terminal
+        capabilities:
+          - fs
         ---
         # Agent: My Agent
 
@@ -29,7 +30,7 @@ def test_standard_frontmatter(tmp_path):
     fm, body = parse_definition_file(str(f))
     assert fm["name"] == "My Agent"
     assert fm["description"] == "A test agent."
-    assert fm["tools"] == ["terminal"]
+    assert fm["capabilities"] == ["fs"]
     assert "Do the task." in body
 
 
@@ -99,12 +100,30 @@ def test_validate_missing_description(tmp_path):
     assert any("description" in e for e in errors)
 
 
-def test_validate_unknown_key_warns(tmp_path):
+def test_validate_unknown_key_ignored(tmp_path):
+    """Unknown keys are not errors — validate_definition passes them through."""
     f = tmp_path / "odd.agent.md"
-    f.write_text("---\nname: Odd\ndescription: Desc.\nweird_key: value\n---\nBody.")
+    f.write_text("---\nname: Odd\ndescription: Desc.\ntools: [bash]\nweird_key: value\n---\nBody.")
     fm, _ = parse_definition_file(str(f))
-    errors = validate_definition(str(f), fm)
-    assert any("weird_key" in e for e in errors)
+    assert validate_definition(str(f), fm) == []
+
+
+def test_check_unknown_keys_warns(tmp_path):
+    """check_unknown_keys returns a warning for each key uio does not recognise."""
+    f = tmp_path / "odd.agent.md"
+    f.write_text("---\nname: Odd\ndescription: Desc.\ntools: [bash]\nweird_key: value\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    warnings = check_unknown_keys(str(f), fm)
+    assert any("tools" in w for w in warnings)
+    assert any("weird_key" in w for w in warnings)
+
+
+def test_check_unknown_keys_clean(tmp_path):
+    """No warnings when all frontmatter keys are known to uio."""
+    f = tmp_path / "clean.agent.md"
+    f.write_text("---\nname: Clean\ndescription: Desc.\ncomplexity: small\n---\nBody.")
+    fm, _ = parse_definition_file(str(f))
+    assert check_unknown_keys(str(f), fm) == []
 
 
 def test_validate_github_identity_valid(tmp_path):

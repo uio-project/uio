@@ -33,6 +33,7 @@ from uio.schema.parser import (
     check_skill_references,
     check_stopping_criteria,
     check_thinking_complexity,
+    check_unknown_keys,
     check_workflow_steps,
     parse_definition_file,
     validate_definition,
@@ -222,6 +223,7 @@ def validate_cmd(strict: bool) -> None:
                 errors.append(f"{path}: could not parse: {e}")
                 continue
             errors.extend(validate_definition(path, fm))
+            warnings.extend(check_unknown_keys(path, fm))
             warnings.extend(check_identity_env(path, fm))
             warnings.extend(check_heading_format(path, fm, body))
             warnings.extend(check_skill_references(path, body, skills_dir))

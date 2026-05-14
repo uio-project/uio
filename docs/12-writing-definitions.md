@@ -250,7 +250,7 @@ The model will call tools for steps 1 and 3, then produce the review in step 4 w
 
 When in doubt, start with `small` and move to `large` if the output quality is insufficient. The cost difference is often 4–10x.
 
-### When to add `thinking` to your agent's capabilities
+### When to declare `thinking` in `capabilities:`
 
 If the Sequential Thinking MCP server is configured (see [MCP Integration](08-mcp.md#sequential-thinking-mcp-server)), you can explicitly request it in the agent's body to externalise reasoning before acting.
 
@@ -270,14 +270,14 @@ Do **not** use sequential thinking for:
 - Single-file reads or writes
 - Agents with `complexity: small` — the overhead of externalised reasoning exceeds the benefit
 
-The tool is available via MCP whenever the server is running. Declaring `thinking` in `capabilities:` is optional but recommended for agents where sequential reasoning is central — it documents intent:
+The `mcp__sequential-thinking__sequentialthinking` tool is available via MCP whenever the server is running. Declaring `thinking` in `capabilities:` is a documentation-only declaration — it does not make the tool available, but it documents intent and is recommended for agents where sequential reasoning is central:
 
 ```yaml
 ---
 name: deep-review
 complexity: large
 capabilities:
-  - github
+  - vcs
   - thinking
 ---
 ```

@@ -211,28 +211,6 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     for field in REQUIRED_FIELDS:
         if not frontmatter.get(field):
             errors.append(f"{path}: missing required field '{field}'")
-    known = {
-        "name",
-        "description",
-        "complexity",
-        "tools",
-        "capabilities",
-        "timeout",
-        "argument-hint",
-        "invokable",
-        "max_tokens",
-        "guardrails",
-        "context",
-        "github-identity",  # deprecated alias for vcs-identity
-        "vcs-identity",
-        "vcs-provider",
-        "schema",
-        "extends",
-    }
-    for key in frontmatter:
-        if key not in known:
-            errors.append(f"{path}: unrecognised frontmatter key '{key}'")
-
     # guardrails block validation
     guardrails = frontmatter.get("guardrails")
     if guardrails is not None and not isinstance(guardrails, dict):
@@ -268,6 +246,41 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
             )
 
     return errors
+
+
+KNOWN_FRONTMATTER_KEYS: frozenset[str] = frozenset(
+    [
+        "name",
+        "description",
+        "complexity",
+        "capabilities",
+        "timeout",
+        "argument-hint",
+        "invokable",
+        "max_tokens",
+        "guardrails",
+        "context",
+        "github-identity",
+        "vcs-identity",
+        "vcs-provider",
+        "schema",
+        "extends",
+    ]
+)
+
+
+def check_unknown_keys(path: str, frontmatter: dict) -> list[str]:
+    """Return a warning for each frontmatter key uio does not recognise.
+
+    Unknown keys are not errors — the definition file may be shared with other
+    tools that use their own frontmatter fields. The warning exists to surface
+    typos in uio-specific keys (e.g. ``Complexity`` instead of ``complexity``).
+    """
+    warnings = []
+    for key in frontmatter:
+        if key not in KNOWN_FRONTMATTER_KEYS:
+            warnings.append(f"{path}: unknown frontmatter key '{key}' (ignored by uio)")
+    return warnings
 
 
 def check_identity_env(path: str, frontmatter: dict) -> list[str]:

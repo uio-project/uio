@@ -47,7 +47,7 @@ vcs-identity: planner
 | `name` | string | Yes | — | Display name |
 | `description` | string | Yes | — | One-line summary |
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
-| `capabilities` | list of strings | No | — | Declares which capability families the agent uses. Enforced by `validate_definition()` — unknown values produce an error. Accepted values: `vcs`, `db`, `browser`, `search`, `chat`, `tracker`, `ci`, `cloud`, `docs`, `monitor`, `email`, `vector`, `container`, `fs`, `http`, `kv`, `git`, `thinking`. (`tools` is an accepted legacy alias.) |
+| `capabilities` | list of strings | No | — | Declares which tool families the agent uses. This is a *declaration*, not a callable — it does not make tools available; it documents intent and triggers runtime behaviour such as preamble injection. Enforced by `validate_definition()` — unknown values produce an error. Accepted values: `vcs`, `db`, `browser`, `search`, `chat`, `tracker`, `ci`, `cloud`, `docs`, `monitor`, `email`, `vector`, `container`, `fs`, `http`, `kv`, `git`, `thinking`. |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
 | `vcs-identity` | `planner` \| `coder` \| `reviewer` | No | — | VCS App identity to obtain for this agent's repository operations — see below |
 | `vcs-provider` | `github` \| `gitlab` | No | `github` | VCS platform targeted by `vcs-identity`; controls which MCP tool aliases are injected |
@@ -417,16 +417,9 @@ When run as `uio prompt run ask-docs "what does the cost ledger store?"`, the fi
 `uio validate` parses all definition files in the configured directories — agents, skills, prompts, and workflows (`*.workflow.md`) — and checks:
 
 - **Error** (exits non-zero): `name` or `description` is missing or empty
-- **Warning** (exits zero): an unrecognised frontmatter key is present
+- **Warning** (exits zero): a frontmatter key is not recognised by uio
 
-Known keys (do not produce warnings):
-
-```
-name  description  complexity  capabilities  tools  timeout  argument-hint  invokable
-max_tokens  guardrails  context  schema  extends  github-identity  vcs-identity  vcs-provider
-```
-
-Any other key produces an error. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
+Unknown keys are not errors — definition files are often shared with other tools (editors, other AI frameworks) that use their own frontmatter fields. uio reads only the keys it knows about and ignores the rest. The warning exists to surface typos in uio-specific keys (e.g. `Complexity: large` instead of `complexity: large`).
 
 In addition, `uio validate` emits a **non-fatal warning** (exits zero) when `vcs-identity` (or the deprecated `github-identity`) is declared but the corresponding `GITHUB_APP_<ROLE>_*` env vars are absent. This flags configuration drift without blocking CI pipelines that run without App credentials.
 

@@ -99,8 +99,8 @@ def test_basic_inheritance_merges_frontmatter(tmp_path):
         name: Base
         description: The base agent.
         complexity: small
-        tools:
-          - terminal
+        capabilities:
+          - fs
         ---
         Parent body.
         """,
@@ -127,7 +127,7 @@ def test_basic_inheritance_merges_frontmatter(tmp_path):
     # Child overrides complexity
     assert merged_fm["complexity"] == "large"
     # Inherited from parent
-    assert merged_fm["tools"] == ["terminal"]
+    assert merged_fm["capabilities"] == ["fs"]
     # extends: key itself is not in the merged frontmatter
     assert "extends" not in merged_fm
 
@@ -303,8 +303,8 @@ def test_multi_level_frontmatter_merge(tmp_path):
         name: Grandparent
         description: Grandparent.
         complexity: small
-        tools:
-          - terminal
+        capabilities:
+          - fs
         ---
         GP body.
         """,
@@ -337,8 +337,8 @@ def test_multi_level_frontmatter_merge(tmp_path):
     fm, body = parse_definition_file(child_path)
     merged_fm, _ = resolve_inheritance(child_path, fm, body, search_dirs=[str(tmp_path)])
 
-    # Grandparent's tools inherited through parent
-    assert merged_fm["tools"] == ["terminal"]
+    # Grandparent's capabilities inherited through parent
+    assert merged_fm["capabilities"] == ["fs"]
     # Parent overrode complexity to large; child does not override it
     assert merged_fm["complexity"] == "large"
     assert merged_fm["name"] == "Child"
