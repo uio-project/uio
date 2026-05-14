@@ -1,32 +1,32 @@
 {
   "mcpServers": {
     "mcp-github": {
-      "command": "/usr/local/bin/github-mcp-server",
+      "command": "/home/john/src/jomkz/uio/mcp-vendor/bin/github-mcp-server-launch",
       "args": [
         "stdio"
       ]
     },
     "mcp-git": {
-      "command": "/usr/local/bin/uvx",
+      "command": "/usr/bin/uvx",
       "args": [
         "mcp-server-git",
         "--repository",
-        "/home/john/src/uio"
+        "/home/john/src/jomkz/uio"
       ]
     },
     "mcp-sequential-thinking": {
-      "command": "/usr/local/bin/npx",
+      "command": "/usr/bin/npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
       ]
     },
     "mcp-filesystem": {
-      "command": "/usr/local/bin/npx",
+      "command": "/usr/bin/npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/john/src/uio"
+        "/home/john/src/jomkz/uio"
       ]
     }
   }
