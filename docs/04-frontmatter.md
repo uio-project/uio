@@ -54,6 +54,8 @@ vcs-identity: planner
 | `max_tokens` | integer | No | `16000` | Overrides `runtime.anthropic_max_tokens` for this agent; Anthropic provider only — see [`max_tokens`](#max_tokens) below |
 | `guardrails` | mapping | No | — | Cost, turn, and tool guardrails — see [`guardrails`](#guardrails) below |
 | `context` | string or list of strings | No | — | Glob pattern(s) whose matching files are injected as a `## Context` block in the system prompt; de-duplicated and truncated at `runtime.context_max_tokens` (default 8000) tokens — see [`context`](#context) below |
+| `schema` | mapping or string | No | — | JSON Schema for structured output; instructs the provider to return validated JSON — see [`schema`](#schema) below |
+| `extends` | string | No | — | Inherit frontmatter defaults and body from a named parent definition — see [`extends`](#extends) below |
 | `github-identity` | `planner` \| `coder` \| `reviewer` | No | — | **Deprecated.** Use `vcs-identity` instead. Accepted as an alias for backwards compatibility. |
 
 ### Complexity tier resolution
@@ -259,6 +261,74 @@ A single glob can also be given as a plain string:
 context: "README.md"
 ```
 
+### `schema`
+
+Instructs the provider to return structured JSON output validated against a JSON Schema. When set, the provider's native structured-output mechanism is used (OpenAI `response_format`, Gemini `response_schema`).
+
+The value can be an inline JSON Schema mapping:
+
+```yaml
+---
+name: pr-status
+description: Returns pass/fail status and a list of issues found.
+schema:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [pass, fail]
+    issues:
+      type: array
+      items:
+        type: string
+  required: [status, issues]
+---
+```
+
+Or a `$ref` to an external `.json` file (resolved relative to the project root):
+
+```yaml
+schema:
+  $ref: schemas/pr-status.json
+```
+
+`uio validate` emits a warning when `schema:` is declared but the configured provider does not support structured output. Only `openai` and `gemini` are supported; `ollama` and `anthropic` do not support this field.
+
+### `extends`
+
+Inherit frontmatter defaults and body from a named parent definition. The parent is resolved by stem name within the same `.uio/` directory tree.
+
+```yaml
+---
+name: strict-reviewer
+description: Code reviewer with extra security checks.
+extends: base-reviewer
+---
+
+## Additional checks
+
+Also flag any use of `eval()` or `exec()` with untrusted input.
+```
+
+**Merge semantics:**
+
+- **Frontmatter:** Parent values are the baseline; child values override them. `name`, `description`, and `extends` are always child-specific and never inherited.
+- **Body:** The child body is appended after the parent body by default. Start the child body with `# Override` to replace the parent body entirely instead of appending.
+
+```yaml
+---
+name: minimal-reviewer
+description: Reviewer that replaces the parent body.
+extends: base-reviewer
+---
+
+# Override
+
+Only check for security issues. Ignore style and formatting entirely.
+```
+
+`uio validate` resolves all inheritance chains and warns on cycles or unresolvable parents. Multi-level chains (A → B → C) are supported.
+
 ---
 
 ## Skill fields (`.skill.md`)
@@ -342,7 +412,7 @@ Known keys (do not produce warnings):
 
 ```
 name  description  complexity  capabilities  tools  timeout  argument-hint  invokable
-max_tokens  guardrails  context  github-identity  vcs-identity  vcs-provider
+max_tokens  guardrails  context  schema  extends  github-identity  vcs-identity  vcs-provider
 ```
 
 Any other key produces an error. This is intentional — it catches typos like `Complexity: large` (capitalised) that would silently be ignored.
