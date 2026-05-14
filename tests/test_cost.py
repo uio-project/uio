@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from uio.cli.cost import _load_ledger, _print_cost_table, cost_cmd
@@ -179,6 +178,6 @@ def test_cost_cmd_workflow_flag_json(tmp_path):
     runner = CliRunner()
     result = runner.invoke(cost_cmd, ["--ledger", str(p), "--workflow", "wf", "--json"])
     assert result.exit_code == 0
-    lines = [l for l in result.output.strip().splitlines() if l]
+    lines = [line for line in result.output.strip().splitlines() if line]
     assert len(lines) == 1
     assert json.loads(lines[0])["agent"] == "a"
