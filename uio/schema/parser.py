@@ -60,6 +60,7 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
         "github-identity",  # deprecated alias for vcs-identity
         "vcs-identity",
         "vcs-provider",
+        "schema",
     }
     for key in frontmatter:
         if key not in known:
@@ -242,6 +243,32 @@ def check_minimal_body(path: str, body: str) -> list[str]:
     if len(body) < 100:
         return [f"{path}: body is very short ({len(body)} chars); consider adding more detail"]
     return []
+
+
+# Providers that support structured output via a JSON schema parameter.
+_SCHEMA_SUPPORTED_PROVIDERS = frozenset({"openai", "gemini"})
+
+
+def check_schema_support(path: str, frontmatter: dict, provider: str | None) -> list[str]:
+    """Warn when ``schema:`` is declared but the selected provider does not support it.
+
+    Returns an empty list when:
+    - ``schema:`` is not set in the frontmatter, or
+    - *provider* is ``None`` (provider is resolved at runtime), or
+    - the provider is known to support structured output.
+
+    Returns a one-element warning list otherwise.
+    """
+    if frontmatter.get("schema") is None:
+        return []
+    if provider is None:
+        return []
+    if provider in _SCHEMA_SUPPORTED_PROVIDERS:
+        return []
+    return [
+        f"{path}: 'schema:' is declared but provider '{provider}' does not support"
+        " structured output — only 'openai' and 'gemini' are supported"
+    ]
 
 
 _WORKFLOW_KNOWN_KEYS = {"name", "description", "steps"}

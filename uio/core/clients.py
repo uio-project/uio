@@ -91,7 +91,12 @@ def _sanitize_schema_for_gemini(schema: dict) -> dict:
 
 
 class GeminiClient(LLMClient):
-    def __init__(self, model: str | None = None, tools: list[dict] | None = None) -> None:
+    def __init__(
+        self,
+        model: str | None = None,
+        tools: list[dict] | None = None,
+        output_schema: dict | None = None,
+    ) -> None:
         from google import genai
         from google.genai import types
 
@@ -107,16 +112,24 @@ class GeminiClient(LLMClient):
             )
             for t in schemas
         ]
+        self._output_schema: dict | None = output_schema
 
     def build_history(self, user_text: str) -> list:
         return [{"role": "user", "parts": [{"text": user_text}]}]
 
     def chat(self, system: str, history: list) -> LLMResponse:
         types = self._types
-        config = types.GenerateContentConfig(
-            system_instruction=system,
-            tools=[types.Tool(function_declarations=self._func_decls)],
-        )
+        config_kwargs: dict = {
+            "system_instruction": system,
+            "tools": [types.Tool(function_declarations=self._func_decls)],
+        }
+        if self._output_schema is not None:
+            config_kwargs.pop(
+                "tools", None
+            )  # response_schema and function_declarations are mutually exclusive
+            config_kwargs["response_mime_type"] = "application/json"
+            config_kwargs["response_schema"] = _sanitize_schema_for_gemini(self._output_schema)
+        config = types.GenerateContentConfig(**config_kwargs)
         resp = self._client.models.generate_content(
             model=self._model, config=config, contents=history
         )
@@ -168,6 +181,7 @@ class OpenAIClient(LLMClient):
         tools: list[dict] | None = None,
         base_url: str | None = None,
         api_key: str | None = None,
+        output_schema: dict | None = None,
     ) -> None:
         import openai
 
@@ -180,17 +194,31 @@ class OpenAIClient(LLMClient):
         self._client = openai.OpenAI(**kwargs)
         self._model = model or os.environ.get("LLM_MODEL") or PROVIDER_DEFAULTS["openai"]
         self._tools = tools if tools is not None else [TOOL_SCHEMA]
+        self._output_schema: dict | None = output_schema
 
     def build_history(self, user_text: str) -> list:
         return [{"role": "user", "content": user_text}]
 
     def chat(self, system: str, history: list) -> LLMResponse:
         messages = [{"role": "system", "content": system}] + history
-        resp = self._client.chat.completions.create(
-            model=self._model,
-            messages=messages,
-            tools=[{"type": "function", "function": t} for t in self._tools],
-        )
+        create_kwargs: dict = {
+            "model": self._model,
+            "messages": messages,
+            "tools": [{"type": "function", "function": t} for t in self._tools],
+        }
+        if self._output_schema is not None:
+            create_kwargs.pop(
+                "tools", None
+            )  # structured output and tool-calling are mutually exclusive
+            create_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_output",
+                    "schema": self._output_schema,
+                    "strict": True,
+                },
+            }
+        resp = self._client.chat.completions.create(**create_kwargs)
         msg = resp.choices[0].message
         calls: list[ToolCall] = []
         if msg.tool_calls:
@@ -383,15 +411,18 @@ def make_client(
     base_url: str | None = None,
     complexity: str | None = None,
     max_tokens: int | None = None,
+    output_schema: dict | None = None,
 ) -> LLMClient:
     if provider == "gemini":
-        return GeminiClient(model=model, tools=tools)
+        return GeminiClient(model=model, tools=tools, output_schema=output_schema)
     if provider == "anthropic":
         return AnthropicClient(
             model=model, tools=tools, complexity=complexity, max_tokens=max_tokens
         )
     if provider == "openai":
-        return OpenAIClient(model=model, tools=tools, base_url=base_url)
+        return OpenAIClient(
+            model=model, tools=tools, base_url=base_url, output_schema=output_schema
+        )
     if provider == "ollama":
         return OllamaClient(model=model, tools=tools, base_url=base_url)
     raise ValueError(
