@@ -191,10 +191,16 @@ def test_check_workflow_steps_both_agent_and_skill():
     assert any("mutually exclusive" in w for w in warnings)
 
 
-def test_check_workflow_steps_neither_agent_nor_skill():
+def test_check_workflow_steps_no_step_type():
     fm = {"steps": [{"name": "s"}]}
     warnings = check_workflow_steps("w.workflow.md", fm)
     assert any("neither" in w for w in warnings)
+
+
+def test_check_workflow_steps_skill_and_prompt_mutually_exclusive():
+    fm = {"steps": [{"name": "s", "skill": "a", "prompt": "p"}]}
+    warnings = check_workflow_steps("w.workflow.md", fm)
+    assert any("mutually exclusive" in w for w in warnings)
 
 
 def test_check_workflow_steps_unknown_key():
