@@ -34,6 +34,7 @@ for the full comparison and rationale.
 | **Agent** | A multi-turn tool-use loop that can execute shell commands and call MCP tools; defined in `*.agent.md` |
 | **Skill** | A focused, composable subtask — same loop as an agent, but user-directed via `uio skill run`; defined in `*.skill.md` |
 | **Prompt** | A single-shot LLM instruction with no tool loop; defined in `*.prompt.md` |
+| **Workflow** | A sequential pipeline of agent/skill/prompt steps with output chaining; defined in `*.workflow.md` |
 | **Tool** | An external capability the model invokes mid-loop (MCP tools, `run_command`) — agent-directed, not user-directed |
 
 See the [Glossary](docs/02-concepts.md#glossary) for precise definitions of all terms, including the skill vs tool distinction.
@@ -55,6 +56,9 @@ uio init --examples
 # Run one of the bundled examples
 uio skill run summarise "Your text here"
 uio agent run repo-health
+
+# Inspect the full system prompt before running
+uio explain agent repo-health
 
 # Interactive streaming chat
 uio chat

@@ -33,25 +33,15 @@ it is **not** read by Claude Code. Claude Code loads MCP servers from:
 - `.mcp.json` at the project root (project-scoped)
 - `~/.claude/settings.json` under `mcpServers` (global)
 
-Neither exists in this project yet. To enable the GitHub MCP server for Claude
-Code, create `.mcp.json` at the repo root:
+A project-level `.mcp.json` exists at the repo root and configures the GitHub
+MCP server. `ToolSearch` should find GitHub MCP tools in this environment. If
+tools are not available, fall back to the `gh` CLI.
 
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "github-mcp-server",
-      "args": ["stdio"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<your-pat>"
-      }
-    }
-  }
-}
+To generate or regenerate `.mcp.json` from `uio.toml`:
+
+```bash
+uio mcp init --for claude
 ```
-
-Until that file exists, `ToolSearch` will not find any GitHub MCP tools and the
-`gh` CLI fallback is the correct path.
 
 ## MCP tool path restrictions
 

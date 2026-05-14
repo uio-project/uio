@@ -20,6 +20,10 @@ uio
 ├── workflow
 │   ├── run <name> [arg]
 │   └── list
+├── explain
+│   ├── agent <name>
+│   ├── skill <name>
+│   └── prompt <name>
 ├── chat
 ├── cost
 ├── config
@@ -67,6 +71,13 @@ The following flags apply to `agent run`, `skill run`, and `prompt run`:
 | `--no-mcp` | flag | off | Disable GitHub MCP server even when token is set |
 | `--shell` | `bash\|sh\|zsh\|powershell\|pwsh` | auto | Shell for `run_command`; auto-detects platform (PowerShell on Windows, bash/sh on POSIX) |
 
+`agent run` also accepts two parallel-execution flags (see [`--foreach`](#foreach-and-concurrency)):
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--foreach` | string | — | Run the agent once per item in a newline-delimited list, concurrently |
+| `--concurrency` | integer | 4 | Maximum parallel workers when `--foreach` is used |
+
 ---
 
 ## `uio agent`
@@ -87,6 +98,23 @@ uio agent run my-agent --shell pwsh    # force PowerShell on any platform
 ```
 
 Exit code: 0 on success, 1 if the definition file is not found or validation fails.
+
+#### `--foreach` and `--concurrency`
+
+Run the agent once per item in a newline-delimited list, concurrently.
+
+```bash
+# Pass items inline (one per line)
+uio agent run audit --foreach "$(gh pr list --json number -q '.[].number')"
+
+# Read items from a file
+uio agent run audit --foreach @pr-numbers.txt
+
+# Raise the concurrency cap (default: 4)
+uio agent run audit --foreach @pr-numbers.txt --concurrency 8
+```
+
+`--foreach` prints a per-item header and footer as each invocation runs, then an aggregated cost summary at the end. Exit code is 1 if any item failed. `ARG` and `--foreach` are mutually exclusive.
 
 ### `uio agent list`
 
@@ -200,6 +228,59 @@ Output columns: NAME, STEPS, DESCRIPTION
 
 ```bash
 uio workflow list
+```
+
+---
+
+## `uio explain`
+
+Renders the complete system prompt that would be sent to the provider for a given definition — preamble, attribution block (if any), injected context files, and the definition body — annotated with section markers. Use this to debug unexpected model behaviour or to understand exactly what a definition sends to the LLM.
+
+### `uio explain agent <name>`
+
+```bash
+uio explain agent my-agent
+uio explain agent my-agent --raw
+```
+
+### `uio explain skill <name>`
+
+```bash
+uio explain skill summarise
+uio explain skill summarise --raw
+```
+
+### `uio explain prompt <name>`
+
+```bash
+uio explain prompt daily-standup
+uio explain prompt daily-standup --raw
+```
+
+### Shared flag
+
+| Flag | Description |
+|---|---|
+| `--raw` | Strip section markers — plain prompt text only, suitable for copy/paste into an external playground |
+
+**Output sections** (without `--raw`):
+
+```
+--- preamble ---
+<built-in preamble block>
+
+--- attribution ---
+<vcs-identity attribution instructions, if applicable>
+
+--- context ---
+<injected context files, if context: is set in frontmatter>
+
+--- body ---
+# Agent: <name>
+<definition body>
+
+--- memory ---
+<memory files, if any exist in .uio/memory/>
 ```
 
 ---
