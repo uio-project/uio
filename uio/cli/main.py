@@ -243,6 +243,7 @@ def validate_cmd(strict: bool) -> None:
                 errors.append(f"{path}: could not parse: {e}")
                 continue
             errors.extend(validate_workflow_definition(path, fm))
+            warnings.extend(check_unknown_keys(path, fm))
             warnings.extend(check_workflow_steps(path, fm))
 
     # Resolve inheritance chains and warn on cycles / missing parents

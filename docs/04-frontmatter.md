@@ -47,7 +47,7 @@ vcs-identity: planner
 | `name` | string | Yes | — | Display name |
 | `description` | string | Yes | — | One-line summary |
 | `complexity` | `large` \| `small` | No | `small` | Model tier selection — see below |
-| `capabilities` | list of strings | No | — | Declares which tool families the agent uses. This is a *declaration*, not a callable — it does not make tools available; it documents intent and triggers runtime behaviour such as preamble injection. Enforced by `validate_definition()` — unknown values produce an error. Accepted values: `vcs`, `db`, `browser`, `search`, `chat`, `tracker`, `ci`, `cloud`, `docs`, `monitor`, `email`, `vector`, `container`, `fs`, `http`, `kv`, `git`, `thinking`. |
+| `capabilities` | list of strings | No | — | Declares which tool families the agent uses. This is a *declaration*, not a callable — it does not make tools available; it documents intent and triggers runtime behaviour such as preamble injection. Enforced by `validate_definition()` — unknown capability values produce an error. Accepted values: `vcs`, `db`, `browser`, `search`, `chat`, `tracker`, `ci`, `cloud`, `docs`, `monitor`, `email`, `vector`, `container`, `fs`, `http`, `kv`, `git`, `thinking`. |
 | `timeout` | integer (seconds) | No | 300 | Per-command shell timeout for `run_command` calls |
 | `vcs-identity` | `planner` \| `coder` \| `reviewer` | No | — | VCS App identity to obtain for this agent's repository operations — see below |
 | `vcs-provider` | `github` \| `gitlab` | No | `github` | VCS platform targeted by `vcs-identity`; controls which MCP tool aliases are injected |

@@ -16,6 +16,26 @@ _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
 
 REQUIRED_FIELDS = ("name", "description")
 
+KNOWN_FRONTMATTER_KEYS: frozenset[str] = frozenset(
+    [
+        "name",
+        "description",
+        "complexity",
+        "capabilities",
+        "timeout",
+        "argument-hint",
+        "invokable",
+        "max_tokens",
+        "guardrails",
+        "context",
+        "github-identity",
+        "vcs-identity",
+        "vcs-provider",
+        "schema",
+        "extends",
+    ]
+)
+
 # Matches "# <Type>: <name>" H1 headings
 _H1_RE = re.compile(r"^#\s+(\w+):\s+(.+)$", re.MULTILINE)
 
@@ -246,27 +266,6 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
             )
 
     return errors
-
-
-KNOWN_FRONTMATTER_KEYS: frozenset[str] = frozenset(
-    [
-        "name",
-        "description",
-        "complexity",
-        "capabilities",
-        "timeout",
-        "argument-hint",
-        "invokable",
-        "max_tokens",
-        "guardrails",
-        "context",
-        "github-identity",
-        "vcs-identity",
-        "vcs-provider",
-        "schema",
-        "extends",
-    ]
-)
 
 
 def check_unknown_keys(path: str, frontmatter: dict) -> list[str]:
