@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import concurrent.futures
-import sys
 import textwrap
 import threading
 from pathlib import Path
@@ -34,15 +33,28 @@ class _ForeachResult(NamedTuple):
     error: str | None
 
 
+def _definition_path(agents_dir: str, agent_name: str) -> Path:
+    """Return the Path to an agent definition file."""
+    return Path(agents_dir) / f"{agent_name}.agent.md"
+
+
 def _parse_foreach_items(foreach: str) -> list[str]:
     """Return the non-empty lines from *foreach*.
 
     If *foreach* starts with ``@`` the remainder is treated as a file path and
     the file's contents are read.  Otherwise the string itself is split on
     newlines.  Empty / whitespace-only lines are always discarded.
+
+    For ``@file`` paths the resolved path must remain inside the current working
+    directory; escaping it raises a :class:`click.UsageError`.
     """
     if foreach.startswith("@"):
-        path = Path(foreach[1:])
+        path = Path(foreach[1:]).resolve()
+        cwd = Path.cwd().resolve()
+        try:
+            path.relative_to(cwd)
+        except ValueError:
+            raise click.UsageError(f"--foreach @file path escapes the working directory: {path}")
         try:
             text = path.read_text(encoding="utf-8")
         except OSError as exc:
@@ -57,6 +69,7 @@ def _run_foreach(
     items: list[str],
     concurrency: int,
     agent_name: str,
+    definition_path: Path,
     cfg: dict,
     provider: str | None,
     model: str | None,
@@ -65,27 +78,22 @@ def _run_foreach(
     timeout: int,
     no_mcp: bool,
     shell: str | None,
-) -> None:
+) -> bool:
     """Fan out *run_agent* across *items* with up to *concurrency* workers.
 
     Prints a per-item header/footer, then an aggregated cost table at the end.
-    Exits with the worst-case exit code (1 if any item failed).
+    Returns ``True`` if any item failed, ``False`` if all succeeded.
     """
-    agents_dir = cfg["dirs"]["agents"]
-    definition_path = f"{agents_dir}/{agent_name}.agent.md"
-
     results: list[_ForeachResult] = []
     results_lock = threading.Lock()
 
-    def _run_one(item: str) -> _ForeachResult:
-        # Each worker captures tokens via a thin wrapper that intercepts
-        # write_cost_ledger so we can tally per-item costs without parsing
-        # the ledger file.
+    # Tag each item with its original index so the sort is stable even when
+    # two items have identical text.
+    indexed_items = list(enumerate(items))
+
+    def _run_one(idx_item: tuple[int, str]) -> tuple[int, _ForeachResult]:
+        orig_idx, item = idx_item
         captured: dict = {"prompt": 0, "completion": 0, "provider": "", "model": ""}
-
-        import uio.core.runner as _runner_mod
-
-        original_write = _runner_mod.write_cost_ledger
 
         def _capture_write(
             a_name: str,
@@ -93,13 +101,11 @@ def _run_foreach(
             m: str,
             prompt_tok: int,
             completion_tok: int,
-            ledger_path: str,
         ) -> None:
             captured["prompt"] += prompt_tok
             captured["completion"] += completion_tok
             captured["provider"] = p
             captured["model"] = m
-            original_write(a_name, p, m, prompt_tok, completion_tok, ledger_path)
 
         error: str | None = None
         success = True
@@ -109,36 +115,30 @@ def _run_foreach(
             click.echo(f"{'=' * 60}")
 
         try:
-            import uio.core.runner as _runner_mod2  # noqa: F811 — re-import for clarity
-
-            original2 = _runner_mod2.write_cost_ledger
-            _runner_mod2.write_cost_ledger = _capture_write  # type: ignore[assignment]
-            try:
-                run_agent(
-                    agent_name,
-                    item,
-                    provider=provider or cfg["runtime"].get("default_provider"),
-                    model=model,
-                    complexity=complexity,
-                    base_url=base_url,
-                    timeout=timeout,
-                    no_mcp=no_mcp,
-                    mcp_cfg=cfg["mcp"],
-                    mcp_plugins=cfg.get("mcp_plugins", []),
-                    definition_path=definition_path,
-                    ledger_path=cfg["runtime"]["cost_ledger"],
-                    large_agent_names=cfg["large_agents"]["names"],
-                    shell_override=shell,
-                    max_iterations=cfg["runtime"]["max_iterations"],
-                    max_iterations_large=cfg["runtime"]["max_iterations_large"],
-                    anthropic_max_tokens=cfg["runtime"]["anthropic_max_tokens"],
-                    routing_chain=cfg["runtime"].get("routing_chain"),
-                    memory_dir=cfg["dirs"]["memory"],
-                    context_max_tokens=cfg["runtime"]["context_max_tokens"],
-                    attribution_enabled=cfg["attribution"]["enabled"],
-                )
-            finally:
-                _runner_mod2.write_cost_ledger = original2  # type: ignore[assignment]
+            run_agent(
+                agent_name,
+                item,
+                provider=provider or cfg["runtime"].get("default_provider"),
+                model=model,
+                complexity=complexity,
+                base_url=base_url,
+                timeout=timeout,
+                no_mcp=no_mcp,
+                mcp_cfg=cfg["mcp"],
+                mcp_plugins=cfg.get("mcp_plugins", []),
+                definition_path=str(definition_path),
+                ledger_path=cfg["runtime"]["cost_ledger"],
+                large_agent_names=cfg["large_agents"]["names"],
+                shell_override=shell,
+                max_iterations=cfg["runtime"]["max_iterations"],
+                max_iterations_large=cfg["runtime"]["max_iterations_large"],
+                anthropic_max_tokens=cfg["runtime"]["anthropic_max_tokens"],
+                routing_chain=cfg["runtime"].get("routing_chain"),
+                memory_dir=cfg["dirs"]["memory"],
+                context_max_tokens=cfg["runtime"]["context_max_tokens"],
+                attribution_enabled=cfg["attribution"]["enabled"],
+                cost_callback=_capture_write,
+            )
         except (GuardrailError, IdentityError, ValueError, ProviderExhaustedError) as exc:
             success = False
             error = str(exc)
@@ -150,7 +150,7 @@ def _run_foreach(
             with _print_lock:
                 click.echo(f"  [foreach] Unexpected error for item {item!r}: {exc}", err=True)
 
-        return _ForeachResult(
+        return orig_idx, _ForeachResult(
             item=item,
             success=success,
             prompt_tokens=captured["prompt"],
@@ -161,15 +161,15 @@ def _run_foreach(
         )
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as pool:
-        futures = {pool.submit(_run_one, item): item for item in items}
+        futures = {pool.submit(_run_one, idx_item): idx_item for idx_item in indexed_items}
         for future in concurrent.futures.as_completed(futures):
-            result = future.result()
+            orig_idx, result = future.result()
             with results_lock:
-                results.append(result)
+                results.append((orig_idx, result))
 
-    # Sort results to match original item order for a stable display.
-    item_order = {item: idx for idx, item in enumerate(items)}
-    results.sort(key=lambda r: item_order.get(r.item, 0))
+    # Sort by original index for a stable, predictable display order.
+    results.sort(key=lambda t: t[0])
+    sorted_results = [r for _, r in results]
 
     # Aggregated cost summary.
     click.echo(f"\n{'=' * 60}")
@@ -179,7 +179,7 @@ def _run_foreach(
     total_prompt = 0
     total_completion = 0
     failed_items: list[str] = []
-    for r in results:
+    for r in sorted_results:
         status = "OK" if r.success else "FAIL"
         item_cost = (
             estimate_cost_usd(r.provider, r.model, r.prompt_tokens, r.completion_tokens)
@@ -190,19 +190,19 @@ def _run_foreach(
         total_prompt += r.prompt_tokens
         total_completion += r.completion_tokens
         cost_str = f"${item_cost:.6f}" if r.provider else "n/a"
-        click.echo(f"  [{status}] {r.item!r:40s}  {cost_str}")
+        display_item = r.item[:38] if len(r.item) > 38 else r.item
+        click.echo(f"  [{status}] {display_item:40s}  {cost_str}")
         if not r.success:
             failed_items.append(r.item)
     click.echo(f"{'─' * 60}")
     click.echo(
-        f"  Total: {len(results)} items, {len(failed_items)} failed"
+        f"  Total: {len(sorted_results)} items, {len(failed_items)} failed"
         f"  |  tokens: {total_prompt + total_completion:,}"
         f"  |  est. cost: ${total_cost:.6f}"
     )
     click.echo(f"{'=' * 60}")
 
-    if failed_items:
-        sys.exit(1)
+    return bool(failed_items)
 
 
 _AGENT_TEMPLATE = textwrap.dedent("""\
@@ -304,6 +304,9 @@ def agent_run_cmd(
     cfg = load_config()
     resolved_timeout = timeout or cfg["runtime"]["timeout"]
 
+    if concurrency != _FOREACH_CONCURRENCY_DEFAULT and foreach is None:
+        raise click.UsageError("--concurrency requires --foreach.")
+
     if foreach is not None:
         if arg is not None:
             raise click.UsageError("ARG and --foreach are mutually exclusive.")
@@ -312,10 +315,12 @@ def agent_run_cmd(
             click.echo("  [foreach] No items to process.", err=True)
             return
         click.echo(f"  [foreach] {len(items)} item(s), concurrency={concurrency}")
-        _run_foreach(
+        defn_path = _definition_path(cfg["dirs"]["agents"], agent_name)
+        had_failures = _run_foreach(
             items=items,
             concurrency=concurrency,
             agent_name=agent_name,
+            definition_path=defn_path,
             cfg=cfg,
             provider=provider,
             model=model,
@@ -325,10 +330,12 @@ def agent_run_cmd(
             no_mcp=no_mcp,
             shell=shell,
         )
+        if had_failures:
+            raise SystemExit(1)
         return
 
     agents_dir = cfg["dirs"]["agents"]
-    definition_path = f"{agents_dir}/{agent_name}.agent.md"
+    definition_path = str(_definition_path(agents_dir, agent_name))
     try:
         run_agent(
             agent_name,

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
 from uio.cli.agent import _parse_foreach_items, agent_group
-from uio.core.clients import LLMResponse
 from uio.core.runner import GuardrailError
 
 
@@ -37,15 +36,30 @@ class TestParseForeachItems:
     def test_at_file_reads_contents(self, tmp_path):
         f = tmp_path / "items.txt"
         f.write_text("alpha\nbeta\n\ngamma\n")
-        result = _parse_foreach_items(f"@{f}")
+        with patch("uio.cli.agent.Path.cwd", return_value=tmp_path):
+            result = _parse_foreach_items(f"@{f}")
         assert result == ["alpha", "beta", "gamma"]
+
+    def test_at_file_escaping_cwd_raises_usage_error(self, tmp_path):
+        """A @file path that resolves outside cwd must be rejected."""
+        import click
+
+        outside = tmp_path / "items.txt"
+        outside.write_text("x\n")
+        # cwd is set to a subdirectory so tmp_path is outside it
+        inner = tmp_path / "inner"
+        inner.mkdir()
+        with patch("uio.cli.agent.Path.cwd", return_value=inner):
+            with pytest.raises(click.UsageError, match="escapes the working directory"):
+                _parse_foreach_items(f"@{outside}")
 
     def test_at_file_missing_raises_click_exception(self, tmp_path):
         import click
 
         missing = tmp_path / "no_such_file.txt"
-        with pytest.raises(click.ClickException, match="cannot read"):
-            _parse_foreach_items(f"@{missing}")
+        with patch("uio.cli.agent.Path.cwd", return_value=tmp_path):
+            with pytest.raises(click.ClickException, match="cannot read"):
+                _parse_foreach_items(f"@{missing}")
 
 
 # ---------------------------------------------------------------------------
@@ -82,14 +96,6 @@ def _make_cfg(tmp_path: Path) -> dict:
         "large_agents": {"names": []},
         "attribution": {"enabled": False},
     }
-
-
-def _terminal_client() -> MagicMock:
-    client = MagicMock()
-    client.build_history.return_value = [{"role": "user", "content": "begin"}]
-    client.chat.return_value = LLMResponse(text="Done.", tool_calls=[])
-    client.usage = None
-    return client
 
 
 class TestForeachFlag:
@@ -171,6 +177,7 @@ class TestForeachFlag:
         with (
             patch("uio.cli.agent.load_config", return_value=cfg),
             patch("uio.cli.agent.run_agent", side_effect=mock_run_agent),
+            patch("uio.cli.agent.Path.cwd", return_value=tmp_path),
         ):
             result = runner.invoke(
                 agent_group,
@@ -284,3 +291,18 @@ class TestForeachFlag:
         _, call_kwargs = mock_run.call_args
         # positional: (agent_name, arg, ...)
         assert mock_run.call_args.args[1] is None
+
+    def test_concurrency_without_foreach_raises_usage_error(self, tmp_path):
+        """Passing --concurrency without --foreach should produce a UsageError."""
+        _make_agent_def(tmp_path)
+        cfg = _make_cfg(tmp_path)
+        runner = CliRunner()
+
+        with patch("uio.cli.agent.load_config", return_value=cfg):
+            result = runner.invoke(
+                agent_group,
+                ["run", "probe", "--concurrency", "8"],
+            )
+
+        assert result.exit_code != 0
+        assert "--concurrency requires --foreach" in result.output
