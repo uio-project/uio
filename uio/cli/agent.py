@@ -402,8 +402,8 @@ def agent_inspect_cmd(agent_name: str) -> None:
     click.echo(
         f"  Complexity:  {infer_complexity(agent_name, fm, None, cfg['large_agents']['names'])}"
     )
-    if fm.get("tools"):
-        click.echo(f"  Tools:       {', '.join(fm['tools'])}")
+    if fm.get("capabilities"):
+        click.echo(f"  Capabilities: {', '.join(fm['capabilities'])}")
     click.echo()
     lines = body.splitlines()
     for line in lines[:20]:

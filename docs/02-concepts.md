@@ -111,7 +111,7 @@ Run with `uio workflow run review-and-fix "owner/repo#42"`.
 | `steps:` frontmatter | No | No | No | Yes |
 | Typical use | Multi-step workflow | Focused subtask | One-shot query | Pipeline of agents/skills |
 
-Tools (`run_command`, MCP tools) are not definition types — they are capabilities the model invokes at runtime. See the [Glossary](#glossary) for the Tool definition and the skill vs tool distinction.
+Tools (`run_command`, MCP tools) are not definition types — they are callable functions the model invokes at runtime. See the [Glossary](#glossary) for the Tool definition and the skill vs tool distinction.
 
 ---
 
@@ -164,7 +164,7 @@ The definition file is the single source of truth for behaviour. Moving, editing
 | **Agents** | `.agent.md` — autonomous decision-makers |
 | **Skills** | `.skill.md` — composable, user-directed subtasks |
 | **Prompts** | `.prompt.md` — single-shot instructions |
-| **Tools** | MCP tools + `run_command` — agent-directed capabilities |
+| **Tools** | MCP tools + `run_command` — callable functions the agent invokes at runtime |
 
 This vocabulary is intentional. **"Agentic Stack"** is the umbrella term for the workflows + agents + skills + prompts + tools model that `uio` provides. See the [Glossary](#glossary) below for precise term definitions.
 
@@ -177,7 +177,8 @@ This vocabulary is intentional. **"Agentic Stack"** is the umbrella term for the
 | **Agent** | An autonomous decision-maker that runs a multi-turn tool-use loop. Defined in `*.agent.md`. Agents decide when to call tools and how to interpret results. |
 | **Skill** | A focused, composable subtask. Runs the same tool-use loop as an agent internally, but is **user-directed**: you invoke it explicitly with `uio skill run <name>`. Skills may also be referenced by name inside agent definition bodies. Skills are small, reusable building blocks; agents are higher-level workflows. |
 | **Prompt** | A single-shot LLM instruction. The definition body is sent once and the response is printed — no tool-use loop. Defined in `*.prompt.md`. |
-| **Tool** | An external capability the **model** invokes mid-loop. Tools are agent-directed: the agent decides when and how to call them. Examples: `run_command` (built-in), MCP tools such as GitHub or filesystem access. This is the key distinction from skills — a tool is called by the model; a skill is called by you. |
+| **Capability** | A label in the `capabilities:` frontmatter field that declares which tool families an agent uses (e.g. `vcs`, `thinking`). A capability declaration is not itself callable — it documents intent and may trigger runtime preamble injection (e.g. `vcs` injects the VCS tool alias table). |
+| **Tool** | A callable function the **model** invokes mid-loop. Tools are agent-directed: the agent decides when and how to call them. Examples: `run_command` (built-in), MCP tools such as GitHub or filesystem access. This is the key distinction from skills — a tool is called by the model; a skill is called by you. Not to be confused with the `capabilities:` frontmatter field, which *declares* which tool families an agent uses but is not itself callable. |
 | **Workflow** | A deterministic pipeline that chains agents and skills sequentially. Defined in `*.workflow.md`. The structure is fixed; the runtime executes steps in order with `{{ variable }}` interpolation and optional `when:` conditions — no LLM orchestrates the sequence. |
 | **Memory** | Persistent context injected into agent runs across sessions. |
 | **Guardrails** | Per-definition constraints on cost, tool access, and iteration count. |
