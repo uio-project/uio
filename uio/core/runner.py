@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+from typing import Callable
 
 from uio import __version__
 from uio.core.attribution import build_attribution_instructions
@@ -301,6 +302,7 @@ def run_agent(
     memory_dir: str | None = None,
     context_max_tokens: int = 8000,
     attribution_enabled: bool = True,
+    cost_callback: Callable[[str, str, str, int, int], None] | None = None,
 ) -> str | None:
     if definition_path is None:
         raise ValueError("definition_path must be provided")
@@ -467,6 +469,14 @@ def run_agent(
                             total_completion,
                             ledger_path,
                         )
+                        if cost_callback is not None:
+                            cost_callback(
+                                agent_name,
+                                candidate_provider,
+                                resolved_model,
+                                total_prompt,
+                                total_completion,
+                            )
                         _clean_exit = True
                         return response.text or ""
 
@@ -531,6 +541,14 @@ def run_agent(
                     total_completion,
                     ledger_path,
                 )
+                if cost_callback is not None:
+                    cost_callback(
+                        agent_name,
+                        candidate_provider,
+                        resolved_model,
+                        total_prompt,
+                        total_completion,
+                    )
                 _clean_exit = True
                 return None
 
