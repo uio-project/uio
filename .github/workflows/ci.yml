@@ -29,6 +29,14 @@ jobs:
       - name: Run tests
         run: pytest -m "not integration"
 
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: true
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
