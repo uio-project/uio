@@ -1,0 +1,27 @@
+name: Labels sync
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/labels.yml"]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    name: Sync repository labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Sync labels from .github/labels.yml
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          yaml-file: .github/labels.yml
+          # Keep labels not listed in the file (do not delete pre-existing ones
+          # the file may have missed). The file is intended to be exhaustive,
+          # but dry-run + no-prune avoids accidental destructive syncs.
+          dry-run: false
+          skip-delete: true

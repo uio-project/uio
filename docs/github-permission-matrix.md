@@ -17,7 +17,7 @@ the GitHub Apps API permission model (resource: access level).
 
 | Permission | Level | Rationale |
 |---|---|---|
-| Issues | Read/Write | Create issues, post issue comments |
+| Issues | Read/Write | Create issues, post issue comments, apply `component:*`/type labels, set issue type |
 | Pull requests | Read/Write | Post PR comments, read PR metadata |
 | Metadata | Read | Required by GitHub for all Apps |
 | Contents | **None** | Planner does not read or write code |
@@ -74,6 +74,14 @@ explicitly re-evaluated and approved via the escalation path defined in §5.
 | Repository admin access | All | Never required for agent tasks |
 | Manage GitHub Actions secrets | All | Secrets are a human responsibility |
 | Delete branches or repositories | All | Destructive; no agent use case |
+
+> **Project-management admin is a separate, non-agent identity.** Reconciling org
+> issue types, milestones, and the org Project board (via
+> [`.github/project.yml`](../.github/project.yml) /
+> [`project-sync.yml`](../.github/workflows/project-sync.yml)) requires
+> `admin:org`-scoped access, which is deliberately **excluded** from the three
+> least-privilege App identities above. That reconciler runs under a maintainer
+> PAT (`PROJECT_ADMIN_TOKEN`), not an AI agent.
 
 ---
 

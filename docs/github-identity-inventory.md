@@ -33,9 +33,10 @@ When community agents are built under epic #53, each new agent will declare a ro
 
 | Planned agent | GitHub-identity | Actions | Repo scope |
 |---|---|---|---|
-| `github-planner.agent.md` | `planner` | Issue CRUD, PR comments, issue comments | User-configured |
+| `github-planner.agent.md` | `planner` | Issue CRUD, triage (type + `component:*` labels), PR comments, issue comments | User-configured |
 | `github-coder.agent.md` | `coder` | Branch create, file push, PR create | User-configured |
 | `github-reviewer.agent.md` | `reviewer` | PR review, PR comment, diff summary | User-configured |
+| `closer.agent.md` | `closer` | Verify criteria, close issues, append decision-log entries | User-configured |
 
 ---
 

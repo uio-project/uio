@@ -1,0 +1,40 @@
+# Path-based component labels, applied to PRs by .github/workflows/labeler.yml
+# (actions/labeler@v5 syntax). Mirrors the conventional-commit scopes used in
+# CONTRIBUTING.md. Labels must exist first — see .github/labels.yml.
+
+"component:cli":
+  - changed-files:
+      - any-glob-to-any-file: "uio/cli/**"
+
+"component:core":
+  - changed-files:
+      - any-glob-to-any-file: "uio/core/**"
+
+"component:providers":
+  - changed-files:
+      - any-glob-to-any-file: "uio/providers/**"
+
+"component:registry":
+  - changed-files:
+      - any-glob-to-any-file: "uio/registry/**"
+
+"component:schema":
+  - changed-files:
+      - any-glob-to-any-file: "uio/schema/**"
+
+"component:agents":
+  - changed-files:
+      - any-glob-to-any-file: "definitions/**"
+
+"component:docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "**/*.md"
+
+"component:ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "scripts/**"
+          - "*.toml"

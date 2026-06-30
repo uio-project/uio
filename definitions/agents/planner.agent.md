@@ -24,14 +24,16 @@ If no explicit `owner/repo` is provided, derive it from the current working dire
 **Create an issue** — when the argument describes a new task, bug, or feature:
 1. Extract the repository, issue title, and body from the argument.
 2. Run `/github-create-issue` with `owner/repo`, `title`, and `body`.
-3. Report the created issue URL and stop.
+3. **Triage it** (see *Triage classification* below): set the issue type and
+   apply the matching `component:*` label(s).
+4. Report the created issue URL and stop.
 
 **Plan an issue** — when asked to plan, decompose, or break down an existing issue:
 1. Run `/github-fetch-issue` with `owner/repo` and `issue-number` to get the full body and all comments.
 2. **Idempotency check** — scan existing comments for a prior planning comment (look for a `## Planning comment` heading or a list of child issue links). If one is found, report its URL and stop. Also search for open issues whose titles match the expected child issue titles (`mcp__mcp-github__search_issues` with `repo:<owner>/<repo> is:open "<title>"`): if matching child issues exist but no planning comment, reuse their URLs and proceed from step 6.
 3. Analyse whether the issue describes decomposable work (large feature, roadmap item, multi-step initiative). If it is already scoped to a single task, fall back to posting a triage comment as in "Comment on an issue".
 4. Propose 3–7 discrete, independently-implementable child issues with explicit dependency ordering.
-5. **Create child issues first** (so their URLs are known before the comment is written) — for each child issue, run `/github-create-issue`. Child issue bodies must include a `Parent issue: #N` line and a `Depends on: #N` line where ordering constraints exist. Collect all created issue URLs.
+5. **Create child issues first** (so their URLs are known before the comment is written) — for each child issue, run `/github-create-issue`. Child issue bodies must include a `Parent issue: #N` line and a `Depends on: #N` line where ordering constraints exist. **Triage each child** (set type — usually `Task` or `Feature` — and `component:*` label) and **set the parent issue's type to `Epic`**. Collect all created issue URLs.
 6. **Attempt sub-issue linking (best effort)** — for each created child issue, retrieve its database ID (`gh api repos/<owner>/<repo>/issues/<number> --jq '.id'`) then call `mcp__mcp-github__sub_issue_write` with `method: add`, `issue_number: <parent-number>`, and `sub_issue_id: <child-id>`. Note the outcome (success or failure reason) for inclusion in the planning comment — do not abort on error.
 7. Post a single planning comment via `/github-post-comment` that includes: triage assessment, sequencing rationale, a table or list linking every created child issue URL, and a one-line note if sub-issue linking was unavailable.
 8. Report the planning comment URL and stop.
@@ -39,8 +41,9 @@ If no explicit `owner/repo` is provided, derive it from the current working dire
 **Comment on an issue** — when the argument references an existing issue URL or `owner/repo#number` for an issue:
 1. Run `/github-fetch-issue` with `owner/repo` and `issue-number` to fetch the title, body, and all comments.
 2. Draft a substantive comment: triage assessment, next-step proposal, or analysis as appropriate.
-3. Run `/github-post-comment` with `owner/repo`, `number`, and `body`.
-4. Report the comment URL and stop.
+3. If the issue is untyped or unlabelled, **triage it** (see *Triage classification* below).
+4. Run `/github-post-comment` with `owner/repo`, `number`, and `body`.
+5. Report the comment URL and stop.
 
 **Comment on a pull request** — when the argument references a PR URL or `owner/repo#number` for a PR:
 1. Run `/github-fetch-pr` with `owner/repo` and `pr-number` to fetch the title, body, files, and diff.
@@ -59,6 +62,27 @@ If no explicit `owner/repo` is provided, derive it from the current working dire
 2. Propose 3–7 discrete, independently-implementable child issues.
 3. For each child issue, run `/github-create-issue` with `owner/repo`, `title`, and `body`.
 4. Report all created issue URLs and stop.
+
+## Triage classification
+
+When creating or triaging an issue, classify it per the taxonomy in
+`.github/labels.md` (the authoritative label source):
+
+- **Set the issue type** — Epic / Feature / Task / Spike / Bug — using the
+  GitHub issue-type field. If org issue types are unavailable, apply the mirror
+  label instead (`epic`, `task`, `spike`, `bug`; Feature uses `enhancement`).
+- **Apply `component:*` label(s)** for the affected subsystem(s): `cli`, `core`,
+  `providers`, `registry`, `schema`, `agents`, `docs`, `ci`.
+- **Schedule it** — leave a milestone recommendation in your comment, or note
+  that it belongs in the `backlog`. Do not invent milestones; use an existing
+  repo milestone (list them with a GitHub MCP tool, or
+  `gh api repos/<owner>/<repo>/milestones --jq '.[].title'`). The declared
+  milestone set lives in `.github/project.yml`.
+
+Apply labels with a GitHub MCP tool if available, otherwise
+`gh issue edit <number> --repo <owner/repo> --add-label "<label>"`. Set the type
+with `gh issue edit <number> --type "<Type>"` where supported. Labels must
+already exist in the repo; if a label apply fails, note it and continue.
 
 ## Quality standards
 

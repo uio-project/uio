@@ -1,0 +1,31 @@
+name: Project sync
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/project.yml"]
+  workflow_dispatch:
+
+# Uses a maintainer PAT (PROJECT_ADMIN_TOKEN), not GITHUB_TOKEN: org issue types
+# and the org Project board are org-level objects the built-in token cannot write.
+# If the secret is unset the script exits 0 with a warning (see scripts/project-sync.sh).
+permissions: {}
+
+jobs:
+  sync:
+    name: Reconcile issue types, milestones, and board fields
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install YAML parser
+        run: pip install pyyaml
+
+      - name: Reconcile project state from .github/project.yml
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ADMIN_TOKEN }}
+        run: bash scripts/project-sync.sh

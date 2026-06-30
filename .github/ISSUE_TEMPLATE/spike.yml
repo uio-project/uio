@@ -1,0 +1,40 @@
+name: Spike
+description: A time-boxed investigation to inform follow-on work
+labels: [spike]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for research/investigation that does not ship directly but
+        produces a recommendation. Set the issue **type** to `Spike` after
+        filing (the label is applied automatically).
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Questions to answer
+      description: The specific questions this spike should resolve.
+    validations:
+      required: true
+
+  - type: input
+    id: timebox
+    attributes:
+      label: Timebox
+      description: "How much time is allotted before stopping (e.g. 1 day, 4 hours)."
+    validations:
+      required: true
+
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Expected deliverable
+      description: What you'll produce — a recommendation, prototype, decision-record entry, follow-on issues.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, prior art, related issues.

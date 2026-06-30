@@ -1,0 +1,44 @@
+name: Epic
+description: A multi-issue initiative tracked via sub-issues
+labels: [epic]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for cross-cutting initiatives that decompose into several
+        issues. Set the issue **type** to `Epic` after filing (the label is
+        applied automatically). Child issues should link back with
+        `Parent issue: #<this-number>`.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: The problem or opportunity this initiative addresses.
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal / outcome
+      description: What does success look like when the epic is complete?
+    validations:
+      required: true
+
+  - type: textarea
+    id: children
+    attributes:
+      label: Sub-issues
+      description: Checklist of child issues (fill in as they are created).
+      placeholder: |
+        - [ ] #...
+        - [ ] #...
+    validations:
+      required: false
+
+  - type: input
+    id: milestone
+    attributes:
+      label: Target milestone
+      description: "Which milestone this belongs to (see the repo's open milestones), or 'backlog'."

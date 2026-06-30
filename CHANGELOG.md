@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GitHub-native project-management framework (#286): path-based `component:*` PR
+  labeling, a versioned label set with sync workflow, Task/Epic/Spike issue
+  templates, a label & issue-type taxonomy, an issue triage checklist, a dated
+  decision-log format, and a project-setup runbook. Planner and closer agents
+  now apply issue types/labels and append decision-log entries.
+- Declarative project-management state (#286): `.github/project.yml` is the source
+  of truth for org issue types, milestones, and the Project board's custom fields,
+  reconciled by the `project-sync` workflow + `scripts/project-sync.sh`. Retired
+  the M1–M7 phase milestones in favour of release-themed milestones (`v0.2`–`v1.0`).
+- `.pre-commit-config.yaml` mirroring the CI ruff checks plus a conventional-commit
+  hook (resolves the gap referenced by `CONTRIBUTING.md`).
+
 ## [0.2.0] - 2026-06-29
 
 ### Changed

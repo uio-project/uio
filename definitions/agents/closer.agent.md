@@ -136,6 +136,19 @@ Then close the issue with reason `completed`:
 gh issue close <N> --repo <owner>/<repo> --reason completed
 ```
 
+### Step 5 — Record a decision-log entry (when applicable)
+
+If the closed work reflects a non-obvious architectural or process decision (not
+routine bug fixes), append a dated entry to `docs/18-design-decisions.md` under
+the `## Decision log` section, using the project's format:
+
+```
+**YYYY-MM-DD — <Title> (<scope>, #<N>).** <one-line rationale>
+```
+
+`<scope>` is the relevant `component:*` scope (e.g. `cli`, `ci`). This is a
+documentation edit, not a code change; skip it for purely mechanical closures.
+
 Report the comment URL and the closed issue URL, then stop.
 
 ## Design principles
