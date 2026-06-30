@@ -49,7 +49,7 @@ gh api installations/$GITHUB_APP_REVIEWER_INSTALLATION_ID/suspended --method PUT
 ### Step 3 — Open an incident issue
 
 ```bash
-gh issue create --repo jomkz/uio \
+gh issue create --repo uio-project/uio \
   --label "ai-governance,security,incident" \
   --title "INCIDENT [P1]: GitHub App credential compromise — <identity>" \
   --body "## Incident report
@@ -73,7 +73,7 @@ _Fill in after Step 4_"
 
 ```bash
 # Review all actions by the compromised identity in the last 30 days
-gh api "repos/jomkz/uio/events" \
+gh api "repos/uio-project/uio/events" \
   --jq '.[] | select(.actor.login | startswith("uio-ai-")) | {type, created_at, actor: .actor.login}'
 ```
 
@@ -104,7 +104,7 @@ gh api installations/$GITHUB_APP_<ROLE>_INSTALLATION_ID/suspended --method DELET
 ### Step 7 — Validate
 
 ```bash
-python scripts/validate_github_identity.py <role> jomkz/uio
+python scripts/validate_github_identity.py <role> uio-project/uio
 ```
 
 Confirm the output shows `✅` before returning to normal operations.

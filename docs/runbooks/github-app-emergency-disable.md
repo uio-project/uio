@@ -89,7 +89,7 @@ gh api installations/<INSTALLATION_ID> --method DELETE
 1. **Open an incident issue immediately:**
 
    ```bash
-   gh issue create --repo jomkz/uio \
+   gh issue create --repo uio-project/uio \
      --label "ai-governance,incident" \
      --title "Emergency disable: <identity> — <date>" \
      --body "**Disabled at:** $(date -u '+%Y-%m-%dT%H:%M:%SZ')
@@ -108,7 +108,7 @@ gh api installations/<INSTALLATION_ID> --method DELETE
    gh api installations/$GITHUB_APP_<ROLE>_INSTALLATION_ID/suspended --method DELETE
 
    # Validate
-   python scripts/validate_github_identity.py <role> jomkz/uio
+   python scripts/validate_github_identity.py <role> uio-project/uio
    ```
 
 ---

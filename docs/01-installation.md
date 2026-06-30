@@ -43,7 +43,7 @@ This installs `pytest` and `ruff`. You only need this if you are running the tes
 For contributors or to run unreleased code:
 
 ```bash
-git clone https://github.com/jomkz/uio.git
+git clone https://github.com/uio-project/uio.git
 cd uio
 pip install -e ".[dev]"
 ```

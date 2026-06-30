@@ -30,5 +30,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundled examples and remote registry discovery
 - Full documentation suite in `docs/`
 
-[Unreleased]: https://github.com/jomkz/uio/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/jomkz/uio/releases/tag/v0.1.0
+[Unreleased]: https://github.com/uio-project/uio/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/uio-project/uio/releases/tag/v0.1.0

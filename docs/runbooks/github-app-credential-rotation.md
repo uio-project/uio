@@ -59,7 +59,7 @@ chmod 600 ~/.config/uio/uio-ai-<role>.private-key.new.pem
 ```bash
 # Temporarily point the env var at the new key
 GITHUB_APP_<ROLE>_PRIVATE_KEY=~/.config/uio/uio-ai-<role>.private-key.new.pem \
-  python scripts/validate_github_identity.py <role> jomkz/uio
+  python scripts/validate_github_identity.py <role> uio-project/uio
 ```
 
 If validation fails (token exchange error, permission mismatch), stop here. Do not
@@ -83,7 +83,7 @@ source ~/.config/uio/secrets
 ### Step 5 — Validate with the active key
 
 ```bash
-python scripts/validate_github_identity.py <role> jomkz/uio
+python scripts/validate_github_identity.py <role> uio-project/uio
 ```
 
 Confirm output shows `✅` before proceeding.

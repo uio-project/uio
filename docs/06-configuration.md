@@ -181,7 +181,7 @@ An array of registry configurations. Each entry is a Git repository with a `regi
 ```toml
 [[registries]]
 name    = "official"
-url     = "https://github.com/jomkz/uio-registry"
+url     = "https://github.com/uio-project/uio-registry"
 ref     = "main"
 enabled = true
 cache_ttl_hours = 24
@@ -297,7 +297,7 @@ names = []
 #
 # [[registries]]
 # name            = "official"
-# url             = "https://github.com/jomkz/uio-registry"
+# url             = "https://github.com/uio-project/uio-registry"
 # ref             = "main"       # branch, tag, or commit SHA
 # enabled         = true
 # cache_ttl_hours = 24           # re-fetch manifest after 24 hours

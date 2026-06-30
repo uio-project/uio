@@ -52,7 +52,7 @@ You are a summariser.
 
 REG = {
     "name": "official",
-    "url": "https://github.com/jomkz/uio-registry",
+    "url": "https://github.com/uio-project/uio-registry",
     "ref": "main",
     "enabled": True,
 }
@@ -70,13 +70,15 @@ def _mock_urlopen(content: str):
 
 
 def test_raw_url_github():
-    url = _raw_url("https://github.com/jomkz/uio-registry", "main", "registry.yaml")
-    assert url == "https://raw.githubusercontent.com/jomkz/uio-registry/main/registry.yaml"
+    url = _raw_url("https://github.com/uio-project/uio-registry", "main", "registry.yaml")
+    assert url == "https://raw.githubusercontent.com/uio-project/uio-registry/main/registry.yaml"
 
 
 def test_raw_url_github_trailing_slash():
-    url = _raw_url("https://github.com/jomkz/uio-registry/", "v1.0", "skills/x.skill.md")
-    assert url == "https://raw.githubusercontent.com/jomkz/uio-registry/v1.0/skills/x.skill.md"
+    url = _raw_url("https://github.com/uio-project/uio-registry/", "v1.0", "skills/x.skill.md")
+    assert (
+        url == "https://raw.githubusercontent.com/uio-project/uio-registry/v1.0/skills/x.skill.md"
+    )
 
 
 def test_raw_url_gitlab():
@@ -361,7 +363,7 @@ def test_install_warns_on_duplicate_across_registries(tmp_path):
     """A warning is emitted to stderr when the same name exists in multiple registries."""
     reg1 = {
         "name": "official",
-        "url": "https://github.com/jomkz/uio-registry",
+        "url": "https://github.com/uio-project/uio-registry",
         "ref": "main",
         "enabled": True,
     }
@@ -396,7 +398,7 @@ def test_install_no_warning_when_no_duplicate(tmp_path):
     """No warning is emitted when the definition exists in only one registry."""
     reg1 = {
         "name": "official",
-        "url": "https://github.com/jomkz/uio-registry",
+        "url": "https://github.com/uio-project/uio-registry",
         "ref": "main",
         "enabled": True,
     }

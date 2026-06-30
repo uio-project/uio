@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "mcp-github": {
-      "command": "/home/john/src/jomkz/uio/mcp-vendor/bin/github-mcp-server-launch",
+      "command": "/home/john/src/mkzsystems/uio-project/uio/mcp-vendor/bin/github-mcp-server-launch",
       "args": [
         "stdio"
       ]
@@ -11,7 +11,7 @@
       "args": [
         "mcp-server-git",
         "--repository",
-        "/home/john/src/jomkz/uio"
+        "/home/john/src/mkzsystems/uio-project/uio"
       ]
     },
     "mcp-sequential-thinking": {
@@ -26,7 +26,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/john/src/jomkz/uio"
+        "/home/john/src/mkzsystems/uio-project/uio"
       ]
     }
   }

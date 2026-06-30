@@ -55,7 +55,7 @@ def render_comment_footer(role: str, agent_name: str, version: str = "", model: 
     """
     model_part = f" ({model})" if model else ""
     version_part = f" ({version})" if version else ""
-    return f"\n\n> 🤖 {agent_name}{model_part} - [uio](https://github.com/jomkz/uio){version_part}"
+    return f"\n\n> 🤖 {agent_name}{model_part} - [uio](https://github.com/uio-project/uio){version_part}"
 
 
 def render_pr_footer(role: str, vcs_provider: str = "github") -> str:
@@ -66,7 +66,7 @@ def render_pr_footer(role: str, vcs_provider: str = "github") -> str:
         "\n---\n"
         f"> **AI-generated {vcs_term}** — authored by the uio {display} agent.\n"
         "> Human review is required before merging.\n"
-        "> Powered by [uio](https://github.com/jomkz/uio)."
+        "> Powered by [uio](https://github.com/uio-project/uio)."
     )
 
 

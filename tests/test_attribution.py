@@ -20,7 +20,7 @@ def test_comment_footer_no_version():
     footer = render_comment_footer("coder", "github-coder")
     assert "github-coder" in footer
     # version_part renders as " ({version})"; absent when omitted
-    assert footer.endswith("uio](https://github.com/jomkz/uio)")
+    assert footer.endswith("uio](https://github.com/uio-project/uio)")
 
 
 def test_comment_footer_starts_with_newlines():

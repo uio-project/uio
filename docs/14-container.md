@@ -28,19 +28,19 @@ docker run --rm \
   -e GEMINI_API_KEY=your-key \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... \
   -v $(pwd):/workspace \
-  ghcr.io/jomkz/uio agent run repo-health
+  ghcr.io/uio-project/uio agent run repo-health
 
 # Interactive skill run
 docker run --rm \
   -e GEMINI_API_KEY=your-key \
   -v $(pwd):/workspace \
-  ghcr.io/jomkz/uio skill run summarise "Your text here"
+  ghcr.io/uio-project/uio skill run summarise "Your text here"
 
 # Chat REPL (interactive — allocate a TTY)
 docker run --rm -it \
   -e GEMINI_API_KEY=your-key \
   -v $(pwd):/workspace \
-  ghcr.io/jomkz/uio chat
+  ghcr.io/uio-project/uio chat
 ```
 
 ### Windows users
@@ -53,7 +53,7 @@ docker run --rm `
   -e GEMINI_API_KEY=your-key `
   -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... `
   -v ${PWD}:/workspace `
-  ghcr.io/jomkz/uio agent run repo-health
+  ghcr.io/uio-project/uio agent run repo-health
 ```
 
 If you use `docker compose`, the `.:/workspace` volume path in `docker-compose.yml` is
@@ -114,7 +114,7 @@ docker run --rm \
   -e OPENAI_API_KEY=$OPENAI_API_KEY \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN \
   -v $(pwd):/workspace \
-  ghcr.io/jomkz/uio agent run my-agent
+  ghcr.io/uio-project/uio agent run my-agent
 ```
 
 ### GitHub authentication in containers
@@ -132,7 +132,7 @@ docker run --rm \
   -e GITHUB_APP_CODER_PRIVATE_KEY=/run/secrets/uio-ai-coder.pem \
   -v ~/.config/uio/uio-ai-coder.private-key.pem:/run/secrets/uio-ai-coder.pem:ro \
   -v $(pwd):/workspace \
-  ghcr.io/jomkz/uio agent run github-coder "..."
+  ghcr.io/uio-project/uio agent run github-coder "..."
 ```
 
 Identity agents will **not** fall back to `GITHUB_PERSONAL_ACCESS_TOKEN` — if the App
@@ -278,7 +278,7 @@ Run `uio` as a step in any container-native pipeline:
       -e GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
       -e GITHUB_PERSONAL_ACCESS_TOKEN=${{ secrets.GITHUB_TOKEN }} \
       -v ${{ github.workspace }}:/workspace \
-      ghcr.io/jomkz/uio agent run repo-health
+      ghcr.io/uio-project/uio agent run repo-health
 ```
 
 For identity agents in CI, store the App credentials as repository secrets and pass them

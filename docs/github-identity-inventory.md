@@ -94,8 +94,8 @@ repositories where uio has been used as part of this epic's own development.
 
 | Repo | Operations performed | Identity used |
 |---|---|---|
-| `jomkz/uio` | Issue creation, issue comments, PR creation | Personal account (`jomkz`) via `gh` CLI |
-| `jomkz/uio-registry` | Manifest fetches (read-only) | `GITHUB_TOKEN` (public repo — unauthenticated also works) |
+| `uio-project/uio` | Issue creation, issue comments, PR creation | Personal account (`jomkz`) via `gh` CLI |
+| `uio-project/uio-registry` | Manifest fetches (read-only) | `GITHUB_TOKEN` (public repo — unauthenticated also works) |
 
 **Finding:** All write operations today (issue creation, PR comments) are performed
 by a personal account. There is no service account, bot, or GitHub App in use yet.
@@ -112,7 +112,7 @@ identity migration (epic #53) must remove:
 | 1 | `GITHUB_PERSONAL_ACCESS_TOKEN` used for MCP server | All GitHub MCP operations run as a personal user | Per-identity App token set as `GH_TOKEN` before MCP startup; MCP server reads `GITHUB_PERSONAL_ACCESS_TOKEN` from env — override via `GH_TOKEN` already works for `gh` CLI, but MCP server needs explicit update in `mcp.py` |
 | 2 | `GITHUB_PERSONAL_ACCESS_TOKEN` forwarded by Docker Compose | Container runs all agent operations as a personal user | Replace with `GITHUB_APP_PLANNER_*` / `GITHUB_APP_CODER_*` / `GITHUB_APP_REVIEWER_*` env vars |
 | 3 | `gh` CLI uses personal OAuth session (`~/.config/gh/hosts.yml`) when `GH_TOKEN` is not set | Fallback path uses personal account | Ensure `GH_TOKEN` is always set by the runner when a GitHub identity is declared (done in #61) |
-| 4 | Issue creation and PR comments in `jomkz/uio` performed by personal account | AI-generated issues are indistinguishable from human issues | After App provisioning (M2), re-run agent workflows with App identity set |
+| 4 | Issue creation and PR comments in `uio-project/uio` performed by personal account | AI-generated issues are indistinguishable from human issues | After App provisioning (M2), re-run agent workflows with App identity set |
 
 ---
 

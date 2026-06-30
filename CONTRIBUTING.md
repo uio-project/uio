@@ -107,11 +107,11 @@ docs: update quickstart for v0.2
 
 ## Reporting bugs
 
-Use the [Bug Report](https://github.com/jomkz/uio/issues/new?template=bug_report.yml) issue template. Include:
+Use the [Bug Report](https://github.com/uio-project/uio/issues/new?template=bug_report.yml) issue template. Include:
 - `uio --version` and `python --version` output
 - Minimal reproduction steps
 - The full error / traceback
 
 ## Requesting features
 
-Use the [Feature Request](https://github.com/jomkz/uio/issues/new?template=feature_request.yml) issue template. Describe the problem, your proposed solution, and any alternatives you considered.
+Use the [Feature Request](https://github.com/uio-project/uio/issues/new?template=feature_request.yml) issue template. Describe the problem, your proposed solution, and any alternatives you considered.

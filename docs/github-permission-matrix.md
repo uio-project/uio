@@ -23,7 +23,7 @@ the GitHub Apps API permission model (resource: access level).
 | Contents | **None** | Planner does not read or write code |
 | Checks | **None** | Not required for planning work |
 
-**Initial repo installation scope:** `jomkz/uio` only.
+**Initial repo installation scope:** `uio-project/uio` only.
 
 ---
 
@@ -39,7 +39,7 @@ the GitHub Apps API permission model (resource: access level).
 | Issues | Read | Read issues for context; write only if needed post-pilot review |
 | Checks | Read | Observe CI status |
 
-**Initial repo installation scope:** `jomkz/uio` only.
+**Initial repo installation scope:** `uio-project/uio` only.
 
 ---
 
@@ -55,7 +55,7 @@ the GitHub Apps API permission model (resource: access level).
 | Contents | Read | Read code for diff analysis |
 | Checks | Read | Observe CI status during review |
 
-**Initial repo installation scope:** `jomkz/uio` only.
+**Initial repo installation scope:** `uio-project/uio` only.
 
 ---
 
@@ -141,7 +141,7 @@ All pull requests opened by the AI Coder identity must satisfy the following bef
 3. **Draft PR until ready** — AI Coder should open PRs as drafts and convert to ready-for-review
    only after all self-checks pass, reducing premature human notification.
 4. **Attribution disclosure** — PR body must include the disclosure footer (M3c, #63):
-   `🤖 Generated with [uio](https://github.com/jomkz/uio)`.
+   `🤖 Generated with [uio](https://github.com/uio-project/uio)`.
 
 ---
 
@@ -164,9 +164,9 @@ If a future use case requires a capability currently excluded in §2, the follow
 
 | Identity | App name (suggested) | Permissions to configure | Install repos |
 |---|---|---|---|
-| `planner` | `uio-ai-planner` | Issues: R/W · PRs: R/W · Metadata: R | `jomkz/uio` |
-| `coder` | `uio-ai-coder` | Contents: R/W · PRs: R/W · Metadata: R · Issues: R · Checks: R | `jomkz/uio` |
-| `reviewer` | `uio-ai-reviewer` | PRs: R/W · Issues: R/W · Metadata: R · Contents: R · Checks: R | `jomkz/uio` |
+| `planner` | `uio-ai-planner` | Issues: R/W · PRs: R/W · Metadata: R | `uio-project/uio` |
+| `coder` | `uio-ai-coder` | Contents: R/W · PRs: R/W · Metadata: R · Issues: R · Checks: R | `uio-project/uio` |
+| `reviewer` | `uio-ai-reviewer` | PRs: R/W · Issues: R/W · Metadata: R · Contents: R · Checks: R | `uio-project/uio` |
 
 *This document was produced as part of M1b (#57). See #58–#60 for GitHub App provisioning.*
 
