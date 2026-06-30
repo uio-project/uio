@@ -35,7 +35,7 @@ For each server, find the matching tool in your tool list — it may appear with
 | `git` | a tool named `git_log` | `{"repo_path": ".", "max_count": 1}` |
 | `sequential-thinking` | a tool named `sequentialthinking` | `{"thought": "smoke test", "nextThoughtNeeded": false, "thoughtNumber": 1, "totalThoughts": 1}` |
 | `filesystem` | a tool named `list_directory` | `{"path": "."}` |
-| `github` | a tool named `search_repositories` | `{"query": "repo:jomkz/uio"}` |
+| `github` | a tool named `search_repositories` | `{"query": "repo:uio-project/uio"}` |
 
 ## Step 2 — Print the table
 
@@ -47,7 +47,7 @@ After all tool results are in, print exactly this table and nothing else:
 | git                  | ✅ OK   | commit 6916a28                 |
 | sequential-thinking  | ✅ OK   | thought logged                 |
 | filesystem           | ✅ OK   | listed 12 entries              |
-| github               | ✅ OK   | jomkz/uio                     |
+| github               | ✅ OK   | uio-project/uio                     |
 ```
 
 Use ✅ OK · ❌ FAIL · ⚠️ SKIP.

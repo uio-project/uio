@@ -45,7 +45,7 @@ Appended to the body of every PR opened by the AI Coder:
 ---
 > **AI-generated pull request** — authored by the uio AI Coder agent.
 > Human review is required before merging.
-> Powered by [uio](https://github.com/jomkz/uio).
+> Powered by [uio](https://github.com/uio-project/uio).
 ```
 
 ### Commit author (AI Coder)
@@ -231,7 +231,7 @@ The following records cover each of the three GitHub App identities.
 **Purpose:** Create and comment on GitHub issues and PRs on behalf of uio planning agents.  
 **Identity role:** `planner`  
 **Permissions:** See `docs/github-permission-matrix.md` §1 — AI Planner  
-**Installation scope:** `jomkz/uio` (pilot); expand only via [change approval](#change-approval)  
+**Installation scope:** `uio-project/uio` (pilot); expand only via [change approval](#change-approval)  
 **Technical owner:** `@jomkz`  
 **Business owner:** uio project lead  
 **Private key location:** `~/.config/uio/uio-ai-planner.private-key.pem`  
@@ -247,7 +247,7 @@ The following records cover each of the three GitHub App identities.
 **Purpose:** Create branches, commit code changes, and open pull requests on behalf of uio coding agents.  
 **Identity role:** `coder`  
 **Permissions:** See `docs/github-permission-matrix.md` §1 — AI Coder  
-**Installation scope:** `jomkz/uio` (pilot); expand only via [change approval](#change-approval)  
+**Installation scope:** `uio-project/uio` (pilot); expand only via [change approval](#change-approval)  
 **Technical owner:** `@jomkz`  
 **Business owner:** uio project lead  
 **Private key location:** `~/.config/uio/uio-ai-coder.private-key.pem`  
@@ -263,7 +263,7 @@ The following records cover each of the three GitHub App identities.
 **Purpose:** Read pull request diffs and post structured review comments on behalf of uio review agents.  
 **Identity role:** `reviewer`  
 **Permissions:** See `docs/github-permission-matrix.md` §1 — AI Reviewer  
-**Installation scope:** `jomkz/uio` (pilot); expand only via [change approval](#change-approval)  
+**Installation scope:** `uio-project/uio` (pilot); expand only via [change approval](#change-approval)  
 **Technical owner:** `@jomkz`  
 **Business owner:** uio project lead  
 **Private key location:** `~/.config/uio/uio-ai-reviewer.private-key.pem`  

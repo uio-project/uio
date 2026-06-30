@@ -82,7 +82,7 @@ The runner injects an attribution block that:
    ---
    > **AI-generated pull request** — authored by the uio AI Coder agent.
    > Human review is required before merging.
-   > Powered by [uio](https://github.com/jomkz/uio).
+   > Powered by [uio](https://github.com/uio-project/uio).
    ```
 4. Requires every `git commit` to use the bot author identity:
    ```

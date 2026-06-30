@@ -20,7 +20,7 @@ identity. Log output goes to `stderr` and is captured by whatever process invoke
 | `app_name` | `uio-ai-planner` | Display name of the GitHub App |
 | `agent` | `github-planner` | Agent definition filename (without extension) |
 | `action` | `token_exchange` | Type of authentication event |
-| `repo` | `jomkz/uio` | Repository the token was scoped to (from `GITHUB_APP_*_INSTALLATION_ID`) |
+| `repo` | `uio-project/uio` | Repository the token was scoped to (from `GITHUB_APP_*_INSTALLATION_ID`) |
 | `token_expires` | `2026-05-01T12:34:00Z` | ISO-8601 expiry of the installation token |
 | `timestamp` | `2026-05-01T12:24:00Z` | UTC time of the event |
 
@@ -29,7 +29,7 @@ identity. Log output goes to `stderr` and is captured by whatever process invoke
 Redirect `stderr` to a log file when running agents in production:
 
 ```bash
-uio agent run github-planner "Create issue in jomkz/uio ..." 2>>~/.local/share/uio/audit.log
+uio agent run github-planner "Create issue in uio-project/uio ..." 2>>~/.local/share/uio/audit.log
 ```
 
 Or capture both streams with timestamps using `ts` (from `moreutils`):
@@ -65,7 +65,7 @@ account audit log. For a personal account (`jomkz`), use the GitHub web UI or AP
 gh api "/users/jomkz/events" --jq '.[] | select(.actor.login | startswith("uio-ai-"))' | head -50
 
 # Fetch repo-level events for a specific app
-gh api "repos/jomkz/uio/events" \
+gh api "repos/uio-project/uio/events" \
   --jq '.[] | select(.actor.login | startswith("uio-ai-")) | {type, created_at, actor: .actor.login, repo: .repo.name}'
 ```
 

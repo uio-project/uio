@@ -331,7 +331,7 @@ def test_check_skill_references_ignores_url_path_segments(tmp_path):
     (skills_dir / "real-skill.skill.md").write_text(
         "---\nname: real-skill\ndescription: D.\n---\nBody."
     )
-    body = "See https://github.com/jomkz/uio/contents/foo for details."
+    body = "See https://github.com/uio-project/uio/contents/foo for details."
     warnings = check_skill_references("agent.agent.md", body, str(skills_dir))
     assert warnings == []
 

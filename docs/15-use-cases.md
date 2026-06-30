@@ -49,10 +49,10 @@ authorship immediately visible.
 uio registry install github-reviewer
 
 # Review a specific PR
-uio agent run github-reviewer "jomkz/uio#42"
+uio agent run github-reviewer "uio-project/uio#42"
 
 # Or with a full URL
-uio agent run github-reviewer "https://github.com/jomkz/uio/pull/42"
+uio agent run github-reviewer "https://github.com/uio-project/uio/pull/42"
 ```
 
 Prerequisites: `GITHUB_APP_REVIEWER_*` env vars set (see
@@ -79,16 +79,16 @@ uio registry install github-planner
 
 # Create a single issue
 uio agent run github-planner \
-  "Create an issue in jomkz/uio titled 'Add rate limiting to the API' \
+  "Create an issue in uio-project/uio titled 'Add rate limiting to the API' \
    describing exponential backoff with a 10 req/s default"
 
 # Decompose a feature into child issues
 uio agent run github-planner \
   "Break down the feature 'Enterprise GitHub Identity Architecture' \
-   into implementable child issues in jomkz/uio"
+   into implementable child issues in uio-project/uio"
 
 # Comment on an existing issue with a triage assessment
-uio agent run github-planner "jomkz/uio#53"
+uio agent run github-planner "uio-project/uio#53"
 ```
 
 The planner has no code write access — it creates and comments on issues only.
@@ -111,11 +111,11 @@ uio registry install github-coder
 
 # Apply a change and open a PR
 uio agent run github-coder \
-  "Add input validation to the login endpoint | repo: jomkz/uio | branch: ai-coder/login-validation"
+  "Add input validation to the login endpoint | repo: uio-project/uio | branch: ai-coder/login-validation"
 
 # With an explicit base branch
 uio agent run github-coder \
-  "Fix the off-by-one error in the token cache refresh | repo: jomkz/uio | base: develop"
+  "Fix the off-by-one error in the token cache refresh | repo: uio-project/uio | base: develop"
 ```
 
 Commits are authored as `uio AI Coder <uio-coder[bot]@users.noreply.github.com>`. The PR
@@ -161,16 +161,16 @@ in its own lane, and human decisions gate each transition.
 ```bash
 # 1. Plan — create the issue
 uio agent run github-planner \
-  "Create an issue in jomkz/uio for 'Add rate limiting to the MCP client'"
+  "Create an issue in uio-project/uio for 'Add rate limiting to the MCP client'"
 # → Creates issue #N
 
 # 2. Code — implement the issue and open a PR
 uio agent run github-coder \
-  "Implement issue #N — add rate limiting to the MCP client | repo: jomkz/uio"
+  "Implement issue #N — add rate limiting to the MCP client | repo: uio-project/uio"
 # → Opens PR #M with AI Coder identity
 
 # 3. Review — post a structured review
-uio agent run github-reviewer "jomkz/uio#M"
+uio agent run github-reviewer "uio-project/uio#M"
 # → Posts review comment with severity table using AI Reviewer identity
 
 # 4. Human reviews the findings and approves
@@ -187,7 +187,7 @@ Coder writes code, Reviewer reads and comments — no identity can act outside i
 
 **Pattern:** uio as a container step in GitHub Actions
 
-The `ghcr.io/jomkz/uio` image runs uio agents without a local install. Use it to run
+The `ghcr.io/uio-project/uio` image runs uio agents without a local install. Use it to run
 health checks, generate reports, or trigger planning agents on a schedule.
 
 ```yaml
@@ -209,7 +209,7 @@ jobs:
             -e GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
             -e GITHUB_PERSONAL_ACCESS_TOKEN=${{ secrets.GITHUB_TOKEN }} \
             -v ${{ github.workspace }}:/workspace \
-            ghcr.io/jomkz/uio agent run repo-health
+            ghcr.io/uio-project/uio agent run repo-health
 ```
 
 For identity agents in CI, pass the App credentials as repository secrets and mount the
@@ -234,7 +234,7 @@ uio init --examples
 cat >> uio.toml <<'EOF'
 [[registries]]
 name    = "official"
-url     = "https://github.com/jomkz/uio-registry"
+url     = "https://github.com/uio-project/uio-registry"
 ref     = "main"
 enabled = true
 EOF

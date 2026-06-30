@@ -5,7 +5,7 @@ Usage:
     python scripts/validate_github_identity.py <role> [<owner>/<repo>]
 
     role   — planner, coder, or reviewer
-    repo   — optional repository to probe (e.g. jomkz/uio)
+    repo   — optional repository to probe (e.g. uio-project/uio)
 
 The script reads GITHUB_APP_<ROLE>_* environment variables, obtains an
 installation token, checks the permissions reported by the token exchange,

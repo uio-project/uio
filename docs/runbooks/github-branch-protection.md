@@ -8,7 +8,7 @@
 
 ## Protection baseline (applied 2026-04-30)
 
-The following protection is applied to the `main` branch of `jomkz/uio`.
+The following protection is applied to the `main` branch of `uio-project/uio`.
 Reproduce it with the command in §Reconfiguration below.
 
 | Control | Setting |
@@ -39,13 +39,13 @@ The AI Coder GitHub App (`uio-ai-coder`) has **no branch protection bypass permi
 Verify at any time with:
 
 ```bash
-gh api repos/jomkz/uio/branches/main/protection/restrictions 2>&1
+gh api repos/uio-project/uio/branches/main/protection/restrictions 2>&1
 # Expected: {"message":"Push restrictions not enabled", ...}
 # A 404 with "Push restrictions not enabled" confirms no bypass list exists.
 ```
 
 Additionally confirm in the GitHub UI:
-1. Go to `jomkz/uio` → Settings → Branches → Edit protection rule for `main`.
+1. Go to `uio-project/uio` → Settings → Branches → Edit protection rule for `main`.
 2. Under "Allow specified actors to bypass required pull requests", confirm the
    `uio-ai-coder` app is **not** listed.
 
@@ -53,7 +53,7 @@ Additionally confirm in the GitHub UI:
 
 ## CODEOWNERS assessment
 
-`jomkz/uio` does not currently have a `CODEOWNERS` file. The current protection
+`uio-project/uio` does not currently have a `CODEOWNERS` file. The current protection
 (PR required, CI must pass) is sufficient for the M6 pilot as a sole-maintainer
 project. Consider adding `CODEOWNERS` if the project gains additional maintainers and
 path-specific ownership becomes necessary.
@@ -70,7 +70,7 @@ If branch protection is accidentally removed or needs to be reproduced after a r
 migration, apply it with:
 
 ```bash
-gh api repos/jomkz/uio/branches/main/protection \
+gh api repos/uio-project/uio/branches/main/protection \
   --method PUT \
   --input - <<'EOF'
 {

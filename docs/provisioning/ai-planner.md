@@ -32,7 +32,7 @@ Navigate to your GitHub account settings and create the app:
    | Field | Value |
    |---|---|
    | **GitHub App name** | `uio-ai-planner` |
-   | **Homepage URL** | `https://github.com/jomkz/uio` |
+   | **Homepage URL** | `https://github.com/uio-project/uio` |
    | **Webhook — Active** | **Uncheck** (no webhooks needed) |
 
 3. Under **Repository permissions**, set:
@@ -70,7 +70,7 @@ Store it securely (see §4 below). **Never commit this file to a repository.**
 1. On the app settings page, click **Install App** in the left sidebar.
 2. Click **Install** next to the `jomkz` account.
 3. Under **Repository access**, select **Only select repositories** and add:
-   - `jomkz/uio`
+   - `uio-project/uio`
 
    Do **not** select "All repositories" — least-privilege requires explicit repo scope.
 
@@ -117,7 +117,7 @@ Run the uio identity validation script to confirm authentication works and
 the permission set matches the approved matrix:
 
 ```bash
-python scripts/validate_github_identity.py planner jomkz/uio
+python scripts/validate_github_identity.py planner uio-project/uio
 ```
 
 Expected output (abridged):
@@ -144,10 +144,10 @@ repository permission settings, then re-install the app.
 
 - [ ] App named `uio-ai-planner` created under the `jomkz` account
 - [ ] Repository permissions: Issues R/W · PRs R/W · Metadata R · Contents: None
-- [ ] App installed in `jomkz/uio` only (not "all repositories")
+- [ ] App installed in `uio-project/uio` only (not "all repositories")
 - [ ] Private key stored at `~/.config/uio/uio-ai-planner.private-key.pem` (chmod 600)
 - [ ] Env vars set: `GITHUB_APP_PLANNER_ID`, `GITHUB_APP_PLANNER_INSTALLATION_ID`, `GITHUB_APP_PLANNER_PRIVATE_KEY`
-- [ ] `python scripts/validate_github_identity.py planner jomkz/uio` passes
+- [ ] `python scripts/validate_github_identity.py planner uio-project/uio` passes
 
 ---
 

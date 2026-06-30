@@ -63,7 +63,7 @@ Add `[[registries]]` entries to `uio.toml`:
 ```toml
 [[registries]]
 name            = "official"
-url             = "https://github.com/jomkz/uio-registry"
+url             = "https://github.com/uio-project/uio-registry"
 ref             = "main"
 enabled         = true
 cache_ttl_hours = 24
@@ -94,7 +94,7 @@ $ uio registry list
 
   NAME      URL                                         REF   ENABLED
   ────────────────────────────────────────────────────────────────────
-  official  https://github.com/jomkz/uio-registry       main  yes
+  official  https://github.com/uio-project/uio-registry       main  yes
   my-team   https://github.com/acme/uio-agents           v1.2  yes
 ```
 
@@ -159,7 +159,7 @@ $ uio registry install repo-health --pin
   To pin, update uio.toml:
     [[registries]]
     name = "official"
-    url  = "https://github.com/jomkz/uio-registry"
+    url  = "https://github.com/uio-project/uio-registry"
     ref  = "abc123def456"
 ```
 
@@ -230,7 +230,7 @@ uio-my-registry/
     └── standup-summary.prompt.md
 ```
 
-The repository at `https://github.com/jomkz/uio-registry` is the official registry and can be used as a reference.
+The repository at `https://github.com/uio-project/uio-registry` is the official registry and can be used as a reference.
 
 ---
 
