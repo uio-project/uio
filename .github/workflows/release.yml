@@ -67,11 +67,6 @@ jobs:
             asset_name: uio-macos-arm64
             install_cmd: pip install pyinstaller .
             build_cmd: pyinstaller --onefile --name uio-macos-arm64 uio/cli/main.py
-          - os: macos-latest
-            asset_name: uio-macos-x86_64
-            # Rosetta 2: install and build under x86_64 slice of the universal2 Python
-            install_cmd: arch -x86_64 pip install pyinstaller .
-            build_cmd: arch -x86_64 pyinstaller --onefile --name uio-macos-x86_64 uio/cli/main.py
           - os: windows-latest
             asset_name: uio-windows-x86_64.exe
             install_cmd: pip install pyinstaller .
@@ -171,11 +166,6 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: binary-uio-macos-arm64
-          path: binaries/
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: binary-uio-macos-x86_64
           path: binaries/
 
       - uses: actions/download-artifact@v8
