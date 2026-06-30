@@ -36,6 +36,17 @@ and integrations is the right one.
 
 Newest first.
 
+**2026-06-30 — v1.0 tracked via a readiness epic; governance gated on public 1.0 (ci, #296).**
+Defined 1.0 readiness as an epic (#296) tracking the remaining differentiation
+work (#254 GitHub Actions integration, #261 `uio serve`) plus governance (#295),
+rather than collapsing everything into the `v1.0` milestone. This applies the
+project's two-axis model: an issue keeps its release milestone (*when*, e.g. #254
+in v0.3) while the epic captures the *initiative*. Governance hardening (#295 —
+DCO, REUSE/SPDX, public RFC) is gated on **before public 1.0** and assigned to the
+`v1.0` milestone; it stays `backlog` until the 1.0 cut. Backlog priority is
+tracked with the board's `Order` field (no calendar dates pre-1.0, since timing is
+fluid).
+
 **2026-06-30 — Make PM config declarative; retire M1–M7 for release milestones (ci, #286).**
 Closed the gap left by the initial PM adoption: issue types, milestones, and the
 Project board's custom fields are now declared in `.github/project.yml` and
