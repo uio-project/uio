@@ -1,0 +1,43 @@
+name: Task
+description: A specific, scoped piece of work (including chores and docs)
+labels: [task]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for well-defined work that doesn't introduce a new user-facing
+        feature — refactors, chores, docs, follow-ups. Set the issue **type** to
+        `Task` after filing (the label is applied automatically).
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this needed? Link any parent epic or related issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What concrete change does "done" mean?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist that, when complete, closes this issue.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: Component
+      description: "Affected subsystem, if known (e.g. cli, core, registry, schema, providers, agents, docs, ci)."

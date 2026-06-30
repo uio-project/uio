@@ -333,6 +333,7 @@ Print the PR URL and a one-sentence summary of what was implemented (fresh imple
 - **Never modify workflow files** — if the change requires editing `.github/workflows/`, stop and report this as out-of-scope.
 - **Minimal diff** — only change what is necessary for the described feature or fix.
 - **One PR per run** — if the change is too large to fit in one coherent PR, implement the core part and note the remainder in the PR body.
+- **Do not set `component:*` labels manually** — they are applied automatically to PRs by path (`.github/labeler.yml`).
 
 ## Error handling
 

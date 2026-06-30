@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/uio-project/uio/security/policy
+    about: Do not open a public issue for security problems — follow the security policy.
+  - name: Documentation
+    url: https://github.com/uio-project/uio/tree/main/docs
+    about: Read the docs before filing — your question may already be answered.

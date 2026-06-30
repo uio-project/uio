@@ -11,6 +11,8 @@ Thank you for your interest in contributing! This document covers everything you
 - [Code style](#code-style)
 - [Commit messages](#commit-messages)
 - [Pull requests](#pull-requests)
+- [Triaging issues](#triaging-issues)
+- [Decision records](#decision-records)
 - [Reporting bugs](#reporting-bugs)
 - [Requesting features](#requesting-features)
 
@@ -105,6 +107,35 @@ docs: update quickstart for v0.2
 - All CI checks must pass.
 - At least one maintainer approval is required before merge.
 
+## Triaging issues
+
+Every new issue should be triaged with:
+
+- **Type** — set the GitHub issue type (Epic / Feature / Task / Spike / Bug).
+  The type is authoritative for the kind of work; see
+  [`.github/labels.md`](.github/labels.md).
+- **Component label** — apply the relevant `component:*` label(s) for the
+  affected subsystem. (On PRs these are applied automatically by path.)
+- **Milestone or `backlog`** — assign a milestone (M1–M7) or apply the
+  `backlog` label if unscheduled.
+- **Epic parent** — if the issue is part of an initiative, add a
+  `Parent issue: #N` line and link it as a sub-issue.
+- **Board status** — set to `Todo` once accepted.
+
+The full label taxonomy and policy live in [`.github/labels.md`](.github/labels.md).
+
+## Decision records
+
+Architectural decisions are captured as dated entries in
+[`docs/18-design-decisions.md`](docs/18-design-decisions.md) using the format:
+
+```
+**YYYY-MM-DD — <Title> (<scope>, #<issue>).** <rationale>
+```
+
+Add an entry when a change reflects a non-obvious choice. This lightweight log is
+the pre-1.0 alternative to heavyweight RFCs.
+
 ## Reporting bugs
 
 Use the [Bug Report](https://github.com/uio-project/uio/issues/new?template=bug_report.yml) issue template. Include:
@@ -112,6 +143,11 @@ Use the [Bug Report](https://github.com/uio-project/uio/issues/new?template=bug_
 - Minimal reproduction steps
 - The full error / traceback
 
-## Requesting features
+## Requesting features and other work
 
-Use the [Feature Request](https://github.com/uio-project/uio/issues/new?template=feature_request.yml) issue template. Describe the problem, your proposed solution, and any alternatives you considered.
+Pick the issue template that matches the kind of work:
+
+- [Feature Request](https://github.com/uio-project/uio/issues/new?template=feature_request.yml) — a new capability. Describe the problem, your proposed solution, and any alternatives considered.
+- [Task](https://github.com/uio-project/uio/issues/new?template=task.yml) — scoped work, chores, or docs.
+- [Epic](https://github.com/uio-project/uio/issues/new?template=epic.yml) — a multi-issue initiative tracked via sub-issues.
+- [Spike](https://github.com/uio-project/uio/issues/new?template=spike.yml) — a time-boxed investigation.

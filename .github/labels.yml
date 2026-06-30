@@ -1,0 +1,98 @@
+# Declarative label set for uio-project/uio.
+#
+# Synced to the repository by .github/workflows/labels-sync.yml using
+# crazy-max/ghaction-github-labeler. This file is the source of truth for
+# labels; see .github/labels.md for the taxonomy and policy.
+#
+# NOTE: the first block preserves the repo's pre-existing labels (exact name,
+# color, and description) so the sync does not prune them. The second block
+# adds the project-management taxonomy.
+
+# --- Existing labels (do not rename: issues already use these) ---
+- name: bug
+  color: d73a4a
+  description: "Something isn't working"
+- name: documentation
+  color: 0075ca
+  description: "Improvements or additions to documentation"
+- name: duplicate
+  color: cfd3d7
+  description: "This issue or pull request already exists"
+- name: enhancement
+  color: a2eeef
+  description: "New feature or request"
+- name: good first issue
+  color: 7057ff
+  description: "Good for newcomers"
+- name: help wanted
+  color: "008672"
+  description: "Extra attention is needed"
+- name: invalid
+  color: e4e669
+  description: "This doesn't seem right"
+- name: question
+  color: d876e3
+  description: "Further information is requested"
+- name: wontfix
+  color: ffffff
+  description: "This will not be worked on"
+- name: blocked
+  color: B60205
+  description: "Blocked on an external dependency"
+- name: refactor
+  color: 0075ca
+  description: "Code refactoring with no behavior change"
+- name: dependencies
+  color: 0075ca
+  description: "Pull requests that update a dependency file"
+- name: github-actions
+  color: e4e669
+  description: "Pull requests that update GitHub Actions code"
+
+# --- Component labels (routing; auto-applied to PRs by .github/labeler.yml) ---
+- name: "component:cli"
+  color: c5def5
+  description: "CLI surface (uio/cli)"
+- name: "component:core"
+  color: c5def5
+  description: "Core orchestration (uio/core)"
+- name: "component:providers"
+  color: c5def5
+  description: "Provider integrations (uio/providers)"
+- name: "component:registry"
+  color: c5def5
+  description: "Definition registry (uio/registry)"
+- name: "component:schema"
+  color: c5def5
+  description: "Schema and frontmatter (uio/schema)"
+- name: "component:agents"
+  color: c5def5
+  description: "Agent definitions (definitions/)"
+- name: "component:docs"
+  color: c5def5
+  description: "Documentation and markdown"
+- name: "component:ci"
+  color: c5def5
+  description: "CI, workflows, and build config"
+
+# --- Type labels (mirror the GitHub issue type; type is authoritative) ---
+- name: epic
+  color: 5319e7
+  description: "Multi-issue initiative tracked via sub-issues"
+- name: task
+  color: 0e8a16
+  description: "Specific, scoped work including chores and docs"
+- name: spike
+  color: d4c5f9
+  description: "Time-boxed investigation, does not ship directly"
+
+# --- Meta labels ---
+- name: backlog
+  color: cccccc
+  description: "Unscheduled work (no milestone assigned)"
+- name: needs-info
+  color: fef2c0
+  description: "Blocked pending more information from the reporter"
+- name: ai-governance
+  color: 006b75
+  description: "AI agent governance, identity, and policy"

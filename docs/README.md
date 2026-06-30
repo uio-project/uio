@@ -71,6 +71,12 @@
 6. [Governance](governance.md) — ownership, review cadence, and change control
 7. [Runbooks](runbooks/) — audit, incident response, credential rotation, emergency disable
 
+### I want to manage issues, labels, and the project board
+
+- [Label & issue-type taxonomy](../.github/labels.md) — types vs. labels, `component:*` routing, meta labels
+- [Project setup runbook](runbooks/github-project-setup.md) — milestones (M1–M7), the org Project board, and enabling issue types
+- [Contributing — triaging issues](../CONTRIBUTING.md#triaging-issues) — the per-issue triage checklist
+
 ### I want to use persistent memory across agent runs
 
 - [Memory system](19-memory.md) — file format, scope lifecycle, prompt injection, and CLI commands

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GitHub-native project-management framework (#286): path-based `component:*` PR
+  labeling, a versioned label set with sync workflow, Task/Epic/Spike issue
+  templates, a label & issue-type taxonomy, an issue triage checklist, a dated
+  decision-log format, and a project-setup runbook. Planner and closer agents
+  now apply issue types/labels and append decision-log entries.
+
 ## [0.2.0] - 2026-06-29
 
 ### Changed

@@ -17,7 +17,7 @@ the GitHub Apps API permission model (resource: access level).
 
 | Permission | Level | Rationale |
 |---|---|---|
-| Issues | Read/Write | Create issues, post issue comments |
+| Issues | Read/Write | Create issues, post issue comments, apply `component:*`/type labels, set issue type |
 | Pull requests | Read/Write | Post PR comments, read PR metadata |
 | Metadata | Read | Required by GitHub for all Apps |
 | Contents | **None** | Planner does not read or write code |

@@ -21,3 +21,8 @@ Closes #
 ## Notes for reviewers
 
 <!-- Anything that needs extra attention or context during review -->
+
+<!--
+`component:*` labels are applied automatically by path — no need to set them.
+Remember to add a CHANGELOG.md entry under [Unreleased] for user-facing changes.
+-->
