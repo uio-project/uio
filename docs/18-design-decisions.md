@@ -36,6 +36,17 @@ and integrations is the right one.
 
 Newest first.
 
+**2026-06-30 — Make PM config declarative; retire M1–M7 for release milestones (ci, #286).**
+Closed the gap left by the initial PM adoption: issue types, milestones, and the
+Project board's custom fields are now declared in `.github/project.yml` and
+reconciled by a deterministic `project-sync` workflow + script (mirroring
+`labels-sync`), rather than documented as manual UI steps. Board *views* and
+*auto-add* stay manual (no GitHub API) and are tracked as `backlog`. The M1–M7
+phase milestones (the completed GitHub-App-identity initiative) were retired to
+`closed` in favour of release-themed milestones (`v0.2`–`v1.0`). Org-level
+reconciliation uses a maintainer `PROJECT_ADMIN_TOKEN`, deliberately outside the
+least-privilege agent identities.
+
 **2026-06-29 — Adopt GitHub-native PM taxonomy & component labeling (ci, #286).**
 Reviewed the fighters-legacy PM framework and adopted its lightest, highest-value
 lessons: path-based `component:*` PR labels mirroring conventional-commit scopes,

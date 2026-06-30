@@ -74,8 +74,10 @@ When creating or triaging an issue, classify it per the taxonomy in
 - **Apply `component:*` label(s)** for the affected subsystem(s): `cli`, `core`,
   `providers`, `registry`, `schema`, `agents`, `docs`, `ci`.
 - **Schedule it** — leave a milestone recommendation in your comment, or note
-  that it belongs in the `backlog`. Do not invent milestones; use the existing
-  M1–M7 set.
+  that it belongs in the `backlog`. Do not invent milestones; use an existing
+  repo milestone (list them with a GitHub MCP tool, or
+  `gh api repos/<owner>/<repo>/milestones --jq '.[].title'`). The declared
+  milestone set lives in `.github/project.yml`.
 
 Apply labels with a GitHub MCP tool if available, otherwise
 `gh issue edit <number> --repo <owner/repo> --add-label "<label>"`. Set the type

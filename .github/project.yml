@@ -1,0 +1,103 @@
+# Declarative project-management config for uio-project/uio — the non-label half
+# of the GitHub-native PM framework (labels live in .github/labels.yml).
+#
+# This file is the SOURCE OF TRUTH for org issue types, repository milestones, and
+# the org Project board's custom fields. It is reconciled to GitHub by
+# .github/workflows/project-sync.yml (which runs scripts/project-sync.sh) on push
+# to main touching this file, or via Actions → "Project sync" → Run workflow.
+#
+# The reconciler is idempotent and check-existence-first: it creates what is
+# missing and patches what drifted, and never deletes. Some board state cannot be
+# created via the GitHub API and stays manual — see scripts/project-sync.sh and
+# docs/runbooks/github-project-setup.md (board "views" and the "auto-add"
+# workflow).
+
+owner: uio-project
+repo: uio
+
+# Organization-level issue types (Settings → Planning → Issue types). Type is the
+# AUTHORITATIVE classification; the mirror labels in labels.yml exist for routing.
+issue_types:
+  - name: Epic
+    description: A large, multi-issue initiative tracked via sub-issues
+    color: purple
+  - name: Feature
+    description: A request, idea, or new functionality
+    color: blue
+  - name: Task
+    description: A specific, well-scoped piece of work (incl. docs/chore work)
+    color: yellow
+  - name: Spike
+    description: A time-boxed investigation that informs follow-on work
+    color: gray
+  - name: Bug
+    description: An unexpected problem or incorrect behavior
+    color: red
+
+# Repository milestones answer *when* work happens. The M1–M7 phases tracked the
+# now-complete GitHub-App-identity initiative; they are retained (closed) for
+# history. Live work uses the release-themed milestones below, or the `backlog`
+# label when unscheduled.
+milestones:
+  # --- Completed initiative (retained for history) ---
+  - title: "M1: Discovery & Design"
+    state: closed
+    due_on: 2026-05-13
+    description: Inventory current AI agent GitHub actions and define the permission model.
+  - title: "M2: GitHub App Provisioning"
+    state: closed
+    due_on: 2026-05-27
+    description: Create and configure the three GitHub App identities.
+  - title: "M3: uio Platform Engineering"
+    state: closed
+    due_on: 2026-06-17
+    description: GitHub App auth, identity routing, and attribution inside uio core.
+  - title: "M4: Agent Definitions for Registry"
+    state: closed
+    due_on: 2026-06-17
+    description: Author and publish the general-purpose agent definitions.
+  - title: "M5: Governance & Security"
+    state: closed
+    due_on: 2026-06-10
+    description: Document ownership, review cadence, branch protection, incident runbooks.
+  - title: "M6: Pilot & Credential Migration"
+    state: closed
+    due_on: 2026-07-01
+    description: End-to-end pilot and removal of personal credential dependencies.
+  - title: "M7: Evaluation & Expansion"
+    state: closed
+    due_on: 2026-07-15
+    description: Review pilot outcomes and define the next-phase roadmap.
+
+  # --- Live release-themed milestones ---
+  - title: "v0.2 — Stability & DX"
+    state: open
+    description: Hardening, bug fixes, and contributor experience.
+  - title: "v0.3 — Editor & CI integration"
+    state: open
+    description: Editor and CI/CD surface area (VS Code extension, GitHub Action).
+  - title: "v0.4 — Event-driven automation"
+    state: open
+    description: Server and event-trigger capabilities (uio serve / webhooks).
+  - title: "v1.0"
+    state: open
+    description: The 1.0 cut.
+
+# Org Project board. Number + owner identify the existing project; `fields` is the
+# set of custom fields the reconciler ensures exist (by name). Built-in fields
+# (Status, Milestone, Labels, …) are not managed here.
+#
+# NOT API-creatable, kept manual: board VIEWS (Roadmap / Board / Open Items) and
+# the AUTO-ADD workflow. See the runbook.
+project:
+  number: 1
+  fields:
+    - name: Effort
+      type: single_select
+      options: [S, M, L, XL]
+    - name: Start date
+      type: date
+    - name: Target date
+      type: date
+    - name: Order
+      type: number

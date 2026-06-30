@@ -1,0 +1,32 @@
+# Pre-commit hooks for uio. Mirrors the checks CI enforces (see
+# .github/workflows/ci.yml) so problems are caught locally before push.
+#
+#   pip install pre-commit
+#   pre-commit install                       # lint/format on every commit
+#   pre-commit install --hook-type commit-msg  # conventional-commit check
+#
+# Run against everything once with: pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  # Conventional Commits — types/scopes mirror the component labels documented
+  # in CONTRIBUTING.md and .github/labels.md.
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]

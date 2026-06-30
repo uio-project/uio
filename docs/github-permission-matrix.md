@@ -75,6 +75,14 @@ explicitly re-evaluated and approved via the escalation path defined in §5.
 | Manage GitHub Actions secrets | All | Secrets are a human responsibility |
 | Delete branches or repositories | All | Destructive; no agent use case |
 
+> **Project-management admin is a separate, non-agent identity.** Reconciling org
+> issue types, milestones, and the org Project board (via
+> [`.github/project.yml`](../.github/project.yml) /
+> [`project-sync.yml`](../.github/workflows/project-sync.yml)) requires
+> `admin:org`-scoped access, which is deliberately **excluded** from the three
+> least-privilege App identities above. That reconciler runs under a maintainer
+> PAT (`PROJECT_ADMIN_TOKEN`), not an AI agent.
+
 ---
 
 ## 3. Separation of duties — what each identity owns

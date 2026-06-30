@@ -41,4 +41,4 @@ body:
     id: milestone
     attributes:
       label: Target milestone
-      description: "Which phase milestone this belongs to (M1–M7), or 'backlog'."
+      description: "Which milestone this belongs to (see the repo's open milestones), or 'backlog'."

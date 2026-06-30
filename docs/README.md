@@ -73,8 +73,9 @@
 
 ### I want to manage issues, labels, and the project board
 
+- [Project-management framework](project-management.md) — the whole PM model in one place: taxonomy, milestones, board, triage, declarative sync
 - [Label & issue-type taxonomy](../.github/labels.md) — types vs. labels, `component:*` routing, meta labels
-- [Project setup runbook](runbooks/github-project-setup.md) — milestones (M1–M7), the org Project board, and enabling issue types
+- [Project setup runbook](runbooks/github-project-setup.md) — the declarative spec, the org Project board, and enabling issue types
 - [Contributing — triaging issues](../CONTRIBUTING.md#triaging-issues) — the per-issue triage checklist
 
 ### I want to use persistent memory across agent runs

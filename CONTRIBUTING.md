@@ -116,8 +116,9 @@ Every new issue should be triaged with:
   [`.github/labels.md`](.github/labels.md).
 - **Component label** — apply the relevant `component:*` label(s) for the
   affected subsystem. (On PRs these are applied automatically by path.)
-- **Milestone or `backlog`** — assign a milestone (M1–M7) or apply the
-  `backlog` label if unscheduled.
+- **Milestone or `backlog`** — assign a milestone or apply the `backlog` label
+  if unscheduled. The milestone set is declared in
+  [`.github/project.yml`](.github/project.yml).
 - **Epic parent** — if the issue is part of an initiative, add a
   `Parent issue: #N` line and link it as a sub-issue.
 - **Board status** — set to `Todo` once accepted.
