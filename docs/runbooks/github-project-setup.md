@@ -114,6 +114,24 @@ The GitHub ProjectV2 API cannot create board **views** or configure the
 Then enable **⚙ → Workflows → Auto-add to project** so new issues and PRs appear
 on the board without manual curation.
 
+### Reusing this setup (project templates)
+
+Because views and auto-add can't be declared in `project.yml` yet (#291), the
+supported way to reuse this board layout for a **new** project is GitHub's
+built-in **project templates**:
+
+1. With the views and custom fields configured once, open the project →
+   **⋯ → Settings** and toggle **"Make template"** (org-owned projects only).
+2. Create the new project via **New project → "Start from a template"** and pick
+   this one.
+
+A template copies **views, custom fields, and configured workflows** — but **not
+the items**. The **auto-add** workflow targets a specific project, so re-verify
+or re-enable it in each project created from the template. The declarative layer
+(`project.yml` + `project-sync`) still handles issue types, milestones, and
+fields on top, so a new repo only needs its own `project.yml` and the
+`PROJECT_ADMIN_TOKEN` secret.
+
 ## Triage checklist
 
 Every new issue (see [Contributing](../../CONTRIBUTING.md#triaging-issues)):
