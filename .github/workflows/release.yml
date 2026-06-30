@@ -18,7 +18,7 @@ jobs:
       version: ${{ steps.ver.outputs.pep }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Derive package version from tag
         id: ver
@@ -73,7 +73,7 @@ jobs:
             build_cmd: pyinstaller --onefile --name uio-windows-x86_64 uio/cli/main.py
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -97,7 +97,7 @@ jobs:
     container: python:3.12-alpine
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install build dependencies
         run: apk add --no-cache gcc musl-dev binutils
@@ -188,7 +188,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Pre-bundle npm MCP packages and github-mcp-server binary
         env:
