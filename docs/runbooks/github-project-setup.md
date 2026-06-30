@@ -93,7 +93,8 @@ A single **organization-level** Project (`uio 1.0`) holds all work. Its custom
 the reconciler:
 
 - **Effort** — size estimate; single-select T-shirt scale `S` / `M` / `L` / `XL`.
-- **Order** — manual priority ranking.
+- **Order** — manual priority ranking; the active way the backlog is sequenced
+  (lower runs first). Pre-1.0 we use `Order` instead of calendar dates.
 - **Start date / Target date** — timeline positioning for the Roadmap view.
 
 (The built-in **Status** field — Todo / In Progress / Done — already exists and
