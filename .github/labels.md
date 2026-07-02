@@ -44,6 +44,9 @@ triage.
 | `component:agents` | `definitions/` |
 | `component:docs` | docs and markdown |
 | `component:ci` | CI, workflows, build config |
+| `component:serve` | serve daemon and event triggers (`uio/serve`, planned — see [roadmap](../docs/21-roadmap.md)) |
+| `component:fleet` | fleet / clustered operation (`uio/fleet`, planned) |
+| `component:eval` | definition eval framework (`uio/eval`, planned) |
 
 ## Meta labels
 

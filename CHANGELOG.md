@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Roadmap restructure toward a fleet-capable 1.0 (#296): six release milestones
+  (`v0.3` refocused as *Editor, CI & Evals*, `v0.4` as *Trust & Observability*,
+  new `v0.5 — Serve & Events` and `v0.6 — Fleet`), a narrative roadmap
+  (`docs/21-roadmap.md`), and the serve→fleet architecture decision — stateless
+  `uio serve` workers on a pluggable durable queue (SQLite → Postgres
+  `SKIP LOCKED`), a GitOps fleet manifest, transactional cost leases, and
+  eval-gated canary rollout of definitions. New epics cover supply-chain trust,
+  run-record observability, definition evals as CI artifacts, adaptive runtime,
+  agent interop (MCP hosting, A2A), serve, and fleet. Adds
+  `component:serve`/`component:fleet`/`component:eval` labels and a pytest guard
+  for the declarative PM config (`tests/test_project_config.py`).
 - GitHub-native project-management framework (#286): path-based `component:*` PR
   labeling, a versioned label set with sync workflow, Task/Epic/Spike issue
   templates, a label & issue-type taxonomy, an issue triage checklist, a dated

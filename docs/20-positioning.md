@@ -37,6 +37,9 @@ schema to the [JSONL cost ledger](10-cost.md) to the
 | Definition sharing | No | Git-hosted [registries](11-registry.md) |
 | Complexity routing | No | small / large tiers with extended thinking |
 | Iteration caps | No | Per-tier caps, configurable |
+| Definition evals in CI | No | `*.eval.md` suites beside definitions, golden-trace replay *(v0.3, [roadmap](21-roadmap.md))* |
+| Semantic definition diff | No | LLM behavioral diff of definition changes on PRs *(v0.3, planned)* |
+| Fleet canary rollout | No | Eval-gated canary + auto-revert across a serve fleet *(v0.6, planned)* |
 
 ---
 
@@ -47,6 +50,21 @@ alongside the code it automates. Every run produces a JSONL cost entry queryable
 `uio cost`.
 
 **See also:** [use cases](15-use-cases.md) · [cost ledger](10-cost.md) · [GitHub App identities](17-github-app-identities.md) · [registries](11-registry.md)
+
+---
+
+## From one run to a fleet
+
+The [roadmap](21-roadmap.md) extends the niche from a single headless run to a
+**fleet**: multiple `uio serve` nodes pulling from a shared durable queue,
+converging on a git-hosted fleet manifest (which definition versions, budgets,
+and placement rules are live), with fleet-wide budget caps enforced as
+transactional cost leases against one append-only ledger. Definition changes
+roll out like code deploys — canary nodes run the definition's eval suite plus a
+shadow slice of live events, and a judge/cost gate promotes or auto-reverts.
+
+The positioning extends with it: uio is what runs — *and operates* — your
+agents at 3am.
 
 ---
 

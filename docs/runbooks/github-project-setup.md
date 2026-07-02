@@ -55,9 +55,16 @@ is sufficient.
 Milestones answer *when* work happens and are declared under `milestones:` in
 `project.yml`. The `M1–M7` phases tracked the now-complete GitHub-App-identity
 initiative and are retained in a **closed** state for history. Live work uses the
-release-themed milestones (`v0.2 — Stability & DX`, `v0.3 — Editor & CI
-integration`, `v0.4 — Event-driven automation`, `v1.0`), or the `backlog` label
-when unscheduled. Add or retire a milestone by editing `project.yml`.
+release-themed milestones (`v0.2 — Stability & DX`, `v0.3 — Editor, CI & Evals`,
+`v0.4 — Trust & Observability`, `v0.5 — Serve & Events`, `v0.6 — Fleet`, `v1.0`),
+or the `backlog` label when unscheduled — see the
+[roadmap](../21-roadmap.md) for the milestone themes. Add or retire a milestone
+by editing `project.yml`.
+
+> **Renaming a milestone:** the reconciler matches by exact title and never
+> deletes, so a rename in `project.yml` alone would *create a duplicate*. Patch
+> the title via the API first (`gh api -X PATCH repos/uio-project/uio/milestones/<n>
+> -f title="…"`), then merge the matching `project.yml` change.
 
 ## Organization issue types
 

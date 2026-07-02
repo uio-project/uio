@@ -73,15 +73,21 @@ milestones:
   - title: "v0.2 — Stability & DX"
     state: open
     description: Hardening, bug fixes, and contributor experience.
-  - title: "v0.3 — Editor & CI integration"
+  - title: "v0.3 — Editor, CI & Evals"
     state: open
-    description: Editor and CI/CD surface area (VS Code extension, GitHub Action).
-  - title: "v0.4 — Event-driven automation"
+    description: Editor and CI/CD surface area (VS Code extension, GitHub Action) plus the definition-eval framework (uio eval, golden traces, semantic diff).
+  - title: "v0.4 — Trust & Observability"
     state: open
-    description: Server and event-trigger capabilities (uio serve / webhooks).
+    description: Harden the single-process runtime — sandboxing, signing/SLSA, secrets, OpenTelemetry, explain, checkpoint/resume.
+  - title: "v0.5 — Serve & Events"
+    state: open
+    description: Event-driven runtime — uio serve daemon, webhooks, cron, run API/SSE, MCP hosting, A2A.
+  - title: "v0.6 — Fleet"
+    state: open
+    description: Clustered operation — Postgres-backed queue, node registry, placement, GitOps fleet manifest, cost leases, eval-gated canary rollout, watchdog.
   - title: "v1.0"
     state: open
-    description: The 1.0 cut.
+    description: The fleet-capable, governance-hardened 1.0 cut.
 
 # Org Project board. Number + owner identify the existing project; `fields` is the
 # set of custom fields the reconciler ensures exist (by name). Built-in fields
