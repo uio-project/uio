@@ -74,6 +74,15 @@
 - name: "component:ci"
   color: c5def5
   description: "CI, workflows, and build config"
+- name: "component:serve"
+  color: c5def5
+  description: "Serve daemon and event triggers (uio/serve, planned)"
+- name: "component:fleet"
+  color: c5def5
+  description: "Fleet / clustered operation (uio/fleet, planned)"
+- name: "component:eval"
+  color: c5def5
+  description: "Definition eval framework (uio/eval, planned)"
 
 # --- Type labels (mirror the GitHub issue type; type is authoritative) ---
 - name: epic

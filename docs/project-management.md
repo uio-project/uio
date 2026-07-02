@@ -31,8 +31,9 @@ the label set itself is declared in [`.github/labels.yml`](../.github/labels.yml
 Milestones answer *when* work happens. They are declared under `milestones:` in
 [`.github/project.yml`](../.github/project.yml). The historical `M1–M7` phases
 (the completed GitHub-App-identity initiative) are retained `closed`; live work
-uses release-themed milestones (`v0.2 — Stability & DX` through `v1.0`), or the
-`backlog` label when unscheduled.
+uses six release-themed milestones (`v0.2 — Stability & DX` through `v1.0`; see
+the [roadmap](21-roadmap.md) for each milestone's theme), or the `backlog` label
+when unscheduled.
 
 ## The board
 

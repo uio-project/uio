@@ -30,6 +30,7 @@
 | [18 — Design decisions](18-design-decisions.md) | Language choice rationale: why Python, and the CLI startup time trade-off |
 | [19 — Memory system](19-memory.md) | `*.memory.md` file format, scope lifecycle, prompt injection, `uio memory` CLI, and `dirs.memory` config key |
 | [20 — Positioning](20-positioning.md) | Where uio sits relative to interactive AI tools — comparison table, design rationale, and the CI/CD niche |
+| [21 — Roadmap](21-roadmap.md) | The road to 1.0 — milestone themes, epic map, and the serve→fleet architecture (queue, fleet manifest, cost leases, canary rollout) |
 
 ---
 
@@ -87,6 +88,7 @@
 ### I want to understand how uio compares to interactive tools
 
 - [Positioning](20-positioning.md) — where uio sits, the comparison table, and the CI/CD niche
+- [Roadmap](21-roadmap.md) — where uio is going: evals in CI, `uio serve`, and the fleet
 - [Use cases](15-use-cases.md) — see the positioning in action with end-to-end examples
 - [GitHub App identities](17-github-app-identities.md) — one of the key differentiators: per-agent GitHub identities
 

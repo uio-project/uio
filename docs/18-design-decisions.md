@@ -36,6 +36,29 @@ and integrations is the right one.
 
 Newest first.
 
+**2026-07-01 — Roadmap restructure: 1.0 after fleet; GitOps-on-a-queue cluster architecture; evals as CI artifacts (core, #296).**
+Expanded the roadmap from four milestones to six and moved the 1.0 cut *after*
+the server/cluster work: `v0.3` refocused as *Editor, CI & Evals*, `v0.4` as
+*Trust & Observability*, with new `v0.5 — Serve & Events` (#261's home) and
+`v0.6 — Fleet`. Rationale: serve/fleet churn public interfaces (run-record
+schema, queue API, frontmatter keys), and pre-1.0 is the license to break them —
+see [roadmap](21-roadmap.md). Three architectural commitments made:
+(1) **Cluster backbone is a durable queue + GitOps fleet manifest** — stateless
+`uio serve` workers on a pluggable queue (SQLite single-node, Postgres
+`FOR UPDATE SKIP LOCKED` multi-node reference), desired state reconciled from a
+git-hosted fleet manifest, fleet-wide budgets enforced via transactional cost
+leases. Rejected: k8s-operator-first (abandons the pip/binary DX; duplicates in
+etcd what git already provides) and coordinator-free gossip (hard budget caps
+must be transactional, not eventually consistent — the guardrail is money).
+(2) **Adaptation lands as PRs, never runtime mutation** — the routing tuner and
+definition synthesis propose git diffs; the runtime never silently rewrites its
+own behavior, preserving the audit-first property.
+(3) **Evals as first-class CI artifacts** is the flagship differentiation bet:
+`*.eval.md` suites beside definitions, golden-trace replay, semantic `uio diff`,
+and (v0.6) eval-gated canary rollout of definitions across the fleet. The
+structured run record (v0.2) is the shared substrate for all of this and ships
+first.
+
 **2026-06-30 — v1.0 tracked via a readiness epic; governance gated on public 1.0 (ci, #296).**
 Defined 1.0 readiness as an epic (#296) tracking the remaining differentiation
 work (#254 GitHub Actions integration, #261 `uio serve`) plus governance (#295),
