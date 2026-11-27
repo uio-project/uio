@@ -15,6 +15,22 @@ PROVIDER_KEY_ENV: dict[str, str | None] = {
     "ollama": None,
 }
 
+# Other variables that make a provider available. A gateway in front of Anthropic (LiteLLM, for
+# one) takes a bearer token, which the Anthropic SDK reads from ANTHROPIC_AUTH_TOKEN.
+PROVIDER_ALT_KEY_ENV: dict[str, tuple[str, ...]] = {"anthropic": ("ANTHROPIC_AUTH_TOKEN",)}
+
+
+def provider_credential(provider: str) -> str | None:
+    """The name of the variable that makes ``provider`` available, or None when none is set.
+    A provider that needs no key gives an empty string."""
+    key_env = PROVIDER_KEY_ENV.get(provider)
+    if key_env is None:
+        return "" if provider in PROVIDER_KEY_ENV else None
+    for name in (key_env, *PROVIDER_ALT_KEY_ENV.get(provider, ())):
+        if os.environ.get(name):
+            return name
+    return None
+
 
 def infer_complexity(
     agent_name: str,
@@ -71,8 +87,7 @@ def select_provider_chain(
             continue
         if p not in PROVIDER_KEY_ENV:
             continue
-        key_env = PROVIDER_KEY_ENV[p]
-        if key_env is None or os.environ.get(key_env):
+        if provider_credential(p) is not None:
             available.append(p)
     # For small complexity, fall back to Ollama only when it is in the active chain.
     # For large complexity, Ollama is excluded — an empty list tells the runner to exit cleanly.

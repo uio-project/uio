@@ -66,7 +66,7 @@ The following flags apply to `agent run`, `skill run`, and `prompt run`:
 | `--provider` | `gemini\|openai\|ollama\|anthropic` | auto | Force a specific provider; bypasses the routing chain |
 | `--model` | string | inferred | Model name override; bypasses tier selection entirely |
 | `--complexity` | `large\|small` | inferred | Complexity tier override |
-| `--base-url` | URL | env/config | OpenAI-compatible base URL (LiteLLM, Azure, local proxy) |
+| `--base-url` | URL | env/config | The provider's base URL: an OpenAI-compatible endpoint (LiteLLM, Azure, local proxy), Ollama, or an Anthropic gateway |
 | `--timeout` | integer | 300 | Per-command shell timeout in seconds |
 | `--no-mcp` | flag | off | Disable GitHub MCP server even when token is set |
 | `--shell` | `bash\|sh\|zsh\|powershell\|pwsh` | auto | Shell for `run_command`; auto-detects platform (PowerShell on Windows, bash/sh on POSIX) |
@@ -302,7 +302,7 @@ uio chat --system /path/to/system-prompt.txt
 |---|---|---|---|
 | `--provider` | string | auto | LLM provider |
 | `--model` | string | inferred | Model override |
-| `--base-url` | URL | env | OpenAI-compatible endpoint |
+| `--base-url` | URL | env | The provider's base URL: an OpenAI-compatible endpoint, Ollama, or an Anthropic gateway |
 | `--system` | path | built-in | File whose contents become the system prompt |
 | `--tools` | flag | off | Expose `run_command` to the model |
 | `--auto-approve` | flag | off | Skip per-command approval prompts; implies `--tools` |
@@ -602,6 +602,8 @@ Add-Content $PROFILE "`nuio completion pwsh | Out-String | Invoke-Expression"
 | `OPENAI_API_KEY` | OpenAI / LiteLLM authentication | — |
 | `OPENAI_BASE_URL` | Override OpenAI base URL | `--base-url` flag |
 | `OLLAMA_BASE_URL` | Ollama base URL (default: `http://localhost:11434/v1`) | `--base-url` flag |
+| `ANTHROPIC_BASE_URL` | Anthropic base URL, such as a gateway in front of it | `--base-url` flag |
+| `ANTHROPIC_AUTH_TOKEN` | A bearer token for that gateway; makes the Anthropic provider available on its own | — |
 | `GITHUB_PERSONAL_ACCESS_TOKEN` | Enables GitHub MCP server; used for registry fetches | — |
 | `GITHUB_TOKEN` | Alternative to `GITHUB_PERSONAL_ACCESS_TOKEN` | — |
 | `MCP_GITHUB_COMMAND` | Override MCP server launch command | `[mcp.github].command` in uio.toml |

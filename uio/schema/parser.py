@@ -33,6 +33,7 @@ KNOWN_FRONTMATTER_KEYS: frozenset[str] = frozenset(
         "vcs-provider",
         "schema",
         "extends",
+        "builtin-tools",
     ]
 )
 
@@ -235,6 +236,24 @@ def validate_definition(path: str, frontmatter: dict) -> list[str]:
     guardrails = frontmatter.get("guardrails")
     if guardrails is not None and not isinstance(guardrails, dict):
         errors.append(f"{path}: 'guardrails' must be a mapping, got {type(guardrails).__name__}")
+    if isinstance(guardrails, dict) and not isinstance(guardrails.get("final_turn", False), bool):
+        errors.append(f"{path}: 'guardrails.final_turn' must be true or false")
+
+    # builtin-tools: the built-in tools the agent is offered
+    tools = frontmatter.get("builtin-tools")
+    if tools is not None:
+        from uio.core.tools import BUILTIN_TOOLS
+
+        names = [tools] if isinstance(tools, str) else tools
+        if not isinstance(names, list):
+            errors.append(f"{path}: 'builtin-tools' must be a list of built-in tool names")
+        else:
+            for name in names:
+                if name not in BUILTIN_TOOLS:
+                    errors.append(
+                        f"{path}: unknown built-in tool '{name}' in 'builtin-tools'"
+                        f" — must be one of {sorted(BUILTIN_TOOLS)}"
+                    )
 
     # capabilities validation
     capabilities = frontmatter.get("capabilities") or []

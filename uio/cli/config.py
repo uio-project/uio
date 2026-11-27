@@ -9,7 +9,7 @@ import click
 
 from uio.config import get_starter_toml, load_config
 from uio.core.clients import PROVIDER_DEFAULTS, PROVIDER_SMALL_MODELS
-from uio.core.routing import PROVIDER_KEY_ENV, select_provider_chain
+from uio.core.routing import PROVIDER_KEY_ENV, provider_credential, select_provider_chain
 
 
 @click.group("config", no_args_is_help=True)
@@ -37,9 +37,10 @@ def config_show_cmd() -> None:
     for provider in all_providers:
         key_env = PROVIDER_KEY_ENV.get(provider)
         if key_env:
-            key_set = bool(os.environ.get(key_env))
+            found = provider_credential(provider)
+            key_set = bool(found)
             status = "✓" if key_set else "✗"
-            key_display = f"{key_env}={'***' if key_set else '(not set)'}"
+            key_display = f"{found or key_env}={'***' if key_set else '(not set)'}"
         else:
             status = "✓"
             key_display = "(no key required)"
