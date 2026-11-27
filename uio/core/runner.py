@@ -18,7 +18,7 @@ from uio.core.ledger import DEFAULT_LEDGER_PATH, estimate_cost_usd, write_cost_l
 from uio.core.mcp import make_mcp_clients
 from uio.core.memory import build_memory_section, clear_session_memory, estimate_tokens
 from uio.core.routing import infer_complexity, select_model, select_provider_chain
-from uio.core.tools import DEFAULT_TIMEOUT, TOOL_SCHEMA, execute_tool
+from uio.core.tools import BUILTIN_TOOLS, DEFAULT_BUILTIN_TOOLS, DEFAULT_TIMEOUT, execute_tool
 from uio.core.vcs import build_tool_alias_section
 from uio.schema.parser import parse_definition_file
 
@@ -182,10 +182,53 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
     return role
 
 
+FINAL_TURN_NOTE = (
+    "You have reached the limit on tool calls for this run, and no tool will run any more. "
+    "Give your final answer now, from what you have already found, in the form your instructions "
+    "ask for. Say plainly what you did not get to."
+)
+
+
+def resolve_builtin_tools(frontmatter: dict) -> tuple[str, ...]:
+    """The built-in tools an agent is offered: its ``builtin-tools:`` list, or ``run_command``
+    alone. (``tools:`` is left to the editors that share these files, as before.)"""
+    names = frontmatter.get("builtin-tools")
+    if names is None:
+        return DEFAULT_BUILTIN_TOOLS
+    if isinstance(names, str):
+        names = [names]
+    unknown = [n for n in names if n not in BUILTIN_TOOLS]
+    if unknown:
+        raise ValueError(
+            f"unknown built-in tool(s) in 'builtin-tools': {unknown} — must be from {sorted(BUILTIN_TOOLS)}"
+        )
+    return tuple(dict.fromkeys(names))
+
+
+def _build_file_tools_preamble(builtin: tuple[str, ...], has_mcp: bool) -> str:
+    """The preamble of an agent that has no shell: what it can do instead."""
+    listed = ", ".join(f"`{name}`" for name in builtin) or "none"
+    mcp_line = (
+        "\n**`mcp__<server>__*`** — native MCP tools, listed in the tool schema.\n"
+        if has_mcp
+        else ""
+    )
+    return f"""\
+## ℹ️ Runtime — Tools Available
+
+You are running inside uio. There is no shell in this run: `run_command` does not exist.
+The built-in tools you have: {listed}. They read files inside your working directory and
+nothing outside it; nothing here can change a file.
+{mcp_line}
+---
+"""
+
+
 def _build_preamble(
     has_mcp: bool,
     shell_override: str | None = None,
     vcs_provider: str | None = None,
+    builtin: tuple[str, ...] = DEFAULT_BUILTIN_TOOLS,
 ) -> str:
     """Build the runtime preamble injected before the agent system prompt.
 
@@ -197,6 +240,8 @@ def _build_preamble(
     """
     shell_name = shell_override or ("PowerShell" if sys.platform == "win32" else "bash/sh")
     alias_section = build_tool_alias_section(vcs_provider) if vcs_provider else ""
+    if "run_command" not in builtin:
+        return _build_file_tools_preamble(builtin, has_mcp) + alias_section
     if has_mcp:
         return f"""\
 ## ℹ️ Runtime — Tools Available
@@ -321,7 +366,9 @@ def run_agent(
     if not no_mcp:
         mcp_clients = make_mcp_clients(mcp_cfg or {}, plugins=mcp_plugins)
 
-    all_tools = [TOOL_SCHEMA]
+    builtin_tools = resolve_builtin_tools(frontmatter)
+    fs_root = os.getcwd()
+    all_tools = [BUILTIN_TOOLS[name] for name in builtin_tools]
     failed: list[str] = []
     for server_name, client in list(mcp_clients.items()):
         try:
@@ -345,7 +392,7 @@ def run_agent(
     if role in KNOWN_ROLES or "vcs" in _caps:
         vcs_provider = frontmatter.get("vcs-provider", "github")
 
-    preamble = _build_preamble(bool(mcp_clients), shell_override, vcs_provider)
+    preamble = _build_preamble(bool(mcp_clients), shell_override, vcs_provider, builtin_tools)
 
     memory_block = build_memory_section(memory_dir) if memory_dir else ""
     memory_suffix = ("\n\n" + memory_block.rstrip()) if memory_block else ""
@@ -368,6 +415,7 @@ def run_agent(
     guardrail_max_cost: float | None = guardrails.get("max_cost_usd")
     guardrail_max_turns: int | None = guardrails.get("max_turns")
     guardrail_deny_tools: list[str] = guardrails.get("deny_tools") or []
+    guardrail_final_turn: bool = bool(guardrails.get("final_turn", False))
 
     # max_turns from frontmatter takes precedence over the global cap.
     cap = (
@@ -434,6 +482,30 @@ def run_agent(
             history = client.build_history(user_message)
             total_prompt = 0
             total_completion = 0
+            total_cache_read = 0
+            total_cache_write = 0
+
+            def _ledger() -> None:
+                write_cost_ledger(
+                    agent_name,
+                    candidate_provider,
+                    resolved_model,
+                    total_prompt,
+                    total_completion,
+                    ledger_path,
+                    workflow=workflow,
+                    workflow_run_id=workflow_run_id,
+                    cache_read_tokens=total_cache_read,
+                    cache_write_tokens=total_cache_write,
+                )
+                if cost_callback is not None:
+                    cost_callback(
+                        agent_name,
+                        candidate_provider,
+                        resolved_model,
+                        total_prompt,
+                        total_completion,
+                    )
 
             try:
                 for iteration in range(1, cap + 1):
@@ -457,30 +529,15 @@ def run_agent(
                     if response.usage:
                         total_prompt += response.usage.prompt_tokens
                         total_completion += response.usage.completion_tokens
+                        total_cache_read += response.usage.cache_read_tokens
+                        total_cache_write += response.usage.cache_write_tokens
 
                     if response.text:
                         print(response.text)
 
                     if not response.tool_calls:
                         print("\n✅ Agent finished.")
-                        write_cost_ledger(
-                            agent_name,
-                            candidate_provider,
-                            resolved_model,
-                            total_prompt,
-                            total_completion,
-                            ledger_path,
-                            workflow=workflow,
-                            workflow_run_id=workflow_run_id,
-                        )
-                        if cost_callback is not None:
-                            cost_callback(
-                                agent_name,
-                                candidate_provider,
-                                resolved_model,
-                                total_prompt,
-                                total_completion,
-                            )
+                        _ledger()
                         _clean_exit = True
                         return response.text or ""
 
@@ -490,18 +547,11 @@ def run_agent(
                             resolved_model,
                             total_prompt,
                             total_completion,
+                            total_cache_read,
+                            total_cache_write,
                         )
                         if running_cost > guardrail_max_cost:
-                            write_cost_ledger(
-                                agent_name,
-                                candidate_provider,
-                                resolved_model,
-                                total_prompt,
-                                total_completion,
-                                ledger_path,
-                                workflow=workflow,
-                                workflow_run_id=workflow_run_id,
-                            )
+                            _ledger()
                             raise GuardrailError(
                                 f"max_cost_usd {guardrail_max_cost} exceeded"
                                 f" (running cost ${running_cost:.6f})"
@@ -529,34 +579,38 @@ def run_agent(
                                         mcp_clients=mcp_clients,
                                         timeout=timeout,
                                         shell_override=shell_override,
+                                        allowed=builtin_tools,
+                                        fs_root=fs_root,
                                     ),
                                 )
                             )
                     client.append_turn(history, response, tool_results)
 
-                print(f"\n⚠️  Reached iteration cap ({cap}). Stopping.")
+                print(f"\n⚠️  Reached iteration cap ({cap}).")
+                if guardrail_final_turn:
+                    # One more turn with every tool turned off: the answer from what was found.
+                    print("  [guardrail] final_turn: asking for the answer with tools off")
+                    client.append_user_text(history, FINAL_TURN_NOTE)
+                    response = client.chat(
+                        system=system_prompt, history=history, tools_enabled=False
+                    )
+                    if response.usage:
+                        total_prompt += response.usage.prompt_tokens
+                        total_completion += response.usage.completion_tokens
+                        total_cache_read += response.usage.cache_read_tokens
+                        total_cache_write += response.usage.cache_write_tokens
+                    if response.text and not response.tool_calls:
+                        print(response.text)
+                        print("\n✅ Agent finished on its final turn.")
+                        _ledger()
+                        _clean_exit = True
+                        return response.text
+                print("   Stopping.")
                 print(
                     f"   The agent did not finish. Increase max_iterations{'_large' if resolved_complexity == 'large' else ''}"
                     " in uio.toml or use --complexity to change the tier."
                 )
-                write_cost_ledger(
-                    agent_name,
-                    candidate_provider,
-                    resolved_model,
-                    total_prompt,
-                    total_completion,
-                    ledger_path,
-                    workflow=workflow,
-                    workflow_run_id=workflow_run_id,
-                )
-                if cost_callback is not None:
-                    cost_callback(
-                        agent_name,
-                        candidate_provider,
-                        resolved_model,
-                        total_prompt,
-                        total_completion,
-                    )
+                _ledger()
                 _clean_exit = True
                 return None
 

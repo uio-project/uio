@@ -107,16 +107,31 @@ Gemini is the recommended starting point — the small tier (`gemini-2.5-flash-l
 
 | Tier | Model | Notes |
 |---|---|---|
-| `small` | `claude-haiku-4-5-20251001` | Fast and cost-efficient |
-| `large` | `claude-sonnet-4-6` | Default; strong reasoning for complex agents |
+| `small` | `claude-haiku-5-5` | Fast and cost-efficient |
+| `large` | `claude-sonnet-5-5` | Default; strong reasoning for complex agents |
 
-> **Note:** The LiteLLM proxy workaround for Claude (previously documented below) is no longer needed. Use `--provider anthropic` or set `ANTHROPIC_API_KEY` directly.
+Any other current model can be named with `--model`, such as `claude-opus-5-5` or `claude-fable-5-2`.
+
+### Through a gateway
+
+To send Claude calls through a gateway that speaks the Anthropic Messages API (LiteLLM, for one), name its address and give it the gateway's own key as a bearer token:
+
+```bash
+export ANTHROPIC_BASE_URL=http://127.0.0.1:4000   # or --base-url on the command line
+export ANTHROPIC_AUTH_TOKEN=<the gateway's key>   # sent as "Authorization: Bearer"
+```
+
+`ANTHROPIC_AUTH_TOKEN` alone makes the provider available, as `ANTHROPIC_API_KEY` does; `uio config show` says which one it found. `--base-url` takes precedence over `ANTHROPIC_BASE_URL`.
+
+### Prompt caching
+
+Every Anthropic call marks the system prompt (with the tool list) and the newest message for caching. Each turn of an agent loop then reads everything before it from the cache, at a tenth of the input rate, instead of paying the full rate for its whole history again. The ledger records the cached tokens apart, and the cost estimate prices them at their own rates (see [Cost](10-cost.md#cost-formula)).
 
 ### Extended thinking
 
 When `complexity: large` is set (in frontmatter or via `--complexity large`), uio automatically enables Anthropic's extended thinking. The model reasons internally before producing its response, which improves accuracy on multi-step tasks at the cost of additional tokens.
 
-The thinking budget is derived automatically from `max_tokens` (see below) and cannot be set independently.
+Claude 4.6 and later models get adaptive thinking (`{"type": "adaptive"}`): the model decides how much to think. From 4.7 on they refuse a fixed thinking budget, so uio never sends one to them. Older models (Haiku 4.5, Sonnet 4.5 and earlier) get a thinking budget derived from `max_tokens` (see below), which cannot be set independently. A model name uio cannot read the version from, such as a gateway's own alias, is treated as current.
 
 ### max_tokens
 
@@ -342,6 +357,10 @@ Costs are in USD per 1 million tokens (input / output).
 |---|---|---|---|
 | `gemini` | `gemini-2.5-flash` | $0.15 | $0.60 |
 | `gemini` | `gemini-2.5-flash-lite` | $0.10 | $0.40 |
+| `anthropic` | `claude-fable-5-2` | $8.00 | $40.00 |
+| `anthropic` | `claude-opus-5-5` | $4.00 | $20.00 |
+| `anthropic` | `claude-sonnet-5-5` | $2.00 | $10.00 |
+| `anthropic` | `claude-haiku-5-5` | $0.10 | $0.50 |
 | `anthropic` | `claude-sonnet-4-6` | $3.00 | $15.00 |
 | `anthropic` | `claude-haiku-4-5-20251001` | $0.80 | $4.00 |
 | `openai` | `gpt-4o` | $2.50 | $10.00 |

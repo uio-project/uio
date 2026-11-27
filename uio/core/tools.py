@@ -6,6 +6,8 @@ import subprocess
 import sys
 from typing import TYPE_CHECKING, NamedTuple
 
+from uio.core.fs_tools import FS_TOOL_SCHEMAS, execute_fs_tool
+
 if TYPE_CHECKING:
     from uio.core.mcp import MCPClient
 
@@ -53,6 +55,12 @@ TOOL_SCHEMA = {
 }
 
 
+# Every built-in tool, by name. An agent is offered `run_command` unless its frontmatter's
+# `builtin-tools:` names others; the file tools only read, inside the run's working directory.
+BUILTIN_TOOLS: dict[str, dict] = {"run_command": TOOL_SCHEMA, **FS_TOOL_SCHEMAS}
+DEFAULT_BUILTIN_TOOLS: tuple[str, ...] = ("run_command",)
+
+
 class ToolCall(NamedTuple):
     name: str
     args: dict
@@ -65,7 +73,18 @@ def execute_tool(
     mcp_clients: "dict[str, MCPClient] | None" = None,
     timeout: int = DEFAULT_TIMEOUT,
     shell_override: str | None = None,
+    allowed: "tuple[str, ...] | list[str] | None" = None,
+    fs_root: str | None = None,
 ) -> str:
+    """Run one tool call. ``allowed`` names the built-in tools this run was offered: a call to
+    any other built-in tool is refused, so a model cannot reach the shell by naming it."""
+    builtin_allowed = DEFAULT_BUILTIN_TOOLS if allowed is None else tuple(allowed)
+    if tc.name in BUILTIN_TOOLS and tc.name not in builtin_allowed:
+        return f"Error: the tool {tc.name!r} is not available in this run"
+    if tc.name in FS_TOOL_SCHEMAS:
+        target = tc.args.get("path") or tc.args.get("pattern") or ""
+        print(f"  [tool] {tc.name} {target}".rstrip())
+        return execute_fs_tool(tc.name, tc.args, fs_root or ".")
     if tc.name == "run_command":
         command = tc.args.get("command", "")
         print(f"  [tool] $ {command}")

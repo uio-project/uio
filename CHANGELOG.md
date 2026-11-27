@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Read-only agents on current Claude models (#359):
+  - **Built-in file tools.** `read_file`, `list_files` and `search_files` only read, and stay
+    inside the run's working directory: a path out of it, through `..` or a symbolic link, is
+    refused.
+  - **`builtin-tools:`.** This new frontmatter key chooses which built-in tools an agent is
+    offered. Without it the agent gets `run_command`, as before. An agent offered only the file
+    tools is neither given a shell nor told about one, and a call to a built-in tool it was not
+    offered runs nothing. `tools:`, which some editors use in these files, is still ignored.
+  - **`guardrails.final_turn`.** At the turn cap the model is asked once more, with every tool
+    off, so a run that hits its limit answers from what it found instead of ending with nothing.
+  - **A gateway in front of Anthropic.** `--base-url`, `ANTHROPIC_BASE_URL` and a bearer token
+    (`ANTHROPIC_AUTH_TOKEN`, which alone makes the provider available) all reach the Anthropic
+    provider.
+  - **Prompt caching.** Every Anthropic call caches the system prompt, the tool list and the
+    newest message, so each turn of a loop reads its history from the cache. The ledger records
+    `cache_read_tokens` and `cache_write_tokens`, and the cost estimate prices them at a tenth
+    of the input rate and at 1.25 times it.
 - Roadmap restructure toward a fleet-capable 1.0 (#296): six release milestones
   (`v0.3` refocused as *Editor, CI & Evals*, `v0.4` as *Trust & Observability*,
   new `v0.5 — Serve & Events` and `v0.6 — Fleet`), a narrative roadmap
@@ -31,6 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the M1–M7 phase milestones in favour of release-themed milestones (`v0.2`–`v1.0`).
 - `.pre-commit-config.yaml` mirroring the CI ruff checks plus a conventional-commit
   hook (resolves the gap referenced by `CONTRIBUTING.md`).
+
+### Changed
+
+- Anthropic on Claude 5 (#359): the tier defaults are `claude-sonnet-5-5` (large) and
+  `claude-haiku-5-5` (small). The cost table adds Fable 5.2, Opus 5.5, Sonnet 5.5 and Haiku 5.5.
+
+### Fixed
+
+- Extended thinking on current Claude models (#359): a `complexity: large` run sent a fixed
+  `budget_tokens`, which Claude 4.7 and later refuse with a 400. Claude 4.6 and later now get
+  adaptive thinking; older models keep the budget.
+
 
 ## [0.2.0] - 2026-06-29
 

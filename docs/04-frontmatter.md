@@ -52,6 +52,7 @@ vcs-identity: planner
 | `vcs-identity` | `planner` \| `coder` \| `reviewer` | No | — | VCS App identity to obtain for this agent's repository operations — see below |
 | `vcs-provider` | `github` \| `gitlab` | No | `github` | VCS platform targeted by `vcs-identity`; controls which MCP tool aliases are injected |
 | `max_tokens` | integer | No | `16000` | Overrides `runtime.anthropic_max_tokens` for this agent; Anthropic provider only — see [`max_tokens`](#max_tokens) below |
+| `builtin-tools` | list of strings | No | `[run_command]` | The built-in tools the agent is offered — see [`builtin-tools`](#builtin-tools) below |
 | `guardrails` | mapping | No | — | Cost, turn, and tool guardrails — see [`guardrails`](#guardrails) below |
 | `context` | string or list of strings | No | — | Glob pattern(s) whose matching files are injected as a `## Context` block in the system prompt; de-duplicated and truncated at `runtime.context_max_tokens` (default 8000) tokens — see [`context`](#context) below |
 | `schema` | mapping or string | No | — | JSON Schema for structured output; instructs the provider to return validated JSON — see [`schema`](#schema) below |
@@ -223,6 +224,7 @@ Optional cost, turn, and tool-blocking limits that apply to a single agent defin
 | `max_cost_usd` | float | Abort the run if cumulative USD cost exceeds this value. The cost is checked after each tool-call turn using the provider's token pricing. |
 | `max_turns` | integer | Cap the number of tool-call turns for this agent. Overrides the global `runtime.max_turns` setting. |
 | `deny_tools` | list of strings | Glob patterns matched against tool names. Any tool whose name matches a pattern is blocked; the run continues and the tool call returns an error result instead of executing. |
+| `final_turn` | boolean | When the run reaches its turn cap, ask the model once more with every tool turned off, so it answers from what it has found instead of ending with nothing. Default `false`. |
 
 ```yaml
 ---
@@ -236,6 +238,33 @@ guardrails:
     - "run_command"
 ---
 ```
+
+### `builtin-tools`
+
+The built-in tools the agent is offered. Without this key it gets `run_command`, the shell, as before. An agent that should only read files names the file tools instead, and is then not offered the shell at all, nor told about one:
+
+| Tool | What it does |
+|---|---|
+| `run_command` | Run a shell command (the default) |
+| `read_file` | Read a text file, a page of 2,000 numbered lines at a time (`offset`, `limit`) |
+| `list_files` | List the files matching a glob, such as `**/*.py` (at most 500) |
+| `search_files` | Search file contents for a regular expression (at most 200 matches; `glob`, `ignore_case`) |
+
+The three file tools only read. They work inside the run's working directory: a path that leads out of it, through `..` or a symbolic link, is refused. A call to a built-in tool the agent was not offered returns an error and runs nothing. MCP tools are unaffected.
+
+```yaml
+---
+name: docs-checker
+description: Compare the docs with the code.
+complexity: large
+builtin-tools: [read_file, list_files, search_files]
+guardrails:
+  max_turns: 60
+  final_turn: true
+---
+```
+
+`tools:`, a key some editors use in files like these, is still ignored by uio.
 
 ### `context`
 

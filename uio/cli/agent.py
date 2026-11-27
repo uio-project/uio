@@ -244,7 +244,11 @@ def agent_group() -> None:
     default=None,
     help="Task complexity tier (default: inferred from frontmatter or uio.toml).",
 )
-@click.option("--base-url", default=None, help="Base URL for an OpenAI-compatible endpoint.")
+@click.option(
+    "--base-url",
+    default=None,
+    help="Base URL of the provider: an OpenAI-compatible endpoint, Ollama, or an Anthropic gateway.",
+)
 @click.option(
     "--timeout", default=None, show_default=True, type=int, help="Per-command timeout in seconds."
 )

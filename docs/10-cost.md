@@ -47,14 +47,21 @@ Each line is a JSON object:
 | `completion_tokens` | integer | Output tokens |
 | `total_tokens` | integer | `prompt_tokens + completion_tokens` |
 | `estimated_cost_usd` | float | Estimated cost in USD, rounded to 6 decimal places |
+| `cache_read_tokens` | integer | Input read from the provider's prompt cache. Present only when there was any (Anthropic). Not in `prompt_tokens` |
+| `cache_write_tokens` | integer | Input written to the provider's prompt cache. Present only with `cache_read_tokens`. Not in `prompt_tokens` |
 
 ---
 
 ## Cost formula
 
 ```
-estimated_cost_usd = (prompt_tokens × input_rate + completion_tokens × output_rate) / 1_000_000
+estimated_cost_usd = (prompt_tokens × input_rate
+                      + cache_read_tokens × input_rate × 0.1
+                      + cache_write_tokens × input_rate × 1.25
+                      + completion_tokens × output_rate) / 1_000_000
 ```
+
+The cache terms are zero for a provider without prompt caching.
 
 Rates come from `TOKEN_COSTS_PER_1M` in `uio/core/clients.py` (see [Providers — token cost table](07-providers.md#token-cost-reference)). Ollama runs always record `0.0`.
 

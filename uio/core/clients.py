@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
+import re
 from abc import ABC, abstractmethod
 from typing import NamedTuple
 
@@ -11,14 +13,14 @@ from uio.core.tools import TOOL_SCHEMA, ToolCall
 
 PROVIDER_DEFAULTS = {
     "gemini": "gemini-2.5-flash",
-    "anthropic": "claude-sonnet-4-6",
+    "anthropic": "claude-sonnet-5-5",
     "openai": "gpt-4o",
     "ollama": "llama3.1:8b",
 }
 
 PROVIDER_SMALL_MODELS = {
     "gemini": "gemini-2.5-flash-lite",
-    "anthropic": "claude-haiku-4-5-20251001",
+    "anthropic": "claude-haiku-5-5",
     "openai": "gpt-4o-mini",
     "ollama": "llama3.1:8b",
 }
@@ -28,6 +30,10 @@ OLLAMA_BASE_URL = "http://localhost:11434/v1"
 TOKEN_COSTS_PER_1M: dict[str, tuple[float, float]] = {
     "gemini/gemini-2.5-flash": (0.15, 0.60),
     "gemini/gemini-2.5-flash-lite": (0.10, 0.40),
+    "anthropic/claude-fable-5-2": (8.00, 40.00),
+    "anthropic/claude-opus-5-5": (4.00, 20.00),
+    "anthropic/claude-sonnet-5-5": (2.00, 10.00),
+    "anthropic/claude-haiku-5-5": (0.10, 0.50),
     "anthropic/claude-sonnet-4-6": (3.00, 15.00),
     "anthropic/claude-haiku-4-5-20251001": (0.80, 4.00),
     "openai/gpt-4o": (2.50, 10.0),
@@ -37,8 +43,14 @@ TOKEN_COSTS_PER_1M: dict[str, tuple[float, float]] = {
 
 
 class TokenUsage(NamedTuple):
+    """Tokens of one call. ``prompt_tokens`` counts the input billed at the full rate; a provider
+    with prompt caching reports the input it read from its cache, and the input it wrote to it,
+    apart, because each has its own price."""
+
     prompt_tokens: int
     completion_tokens: int
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
 
 
 class LLMResponse(NamedTuple):
@@ -53,8 +65,11 @@ class LLMClient(ABC):
         """Return an initial message history containing the first user message."""
 
     @abstractmethod
-    def chat(self, system: str, history: list) -> LLMResponse:
-        """Send the conversation and return the model's response."""
+    def chat(self, system: str, history: list, tools_enabled: bool = True) -> LLMResponse:
+        """Send the conversation and return the model's response.
+
+        With ``tools_enabled`` False the model is told it may not call a tool this turn, so it
+        answers in text: the runner's final turn at the iteration cap."""
 
     @abstractmethod
     def append_turn(
@@ -64,6 +79,10 @@ class LLMClient(ABC):
         tool_results: list[tuple[ToolCall, str]],
     ) -> None:
         """Append a completed model turn (plus tool results) to the history."""
+
+    def append_user_text(self, history: list, text: str) -> None:
+        """Add a note from the runner as the user's next words."""
+        history.append({"role": "user", "content": text})
 
 
 _GEMINI_SCHEMA_DENYLIST = frozenset({"additionalProperties"})
@@ -117,12 +136,16 @@ class GeminiClient(LLMClient):
     def build_history(self, user_text: str) -> list:
         return [{"role": "user", "parts": [{"text": user_text}]}]
 
-    def chat(self, system: str, history: list) -> LLMResponse:
+    def chat(self, system: str, history: list, tools_enabled: bool = True) -> LLMResponse:
         types = self._types
         config_kwargs: dict = {
             "system_instruction": system,
             "tools": [types.Tool(function_declarations=self._func_decls)],
         }
+        if not tools_enabled:
+            config_kwargs["tool_config"] = types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(mode="NONE")
+            )
         if self._output_schema is not None:
             config_kwargs.pop(
                 "tools", None
@@ -149,6 +172,9 @@ class GeminiClient(LLMClient):
                 completion_tokens=getattr(um, "candidates_token_count", 0) or 0,
             )
         return LLMResponse(text="\n".join(text_parts) or None, tool_calls=calls, usage=usage)
+
+    def append_user_text(self, history: list, text: str) -> None:
+        history.append({"role": "user", "parts": [{"text": text}]})
 
     def append_turn(
         self,
@@ -199,13 +225,15 @@ class OpenAIClient(LLMClient):
     def build_history(self, user_text: str) -> list:
         return [{"role": "user", "content": user_text}]
 
-    def chat(self, system: str, history: list) -> LLMResponse:
+    def chat(self, system: str, history: list, tools_enabled: bool = True) -> LLMResponse:
         messages = [{"role": "system", "content": system}] + history
         create_kwargs: dict = {
             "model": self._model,
             "messages": messages,
             "tools": [{"type": "function", "function": t} for t in self._tools],
         }
+        if not tools_enabled:
+            create_kwargs["tool_choice"] = "none"
         if self._output_schema is not None:
             create_kwargs.pop(
                 "tools", None
@@ -274,6 +302,36 @@ def _to_anthropic_tool(tool: dict) -> dict:
 
 _ANTHROPIC_DEFAULT_MAX_TOKENS = 16000
 
+# Claude 4.6 and later take adaptive thinking; from 4.7 on a `budget_tokens` request is refused.
+# A dated id (claude-opus-4-20250514) has no minor version: its date is not one.
+_CLAUDE_VERSION = re.compile(
+    r"claude-(?:opus|sonnet|haiku|fable|mythos)-(\d+)(?:-(\d{1,2}))?(?:-|$)"
+)
+_CACHE = {"type": "ephemeral"}
+
+
+def uses_adaptive_thinking(model: str) -> bool:
+    """Whether ``model`` takes adaptive thinking. A name this cannot read, such as a gateway's
+    own alias, is taken to be a current model."""
+    match = _CLAUDE_VERSION.search(model)
+    if not match:
+        return True
+    return (int(match.group(1)), int(match.group(2) or 0)) >= (4, 6)
+
+
+def with_cache_breakpoint(history: list) -> list:
+    """The history with a cache breakpoint on the newest message, which is copied, so the stored
+    history never carries one. Each turn then reads everything before it from the cache."""
+    if not history:
+        return history
+    last = copy.deepcopy(history[-1])
+    content = last.get("content")
+    if isinstance(content, str):
+        last["content"] = [{"type": "text", "text": content, "cache_control": _CACHE}]
+    elif isinstance(content, list) and content and isinstance(content[-1], dict):
+        content[-1]["cache_control"] = _CACHE
+    return [*history[:-1], last]
+
 
 def serialize_anthropic_block(block) -> dict:
     """Convert an Anthropic SDK content block to a plain dict for history storage."""
@@ -295,10 +353,13 @@ class AnthropicClient(LLMClient):
         tools: list[dict] | None = None,
         complexity: str | None = None,
         max_tokens: int | None = None,
+        base_url: str | None = None,
     ) -> None:
         import anthropic
 
-        self._client = anthropic.Anthropic()
+        # The SDK reads ANTHROPIC_API_KEY, or ANTHROPIC_AUTH_TOKEN for a bearer token, and
+        # ANTHROPIC_BASE_URL itself; --base-url wins over the variable.
+        self._client = anthropic.Anthropic(**({"base_url": base_url} if base_url else {}))
         self._model = model or os.environ.get("LLM_MODEL") or PROVIDER_DEFAULTS["anthropic"]
         schemas = tools if tools is not None else [TOOL_SCHEMA]
         self._tools = [_to_anthropic_tool(t) for t in schemas]
@@ -309,17 +370,23 @@ class AnthropicClient(LLMClient):
     def build_history(self, user_text: str) -> list:
         return [{"role": "user", "content": user_text}]
 
-    def chat(self, system: str, history: list) -> LLMResponse:
+    def chat(self, system: str, history: list, tools_enabled: bool = True) -> LLMResponse:
         kwargs: dict = {}
         if self._complexity == "large":
-            budget = min(10000, max(1024, self._max_tokens - 4096))
-            kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
+            if uses_adaptive_thinking(self._model):
+                kwargs["thinking"] = {"type": "adaptive"}
+            else:
+                budget = min(10000, max(1024, self._max_tokens - 4096))
+                kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
+        if not tools_enabled:
+            kwargs["tool_choice"] = {"type": "none"}
         resp = self._client.messages.create(
             model=self._model,
             max_tokens=self._max_tokens,
-            system=system,
+            # The tools and the system prompt are the same every turn: cached once, read after.
+            system=[{"type": "text", "text": system, "cache_control": _CACHE}],
             tools=self._tools,
-            messages=history,
+            messages=with_cache_breakpoint(history),
             **kwargs,
         )
         self._last_raw_content = [serialize_anthropic_block(b) for b in resp.content]
@@ -334,6 +401,8 @@ class AnthropicClient(LLMClient):
             usage = TokenUsage(
                 prompt_tokens=resp.usage.input_tokens,
                 completion_tokens=resp.usage.output_tokens,
+                cache_read_tokens=getattr(resp.usage, "cache_read_input_tokens", 0) or 0,
+                cache_write_tokens=getattr(resp.usage, "cache_creation_input_tokens", 0) or 0,
             )
         return LLMResponse(text=text, tool_calls=calls, usage=usage)
 
@@ -367,6 +436,16 @@ class AnthropicClient(LLMClient):
                     ],
                 }
             )
+
+    def append_user_text(self, history: list, text: str) -> None:
+        # The roles alternate: after tool results the note joins that user turn.
+        if history and history[-1].get("role") == "user":
+            content = history[-1]["content"]
+            if isinstance(content, str):
+                content = [{"type": "text", "text": content}]
+            history[-1]["content"] = [*content, {"type": "text", "text": text}]
+        else:
+            history.append({"role": "user", "content": text})
 
 
 class OllamaClient(OpenAIClient):
@@ -417,7 +496,11 @@ def make_client(
         return GeminiClient(model=model, tools=tools, output_schema=output_schema)
     if provider == "anthropic":
         return AnthropicClient(
-            model=model, tools=tools, complexity=complexity, max_tokens=max_tokens
+            model=model,
+            tools=tools,
+            complexity=complexity,
+            max_tokens=max_tokens,
+            base_url=base_url,
         )
     if provider == "openai":
         return OpenAIClient(
