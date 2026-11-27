@@ -49,8 +49,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      # The same ruff as uv.lock and .pre-commit-config.yaml: an unpinned install takes every new
+      # release, whose new rules turn main red without a change to the code.
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.15.12
 
       - name: Check formatting
         run: ruff format --check .

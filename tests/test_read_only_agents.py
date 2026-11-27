@@ -164,7 +164,8 @@ def test_the_ledger_counts_the_cached_tokens_of_every_turn(tmp_path):
         patch("uio.core.runner.execute_tool", return_value="ok"),
     ):
         run_agent(**args)
-    entry = json.loads(open(args["ledger_path"]).read().splitlines()[-1])
+    with open(args["ledger_path"]) as ledger:
+        entry = json.loads(ledger.read().splitlines()[-1])
     assert (entry["prompt_tokens"], entry["completion_tokens"], entry["cache_read_tokens"], entry["cache_write_tokens"]) == (
         30, 60, 300, 40,
     )  # fmt: skip

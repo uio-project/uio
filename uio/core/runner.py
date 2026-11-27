@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from functools import partial
+
 import fnmatch
 import glob as _glob
 import json
@@ -180,6 +183,50 @@ def _inject_vcs_identity(frontmatter: dict) -> str | None:
             f"  Falling back to GITHUB_PERSONAL_ACCESS_TOKEN is not permitted for identity agents."
         ) from exc
     return role
+
+
+@dataclass
+class _Totals:
+    """The tokens of one run so far, by kind."""
+
+    prompt: int = 0
+    completion: int = 0
+    cache_read: int = 0
+    cache_write: int = 0
+
+    def add(self, usage) -> None:
+        if usage:
+            self.prompt += usage.prompt_tokens
+            self.completion += usage.completion_tokens
+            self.cache_read += usage.cache_read_tokens
+            self.cache_write += usage.cache_write_tokens
+
+
+def _record_cost(
+    agent_name: str,
+    provider: str,
+    model: str,
+    totals: _Totals,
+    ledger_path: str,
+    workflow: str | None,
+    workflow_run_id: str | None,
+    cost_callback,
+) -> None:
+    """Write the run's ledger entry and tell the caller what it cost."""
+    write_cost_ledger(
+        agent_name,
+        provider,
+        model,
+        totals.prompt,
+        totals.completion,
+        ledger_path,
+        workflow=workflow,
+        workflow_run_id=workflow_run_id,
+        cache_read_tokens=totals.cache_read,
+        cache_write_tokens=totals.cache_write,
+    )
+    if cost_callback is not None:
+        cost_callback(agent_name, provider, model, totals.prompt, totals.completion)
 
 
 FINAL_TURN_NOTE = (
@@ -480,32 +527,19 @@ def run_agent(
             print()
 
             history = client.build_history(user_message)
-            total_prompt = 0
-            total_completion = 0
-            total_cache_read = 0
-            total_cache_write = 0
-
-            def _ledger() -> None:
-                write_cost_ledger(
-                    agent_name,
-                    candidate_provider,
-                    resolved_model,
-                    total_prompt,
-                    total_completion,
-                    ledger_path,
-                    workflow=workflow,
-                    workflow_run_id=workflow_run_id,
-                    cache_read_tokens=total_cache_read,
-                    cache_write_tokens=total_cache_write,
-                )
-                if cost_callback is not None:
-                    cost_callback(
-                        agent_name,
-                        candidate_provider,
-                        resolved_model,
-                        total_prompt,
-                        total_completion,
-                    )
+            totals = _Totals()
+            # Bound now, so the ledger names this attempt's provider and model, and its totals.
+            _ledger = partial(
+                _record_cost,
+                agent_name,
+                candidate_provider,
+                resolved_model,
+                totals,
+                ledger_path,
+                workflow,
+                workflow_run_id,
+                cost_callback,
+            )
 
             try:
                 for iteration in range(1, cap + 1):
@@ -526,11 +560,7 @@ def run_agent(
                             else:
                                 raise
 
-                    if response.usage:
-                        total_prompt += response.usage.prompt_tokens
-                        total_completion += response.usage.completion_tokens
-                        total_cache_read += response.usage.cache_read_tokens
-                        total_cache_write += response.usage.cache_write_tokens
+                    totals.add(response.usage)
 
                     if response.text:
                         print(response.text)
@@ -545,10 +575,10 @@ def run_agent(
                         running_cost = estimate_cost_usd(
                             candidate_provider,
                             resolved_model,
-                            total_prompt,
-                            total_completion,
-                            total_cache_read,
-                            total_cache_write,
+                            totals.prompt,
+                            totals.completion,
+                            totals.cache_read,
+                            totals.cache_write,
                         )
                         if running_cost > guardrail_max_cost:
                             _ledger()
@@ -594,11 +624,7 @@ def run_agent(
                     response = client.chat(
                         system=system_prompt, history=history, tools_enabled=False
                     )
-                    if response.usage:
-                        total_prompt += response.usage.prompt_tokens
-                        total_completion += response.usage.completion_tokens
-                        total_cache_read += response.usage.cache_read_tokens
-                        total_cache_write += response.usage.cache_write_tokens
+                    totals.add(response.usage)
                     if response.text and not response.tool_calls:
                         print(response.text)
                         print("\n✅ Agent finished on its final turn.")
